@@ -421,6 +421,8 @@ export default function LockersPage() {
                 setSelectedDoor(door);
                 setSheetOpen(true);
               }}
+              onQuickReserve={handleReserve}
+              onQuickRelease={handleRelease}
             />
           ))}
         </div>
