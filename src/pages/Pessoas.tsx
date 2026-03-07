@@ -69,7 +69,7 @@ export default function PessoasPage() {
       supabase.from("departamentos").select("id, nome").eq("company_id", selectedCompany.id).eq("ativo", true).order("nome"),
       supabase.from("setores").select("id, nome").eq("company_id", selectedCompany.id).eq("ativo", true).order("nome"),
     ]);
-    setPessoas(pessoasRes.data || []);
+    setPessoas((pessoasRes.data || []) as Pessoa[]);
     setDepartamentos(depsRes.data || []);
     setSetores(setoresRes.data || []);
     setLoading(false);
