@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Settings, LogOut, Shield, LayoutDashboard, Archive,
-  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette
+  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush
 } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -177,6 +177,17 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
             >
               <Palette className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
               {expanded && <span>Personalização</span>}
+            </button>
+            <button
+              onClick={() => handleNav("/white-label")}
+              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                location.pathname === "/white-label"
+                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              <Brush className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+              {expanded && <span>White Label</span>}
             </button>
           </>
         )}
