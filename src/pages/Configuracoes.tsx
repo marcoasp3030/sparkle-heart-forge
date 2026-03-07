@@ -7,7 +7,8 @@ import ConfigSeguranca from "@/components/configuracoes/ConfigSeguranca";
 import ConfigNotificacoes from "@/components/configuracoes/ConfigNotificacoes";
 import ConfigSistema from "@/components/configuracoes/ConfigSistema";
 import ConfigEmail from "@/components/configuracoes/ConfigEmail";
-import { User, Shield, Bell, Monitor, Mail } from "lucide-react";
+import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
