@@ -62,8 +62,8 @@ const PainelDeControle = () => {
     };
   }, [selectedCompany]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading && doors.length === 0) setLoading(true);
 
     const { data: lockers } = await supabase
       .from("lockers")
