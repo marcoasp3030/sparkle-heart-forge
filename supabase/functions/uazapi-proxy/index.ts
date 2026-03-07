@@ -85,7 +85,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
             ...authHeaders,
           },
-          body: JSON.stringify({ instName: name, instanceName: name }),
+          body: JSON.stringify({ Name: name, instanceName: name, instName: name }),
         });
 
         const contentType = response.headers.get("content-type") || "";
