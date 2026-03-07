@@ -17,6 +17,7 @@ interface LockerDoorProps {
   index: number;
   onSelect?: (door: LockerDoorData) => void;
   isCurrentUser?: boolean;
+  isAdmin?: boolean;
 }
 
 const sizeMap = {
@@ -76,10 +77,10 @@ const statusConfig = {
   },
 };
 
-export default function PortaArmario({ door, index, onSelect, isCurrentUser }: LockerDoorProps) {
+export default function PortaArmario({ door, index, onSelect, isCurrentUser, isAdmin }: LockerDoorProps) {
   const config = statusConfig[door.status];
   const Icon = config.icon;
-  const isClickable = door.status === "available" || isCurrentUser;
+  const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance");
 
   return (
     <Tooltip>
