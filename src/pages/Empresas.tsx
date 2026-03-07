@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,12 +18,20 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription
+} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
 const typeLabels: Record<string, { label: string; className: string }> = {
   employee: { label: "Funcionários", className: "bg-secondary/10 text-secondary border-secondary/20" },
   rental: { label: "Aluguel", className: "bg-accent/10 text-accent border-accent/20" },
 };
+
+const AVAILABLE_PERMISSIONS = [
+  { key: "manage_employees", label: "Gerenciar Funcionários/Clientes", description: "Cadastrar, editar e remover funcionários e clientes" },
+  { key: "manage_lockers", label: "Gerenciar Armários", description: "Reservar e administrar portas de armários" },
+];
 
 export default function CompaniesPage() {
   const { companies, refreshCompanies, isSuperAdmin } = useCompany();
@@ -31,6 +40,11 @@ export default function CompaniesPage() {
   const [editCompany, setEditCompany] = useState<any>(null);
   const [deleteCompany, setDeleteCompany] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Permissions sheet
+  const [permCompany, setPermCompany] = useState<any>(null);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [permLoading, setPermLoading] = useState(false);
 
   // Form fields
   const [name, setName] = useState("");
@@ -52,6 +66,42 @@ export default function CompaniesPage() {
     setDialogOpen(true);
   };
 
+  const openPermissions = async (company: any) => {
+    setPermCompany(company);
+    setPermLoading(true);
+    const { data } = await supabase
+      .from("company_permissions")
+      .select("permission, enabled")
+      .eq("company_id", company.id);
+
+    const perms: Record<string, boolean> = {};
+    AVAILABLE_PERMISSIONS.forEach((p) => { perms[p.key] = false; });
+    if (data) {
+      data.forEach((row: any) => { perms[row.permission] = row.enabled; });
+    }
+    setPermissions(perms);
+    setPermLoading(false);
+  };
+
+  const togglePermission = async (permKey: string, enabled: boolean) => {
+    if (!permCompany) return;
+    setPermissions((prev) => ({ ...prev, [permKey]: enabled }));
+
+    const { error } = await supabase
+      .from("company_permissions")
+      .upsert(
+        { company_id: permCompany.id, permission: permKey, enabled },
+        { onConflict: "company_id,permission" }
+      );
+
+    if (error) {
+      toast({ title: "Erro ao salvar permissão", description: error.message, variant: "destructive" });
+      setPermissions((prev) => ({ ...prev, [permKey]: !enabled }));
+    } else {
+      toast({ title: "Permissão atualizada!", description: `${enabled ? "Ativada" : "Desativada"} para ${permCompany.name}` });
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) return;
     setLoading(true);
@@ -67,12 +117,21 @@ export default function CompaniesPage() {
         toast({ title: "Empresa atualizada!" });
       }
     } else {
-      const { error } = await supabase
+      const { data: newCompany, error } = await supabase
         .from("companies")
-        .insert({ name, type, description });
+        .insert({ name, type, description })
+        .select()
+        .single();
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       } else {
+        // Auto-create default permissions for new company
+        if (newCompany) {
+          await supabase.from("company_permissions").insert([
+            { company_id: newCompany.id, permission: "manage_employees", enabled: true },
+            { company_id: newCompany.id, permission: "manage_lockers", enabled: true },
+          ]);
+        }
         toast({ title: "Empresa criada!", description: `${name} adicionada com sucesso.` });
       }
     }
@@ -115,7 +174,7 @@ export default function CompaniesPage() {
             </div>
             Empresas
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie as empresas cadastradas no sistema.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Gerencie as empresas e suas permissões.</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
@@ -206,6 +265,9 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(company)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -226,6 +288,41 @@ export default function CompaniesPage() {
           ))}
         </div>
       )}
+
+      {/* Permissions Sheet */}
+      <Sheet open={!!permCompany} onOpenChange={(open) => !open && setPermCompany(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Permissões — {permCompany?.name}
+            </SheetTitle>
+            <SheetDescription>
+              Ative ou desative funcionalidades para esta empresa.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {permLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              AVAILABLE_PERMISSIONS.map((perm) => (
+                <div key={perm.key} className="flex items-center justify-between rounded-xl border border-border/50 p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex-1 mr-4">
+                    <p className="text-sm font-semibold text-foreground">{perm.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{perm.description}</p>
+                  </div>
+                  <Switch
+                    checked={permissions[perm.key] || false}
+                    onCheckedChange={(checked) => togglePermission(perm.key, checked)}
+                  />
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteCompany} onOpenChange={(open) => !open && setDeleteCompany(null)}>

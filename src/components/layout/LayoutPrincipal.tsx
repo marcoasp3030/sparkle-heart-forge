@@ -14,12 +14,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import lockerLogo from "@/assets/locker-logo.png";
 
-const navItems = [
+interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+  permission?: string;
+}
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Archive, label: "Armários", path: "/armarios" },
+  { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
-  { icon: Users, label: "Pessoas", path: "/pessoas" },
+  { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 

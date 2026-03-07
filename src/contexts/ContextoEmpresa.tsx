@@ -21,6 +21,8 @@ interface CompanyContextType {
   userRole: string | null;
   userCompanyId: string | null;
   refreshCompanies: () => Promise<void>;
+  companyPermissions: Record<string, boolean>;
+  hasPermission: (permission: string) => boolean;
 }
 
 const CompanyContext = createContext<CompanyContextType>({
@@ -32,6 +34,8 @@ const CompanyContext = createContext<CompanyContextType>({
   userRole: null,
   userCompanyId: null,
   refreshCompanies: async () => {},
+  companyPermissions: {},
+  hasPermission: () => false,
 });
 
 export const useCompany = () => useContext(CompanyContext);
@@ -44,12 +48,30 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userCompanyId, setUserCompanyId] = useState<string | null>(null);
+  const [companyPermissions, setCompanyPermissions] = useState<Record<string, boolean>>({});
+
+  const fetchPermissions = async (companyId: string) => {
+    const { data } = await supabase
+      .from("company_permissions")
+      .select("permission, enabled")
+      .eq("company_id", companyId);
+
+    const perms: Record<string, boolean> = {};
+    if (data) {
+      data.forEach((row: any) => { perms[row.permission] = row.enabled; });
+    }
+    setCompanyPermissions(perms);
+  };
+
+  const hasPermission = (permission: string): boolean => {
+    if (isSuperAdmin) return true;
+    return companyPermissions[permission] === true;
+  };
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from("companies").select("*").eq("active", true).order("name");
     if (data) {
       setCompanies(data);
-      // Auto-select first if none selected
       if (!selectedCompany && data.length > 0) {
         setSelectedCompany(data[0]);
       }
@@ -63,7 +85,6 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const init = async () => {
-      // Get user profile
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, company_id")
@@ -81,6 +102,15 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
 
     init();
   }, [user]);
+
+  // Fetch permissions when selected company changes
+  useEffect(() => {
+    if (selectedCompany) {
+      fetchPermissions(selectedCompany.id);
+    } else {
+      setCompanyPermissions({});
+    }
+  }, [selectedCompany]);
 
   // If non-superadmin, lock to their company
   useEffect(() => {
@@ -101,6 +131,8 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         userRole,
         userCompanyId,
         refreshCompanies: fetchCompanies,
+        companyPermissions,
+        hasPermission,
       }}
     >
       {children}
