@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -58,10 +58,35 @@ export default function CompaniesPage() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
+  // Company stats
+  const [companyStats, setCompanyStats] = useState<Record<string, { users: number; departments: number; sectors: number; lockers: number }>>({});
+
   // Form fields
   const [name, setName] = useState("");
   const [type, setType] = useState<"employee" | "rental">("employee");
   const [description, setDescription] = useState("");
+
+  // Fetch stats for all companies
+  useEffect(() => {
+    if (!companies.length) return;
+    const fetchStats = async () => {
+      const ids = companies.map(c => c.id);
+      const [profilesRes, deptRes, setoresRes, lockersRes] = await Promise.all([
+        supabase.from("profiles").select("company_id").in("company_id", ids),
+        supabase.from("departamentos").select("company_id").in("company_id", ids).eq("ativo", true),
+        supabase.from("setores").select("company_id").in("company_id", ids).eq("ativo", true),
+        supabase.from("lockers").select("company_id").in("company_id", ids),
+      ]);
+      const stats: Record<string, { users: number; departments: number; sectors: number; lockers: number }> = {};
+      ids.forEach(id => { stats[id] = { users: 0, departments: 0, sectors: 0, lockers: 0 }; });
+      profilesRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].users++; });
+      deptRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].departments++; });
+      setoresRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].sectors++; });
+      lockersRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].lockers++; });
+      setCompanyStats(stats);
+    };
+    fetchStats();
+  }, [companies]);
 
   const resetForm = () => {
     setName("");
@@ -343,6 +368,21 @@ export default function CompaniesPage() {
                   {company.description && (
                     <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{company.description}</p>
                   )}
+                  {/* Dynamic counters */}
+                  <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-border/40">
+                    {[
+                      { icon: Users, label: "Usuários", value: companyStats[company.id]?.users ?? 0 },
+                      { icon: Network, label: "Deptos", value: companyStats[company.id]?.departments ?? 0 },
+                      { icon: Layers, label: "Setores", value: companyStats[company.id]?.sectors ?? 0 },
+                      { icon: Lock, label: "Armários", value: companyStats[company.id]?.lockers ?? 0 },
+                    ].map((stat) => (
+                      <div key={stat.label} className="flex flex-col items-center gap-1">
+                        <stat.icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <span className="text-sm font-bold text-foreground">{stat.value}</span>
+                        <span className="text-[10px] text-muted-foreground/60">{stat.label}</span>
+                      </div>
+                    ))}
+                  </div>
                   <p className="text-[11px] text-muted-foreground/60 mt-3">
                     Criada em {new Date(company.created_at).toLocaleDateString("pt-BR")}
                   </p>
