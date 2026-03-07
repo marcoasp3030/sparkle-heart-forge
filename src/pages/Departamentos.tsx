@@ -106,25 +106,25 @@ export default function DepartamentosPage() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10"><Building className="h-5 w-5 text-primary" /></div>
-            Departamentos
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie os departamentos de {selectedCompany.name}.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." className="pl-9 h-9 w-56 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10"><Building className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /></div>
+              Departamentos
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Gerencie os departamentos de {selectedCompany.name}.</p>
           </div>
           {isAdmin && (
-            <Button size="sm" className="gap-2 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20"
+            <Button size="sm" className="gap-1.5 sm:gap-2 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs sm:text-sm"
               onClick={() => { resetForm(); setDialogOpen(true); }}>
-              <Plus className="h-4 w-4" /> Novo Departamento
+              <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo Departamento</span><span className="sm:hidden">Novo</span>
             </Button>
           )}
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar departamentos..." className="pl-9 h-9 w-full bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </motion.div>
 
@@ -136,7 +136,7 @@ export default function DepartamentosPage() {
           <p className="text-muted-foreground font-medium">Nenhum departamento encontrado.</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((dep, i) => (
             <motion.div key={dep.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="shadow-card border-border/50 hover:shadow-elevated transition-shadow group">
@@ -152,7 +152,7 @@ export default function DepartamentosPage() {
                       </div>
                     </div>
                     {isAdmin && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(dep)}><Pencil className="h-3 w-3" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteItem(dep)}><Trash2 className="h-3 w-3" /></Button>
                       </div>
