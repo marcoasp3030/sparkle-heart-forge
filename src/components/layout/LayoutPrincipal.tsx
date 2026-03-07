@@ -1,6 +1,7 @@
 import { useState, ReactNode } from "react";
 import { Menu, Building2, Sun, Moon } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useTheme } from "next-themes";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
   useCompanyBranding();
+  useSessionTimeout();
 
   return (
     <div className="min-h-screen bg-background flex">
