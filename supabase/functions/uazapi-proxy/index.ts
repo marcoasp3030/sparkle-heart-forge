@@ -159,18 +159,39 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      const response = await fetch(`${baseUrl}/instance/qrcode`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "token": String(instToken),
-          "instance_token": String(instToken),
-        },
-      });
+      
+      // Try multiple QR code endpoints
+      const qrEndpoints = [
+        { url: `${baseUrl}/instance/qrcode`, method: "GET" },
+        { url: `${baseUrl}/instance/connect`, method: "GET" },
+        { url: `${baseUrl}/instance/qr`, method: "GET" },
+        { url: `${baseUrl}/instance/qrcode`, method: "POST" },
+      ];
 
-      const data = await response.json();
+      let qrData: any = null;
+      for (const ep of qrEndpoints) {
+        try {
+          const response = await fetch(ep.url, {
+            method: ep.method,
+            headers: {
+              "Content-Type": "application/json",
+              "token": String(instToken),
+              "admintoken": String(adminToken),
+            },
+          });
+          const text = await response.text();
+          console.log(`QR ${ep.method} ${ep.url} -> ${response.status}: ${text.substring(0, 300)}`);
+          
+          if (response.ok) {
+            try { qrData = JSON.parse(text); } catch { qrData = { raw: text }; }
+            break;
+          }
+        } catch (err) {
+          console.log(`QR fetch error for ${ep.url}:`, err);
+        }
+      }
 
-      return new Response(JSON.stringify({ success: true, data }), {
+      return new Response(JSON.stringify({ success: true, data: qrData }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
