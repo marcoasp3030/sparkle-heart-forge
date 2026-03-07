@@ -16,6 +16,8 @@ interface LockerUnitProps {
   locker: LockerData;
   doors: LockerDoorData[];
   onSelectDoor?: (door: LockerDoorData) => void;
+  onQuickReserve?: (door: LockerDoorData) => void;
+  onQuickRelease?: (door: LockerDoorData) => void;
   onEdit?: (locker: LockerData) => void;
   onDelete?: (locker: LockerData) => void;
   currentUserId?: string;
