@@ -7,7 +7,8 @@ import ConfigSeguranca from "@/components/configuracoes/ConfigSeguranca";
 import ConfigNotificacoes from "@/components/configuracoes/ConfigNotificacoes";
 import ConfigSistema from "@/components/configuracoes/ConfigSistema";
 import ConfigEmail from "@/components/configuracoes/ConfigEmail";
-import { User, Shield, Bell, Monitor, Mail } from "lucide-react";
+import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
@@ -44,6 +45,18 @@ export default function Configuracoes() {
             </TabsTrigger>
           )}
           {isAdmin && (
+            <TabsTrigger value="email" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <Mail className="h-4 w-4" />
+              E-mail
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="whatsapp" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <MessageSquare className="h-4 w-4" />
+              WhatsApp
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="sistema" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <Monitor className="h-4 w-4" />
               Sistema
@@ -63,6 +76,16 @@ export default function Configuracoes() {
         {isAdmin && (
           <TabsContent value="email">
             <ConfigEmail />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="email">
+            <ConfigEmail />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="whatsapp">
+            <ConfigUazapi />
           </TabsContent>
         )}
         {isAdmin && (
