@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/ContextoAutenticacao";
 import { CompanyProvider } from "@/contexts/ContextoEmpresa";
 import { PlatformProvider } from "@/contexts/ContextoPlataforma";
@@ -54,19 +55,21 @@ function RotasAnimadas() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <PlatformProvider>
-      <AuthProvider>
-        <CompanyProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <RotasAnimadas />
-          </BrowserRouter>
-          </TooltipProvider>
-        </CompanyProvider>
-      </AuthProvider>
-    </PlatformProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <PlatformProvider>
+        <AuthProvider>
+          <CompanyProvider>
+            <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <RotasAnimadas />
+            </BrowserRouter>
+            </TooltipProvider>
+          </CompanyProvider>
+        </AuthProvider>
+      </PlatformProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
