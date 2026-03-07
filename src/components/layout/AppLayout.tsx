@@ -1,15 +1,14 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
-  Lock, Unlock, Package, Settings, Bell, Search,
+  Settings, Bell,
   LogOut, Shield, LayoutDashboard, Archive,
-  BarChart3, Wrench, ChevronDown, Menu
+  BarChart3, ChevronDown, Menu, Building2, ChevronsUpDown
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
@@ -25,25 +24,11 @@ const navItems = [
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { user, signOut } = useAuth();
+  const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, userRole } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [profileName, setProfileName] = useState("");
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.role === "superadmin") setIsSuperAdmin(true);
-        if (data?.full_name) setProfileName(data.full_name);
-      });
-  }, [user]);
-
-  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
@@ -64,8 +49,48 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           )}
         </div>
 
+        {/* Company Selector (superadmin only) */}
+        {isSuperAdmin && sidebarOpen && companies.length > 0 && (
+          <div className="px-3 pt-4 pb-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sidebar-accent/60 hover:bg-sidebar-accent transition-colors text-left">
+                  <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-sidebar-accent-foreground truncate">
+                      {selectedCompany?.name || "Selecionar empresa"}
+                    </p>
+                    <p className="text-[10px] text-sidebar-foreground/50 truncate">
+                      {selectedCompany?.type === "employee" ? "Funcionários" : selectedCompany?.type === "rental" ? "Aluguel" : ""}
+                    </p>
+                  </div>
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 rounded-xl p-1">
+                {companies.map((c) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onClick={() => setSelectedCompany(c)}
+                    className={`rounded-lg py-2 text-sm ${selectedCompany?.id === c.id ? "bg-primary/10 text-primary" : ""}`}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSelectedCompany(null)} className="rounded-lg py-2 text-sm text-muted-foreground">
+                  Todas as empresas
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
         {sidebarOpen && (
-          <div className="px-5 pt-6 pb-2">
+          <div className="px-5 pt-5 pb-2">
             <span className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-[0.15em]">Menu Principal</span>
           </div>
         )}
@@ -104,6 +129,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 </div>
               )}
               {!sidebarOpen && <div className="my-3 mx-2 h-px bg-sidebar-border" />}
+              <button
+                onClick={() => navigate("/companies")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/companies"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Building2 className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {sidebarOpen && <span>Empresas</span>}
+              </button>
               <button
                 onClick={() => navigate("/admin")}
                 className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -159,6 +195,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="h-9 w-9">
               <Menu className="h-4 w-4" />
             </Button>
+            {selectedCompany && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span className="font-medium text-foreground">{selectedCompany.name}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="relative h-9 w-9">
