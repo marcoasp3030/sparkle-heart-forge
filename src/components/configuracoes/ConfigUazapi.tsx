@@ -168,17 +168,20 @@ export default function ConfigUazapi() {
         toast({ title: "Erro ao obter QR Code", description: errorMsg, variant: "destructive" });
       } else {
         const d = res.data?.data;
-        // Try all known QR code field locations from UAZAPI
+        // UAZAPI /instance/connect returns QR in various fields
         const qr = d?.qrcode || d?.qr || d?.base64 || d?.pairingCode || d?.paircode ||
-                   d?.data?.qrcode || d?.data?.qr || d?.data?.base64 ||
                    d?.instance?.qrcode || d?.instance?.paircode ||
+                   d?.data?.qrcode || d?.data?.qr || d?.data?.base64 ||
                    (typeof d === 'string' ? d : null);
         
         if (qr) {
-          setQrCode(qr);
+          // If it's a base64 without prefix, add it
+          const qrValue = qr.startsWith("data:") ? qr : 
+                          qr.startsWith("/9j") || qr.startsWith("iVBOR") ? `data:image/png;base64,${qr}` : qr;
+          setQrCode(qrValue);
         } else {
           console.log("QR response data:", JSON.stringify(res.data));
-          toast({ title: "QR Code não disponível", description: "Verifique os logs. Resposta: " + JSON.stringify(d).substring(0, 100), variant: "destructive" });
+          toast({ title: "QR Code não disponível", description: "Resposta: " + JSON.stringify(d).substring(0, 150), variant: "destructive" });
         }
       }
     } catch (err: any) {
