@@ -192,6 +192,13 @@ const Auth = () => {
             </p>
           </div>
 
+          {bloqueado && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>{msgBloqueio}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-1.5">
