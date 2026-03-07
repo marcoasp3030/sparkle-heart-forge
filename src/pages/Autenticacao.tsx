@@ -74,17 +74,13 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setBloqueado(false);
+    setStatusLogin(null);
 
     try {
       if (isLogin) {
-        // Check rate limiting
         const status = await verificarBloqueioLogin(email);
         if (status.bloqueado) {
-          setBloqueado(true);
-          setMsgBloqueio(
-            `Conta temporariamente bloqueada. Tente novamente em ${status.minutosRestantes} minuto(s).`
-          );
+          setStatusLogin(status);
           setLoading(false);
           return;
         }
@@ -99,15 +95,12 @@ const Auth = () => {
           });
 
           const updated = await verificarBloqueioLogin(email);
-          if (updated.bloqueado) {
-            setBloqueado(true);
-            setMsgBloqueio(
-              `Muitas tentativas falhas. Conta bloqueada por ${updated.minutosRestantes} minuto(s).`
-            );
-          } else {
+          setStatusLogin(updated);
+
+          if (!updated.bloqueado) {
             toast({
-              title: "Erro de autenticação",
-              description: `${error.message} (${updated.tentativasRestantes} tentativa(s) restante(s))`,
+              title: traduzirErro(error.message),
+              description: updated.mensagem,
               variant: "destructive",
             });
           }
@@ -132,20 +125,29 @@ const Auth = () => {
         });
         if (error) throw error;
         toast({
-          title: "Conta criada!",
-          description: "Verifique seu e-mail para confirmar o cadastro.",
+          title: "Conta criada com sucesso!",
+          description: "Enviamos um link de confirmação para seu e-mail. Verifique sua caixa de entrada e spam.",
         });
       }
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: traduzirErro(error.message),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  function traduzirErro(msg: string): string {
+    if (msg.includes("Invalid login credentials")) return "E-mail ou senha incorretos";
+    if (msg.includes("Email not confirmed")) return "E-mail não confirmado. Verifique sua caixa de entrada.";
+    if (msg.includes("User already registered")) return "Este e-mail já está cadastrado.";
+    if (msg.includes("Password should be")) return "A senha deve ter pelo menos 6 caracteres.";
+    if (msg.includes("rate limit")) return "Muitas requisições. Aguarde um momento.";
+    return msg;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
