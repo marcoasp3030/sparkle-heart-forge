@@ -320,8 +320,8 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading || (statusLogin?.bloqueado ?? false)}>
-              {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading || segundosRestantes > 0 || (statusLogin?.bloqueado ?? false)}>
+              {loading ? "Aguarde..." : segundosRestantes > 0 ? `Bloqueado (${segundosRestantes}s)` : isLogin ? "Entrar" : "Criar conta"}
             </Button>
           </form>
 
