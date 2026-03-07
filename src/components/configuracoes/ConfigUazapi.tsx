@@ -11,6 +11,24 @@ import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Server, Key, QrCode, Wifi, WifiOff, Loader2, RefreshCw, Unplug, Send } from "lucide-react";
 
+// Helper to extract error message from supabase.functions.invoke response
+async function extractError(res: { data: any; error: any }): Promise<string | null> {
+  if (res.error) {
+    // Try to parse error body from FunctionsHttpError
+    try {
+      if (res.error.context && typeof res.error.context.json === 'function') {
+        const body = await res.error.context.json();
+        return body?.error || body?.details?.error || body?.message || String(res.error.message);
+      }
+    } catch {}
+    return res.error.message || String(res.error);
+  }
+  if (res.data?.error) {
+    return typeof res.data.error === 'string' ? res.data.error : JSON.stringify(res.data.error);
+  }
+  return null;
+}
+
 export default function ConfigUazapi() {
   const { user } = useAuth();
   const { isSuperAdmin, selectedCompany, userRole } = useCompany();
