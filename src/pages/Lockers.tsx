@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, MapPin, Search, Filter } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +44,11 @@ export default function LockersPage() {
   const [newRows, setNewRows] = useState(4);
   const [newDoorSize, setNewDoorSize] = useState<"small" | "medium" | "large">("medium");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editLocker, setEditLocker] = useState<LockerData | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [deleteLocker, setDeleteLocker] = useState<LockerData | null>(null);
 
   const fetchLockers = useCallback(async () => {
     setLoading(true);
@@ -133,6 +142,46 @@ export default function LockersPage() {
     } else {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
       setSheetOpen(false);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
+  const openEditDialog = (locker: LockerData) => {
+    setEditLocker(locker);
+    setEditName(locker.name);
+    setEditLocation(locker.location);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditLocker = async () => {
+    if (!editLocker || !editName.trim()) return;
+    setActionLoading(true);
+    const { error } = await supabase
+      .from("lockers")
+      .update({ name: editName, location: editLocation })
+      .eq("id", editLocker.id);
+
+    if (error) {
+      toast({ title: "Erro ao editar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Atualizado!", description: `${editName} atualizado com sucesso.` });
+      setEditDialogOpen(false);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
+  const handleDeleteLocker = async () => {
+    if (!deleteLocker) return;
+    setActionLoading(true);
+    const { error } = await supabase.from("lockers").delete().eq("id", deleteLocker.id);
+
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Excluído!", description: `${deleteLocker.name} removido.` });
+      setDeleteLocker(null);
       fetchLockers();
     }
     setActionLoading(false);
@@ -304,6 +353,9 @@ export default function LockersPage() {
               doors={locker.doors}
               index={i}
               currentUserId={user?.id}
+              isAdmin={isAdmin}
+              onEdit={openEditDialog}
+              onDelete={(l) => setDeleteLocker(l)}
               onSelectDoor={(door) => {
                 setSelectedDoor(door);
                 setSheetOpen(true);
@@ -323,6 +375,51 @@ export default function LockersPage() {
         isCurrentUser={selectedDoor?.occupied_by === user?.id}
         loading={actionLoading}
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Armário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Localização</Label>
+              <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="rounded-xl">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleEditLocker} disabled={actionLoading || !editName.trim()} className="gradient-primary border-0 rounded-xl hover:opacity-90">
+              {actionLoading ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteLocker} onOpenChange={(open) => !open && setDeleteLocker(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir armário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O armário <strong>{deleteLocker?.name}</strong> e todas as suas portas serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLocker} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">
+              {actionLoading ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
