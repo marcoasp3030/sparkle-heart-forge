@@ -428,6 +428,8 @@ export default function LockersPage() {
         onRelease={handleRelease}
         isCurrentUser={selectedDoor?.occupied_by === user?.id}
         loading={actionLoading}
+        isAdmin={isAdmin}
+        onSetMaintenance={handleSetMaintenance}
       />
 
       {/* Edit Dialog */}
