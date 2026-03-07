@@ -570,7 +570,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_login_lockout_status: {
+        Args: { _email: string }
+        Returns: {
+          bloqueado: boolean
+          mensagem: string
+          minutos_restantes: number
+          nivel: string
+          segundos_restantes: number
+          tentativas_restantes: number
+          total_falhas: number
+        }[]
+      }
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      register_login_attempt: {
+        Args: { _email: string; _success: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -92,60 +92,57 @@ function gerarMensagem(falhas: number, restantes: number, minutosRestantes: numb
 }
 
 export async function verificarBloqueioLogin(email: string): Promise<StatusBloqueio> {
-  const cutoff = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
+  try {
+    const { data, error } = await (supabase as any).rpc("get_login_lockout_status", {
+      _email: email.toLowerCase().trim(),
+    });
 
-  const { data } = await supabase
-    .from("login_attempts")
-    .select("id, created_at")
-    .eq("email", email.toLowerCase())
-    .eq("success", false)
-    .gte("created_at", cutoff)
-    .order("created_at", { ascending: false });
+    if (error) throw error;
 
-  const falhas = data?.length ?? 0;
-
-  // Check if locked out (5+ failures → 60s block)
-  if (falhas >= MAX_ATTEMPTS && data && data.length > 0) {
-    const lastAttempt = new Date(data[0].created_at).getTime();
-    const unlockAt = lastAttempt + LOCKOUT_SECONDS * 1000;
-    const now = Date.now();
-
-    if (now < unlockAt) {
-      const segundos = Math.ceil((unlockAt - now) / 1000);
-      const minutos = Math.max(1, Math.ceil(segundos / 60));
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
       return {
-        bloqueado: true,
-        tentativasRestantes: 0,
-        minutosRestantes: minutos,
-        segundosRestantes: segundos,
-        totalFalhas: falhas,
-        nivel: "bloqueado",
-        mensagem: `Sua conta foi temporariamente bloqueada por segurança. Aguarde ${segundos} segundo(s) antes de tentar novamente.`,
+        bloqueado: false,
+        tentativasRestantes: MAX_ATTEMPTS,
+        minutosRestantes: 0,
+        segundosRestantes: 0,
+        totalFalhas: 0,
+        nivel: "info",
+        mensagem: "",
       };
     }
+
+    return {
+      bloqueado: Boolean(row.bloqueado),
+      tentativasRestantes: Number(row.tentativas_restantes ?? 0),
+      minutosRestantes: Number(row.minutos_restantes ?? 0),
+      segundosRestantes: Number(row.segundos_restantes ?? 0),
+      totalFalhas: Number(row.total_falhas ?? 0),
+      nivel: (row.nivel as NivelAlerta) ?? "info",
+      mensagem: String(row.mensagem ?? ""),
+    };
+  } catch (err) {
+    console.error("Erro ao verificar bloqueio de login:", err);
+    return {
+      bloqueado: false,
+      tentativasRestantes: MAX_ATTEMPTS,
+      minutosRestantes: 0,
+      segundosRestantes: 0,
+      totalFalhas: 0,
+      nivel: "info",
+      mensagem: "",
+    };
   }
-
-  // Not locked — calculate remaining attempts
-  const restantes = Math.max(0, MAX_ATTEMPTS - falhas);
-  const nivel = calcularNivel(falhas);
-
-  return {
-    bloqueado: false,
-    tentativasRestantes: Math.max(0, restantes),
-    minutosRestantes: 0,
-    segundosRestantes: 0,
-    totalFalhas: falhas,
-    nivel,
-    mensagem: gerarMensagem(falhas, restantes, 0),
-  };
 }
 
 export async function registrarTentativaLogin(email: string, sucesso: boolean) {
   try {
-    await supabase.from("login_attempts").insert({
-      email: email.toLowerCase(),
-      success: sucesso,
-    } as any);
+    const { error } = await (supabase as any).rpc("register_login_attempt", {
+      _email: email.toLowerCase().trim(),
+      _success: sucesso,
+    });
+
+    if (error) throw error;
   } catch (err) {
     console.error("Erro ao registrar tentativa de login:", err);
   }
