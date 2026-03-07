@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locker_doors: {
         Row: {
           created_at: string
@@ -71,6 +101,7 @@ export type Database = {
       lockers: {
         Row: {
           columns: number
+          company_id: string | null
           created_at: string
           id: string
           location: string
@@ -81,6 +112,7 @@ export type Database = {
         }
         Insert: {
           columns?: number
+          company_id?: string | null
           created_at?: string
           id?: string
           location?: string
@@ -91,6 +123,7 @@ export type Database = {
         }
         Update: {
           columns?: number
+          company_id?: string | null
           created_at?: string
           id?: string
           location?: string
@@ -99,11 +132,20 @@ export type Database = {
           rows?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lockers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           avatar_url: string | null
+          company_id: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -113,6 +155,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          company_id?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -122,6 +165,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          company_id?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -129,7 +173,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

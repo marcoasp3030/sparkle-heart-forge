@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ interface LockerWithDoors extends LockerData {
 
 export default function LockersPage() {
   const { user } = useAuth();
+  const { selectedCompany, isSuperAdmin, userRole } = useCompany();
   const { toast } = useToast();
   const [lockers, setLockers] = useState<LockerWithDoors[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,11 @@ export default function LockersPage() {
 
   const fetchLockers = useCallback(async () => {
     setLoading(true);
-    const { data: lockersData } = await supabase.from("lockers").select("*").order("created_at");
+    let lockersQuery = supabase.from("lockers").select("*").order("created_at");
+    if (selectedCompany) {
+      lockersQuery = lockersQuery.eq("company_id", selectedCompany.id);
+    }
+    const { data: lockersData } = await lockersQuery;
     const { data: doorsData } = await supabase.from("locker_doors").select("*");
 
     if (lockersData && doorsData) {
@@ -63,7 +69,7 @@ export default function LockersPage() {
       setLockers(merged);
     }
     setLoading(false);
-  }, []);
+  }, [selectedCompany]);
 
   useEffect(() => {
     fetchLockers();
@@ -73,7 +79,7 @@ export default function LockersPage() {
           if (data?.role === "admin" || data?.role === "superadmin") setIsAdmin(true);
         });
     }
-  }, [user, fetchLockers]);
+  }, [user, fetchLockers, selectedCompany]);
 
   const handleCreateLocker = async () => {
     if (!newName.trim()) return;
@@ -81,7 +87,7 @@ export default function LockersPage() {
 
     const { data: locker, error } = await supabase
       .from("lockers")
-      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows })
+      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows, company_id: selectedCompany?.id || null })
       .select()
       .single();
 
