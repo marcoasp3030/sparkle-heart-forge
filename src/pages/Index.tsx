@@ -6,7 +6,7 @@ import {
   BarChart3, Wrench, ChevronDown, Menu
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,26 +112,30 @@ const Index = () => {
 
         {/* Nav */}
         <nav className="flex-1 py-2 px-3 space-y-0.5">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
-                item.active
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <item.icon className={`h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 ${!item.active ? "group-hover:scale-110" : ""}`} />
-              {sidebarOpen && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
-                  {item.label}
-                </motion.span>
-              )}
-              {item.active && !sidebarOpen && (
-                <div className="absolute -right-px top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-l-full bg-primary" />
-              )}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
+                  isActive
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <item.icon className={`h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 ${!isActive ? "group-hover:scale-110" : ""}`} />
+                {sidebarOpen && (
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+                    {item.label}
+                  </motion.span>
+                )}
+                {isActive && !sidebarOpen && (
+                  <div className="absolute -right-px top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-l-full bg-primary" />
+                )}
+              </button>
+            );
+          })}
 
           {isSuperAdmin && (
             <>
