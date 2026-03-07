@@ -79,7 +79,7 @@ export default function LockersPage() {
           if (data?.role === "admin" || data?.role === "superadmin") setIsAdmin(true);
         });
     }
-  }, [user, fetchLockers]);
+  }, [user, fetchLockers, selectedCompany]);
 
   const handleCreateLocker = async () => {
     if (!newName.trim()) return;
