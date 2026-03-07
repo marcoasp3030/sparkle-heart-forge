@@ -194,11 +194,37 @@ const Auth = () => {
             </p>
           </div>
 
-          {bloqueado && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-              <ShieldAlert className="h-4 w-4 shrink-0" />
-              <span>{msgBloqueio}</span>
-            </div>
+          {statusLogin && statusLogin.totalFalhas > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-col gap-2 p-3 rounded-lg border text-sm mb-2 ${
+                statusLogin.nivel === "bloqueado"
+                  ? "bg-destructive/10 border-destructive/30 text-destructive"
+                  : statusLogin.nivel === "perigo"
+                  ? "bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                  : statusLogin.nivel === "aviso"
+                  ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
+                  : "bg-muted border-border text-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {statusLogin.nivel === "bloqueado" ? (
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                ) : statusLogin.nivel === "perigo" ? (
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                ) : (
+                  <Info className="h-4 w-4 shrink-0" />
+                )}
+                <span>{statusLogin.mensagem}</span>
+              </div>
+              {!statusLogin.bloqueado && statusLogin.tentativasRestantes <= 3 && (
+                <Progress
+                  value={(statusLogin.tentativasRestantes / 5) * 100}
+                  className="h-1.5"
+                />
+              )}
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
