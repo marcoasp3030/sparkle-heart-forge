@@ -211,11 +211,15 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const filteredLockers = lockers.filter((l) => {
-    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
-    if (statusFilter === "all") return matchSearch;
-    return matchSearch && l.doors.some((d) => d.status === statusFilter);
-  }).map((l) => statusFilter === "all" ? l : { ...l, doors: l.doors });
+  const filteredLockers = lockers
+    .map((l) => {
+      if (statusFilter === "all") return l;
+      return { ...l, doors: l.doors.filter((d) => d.status === statusFilter) };
+    })
+    .filter((l) => {
+      if (l.doors.length === 0 && statusFilter !== "all") return false;
+      return l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+    });
 
   // Stats
   const allDoors = lockers.flatMap((l) => l.doors);
