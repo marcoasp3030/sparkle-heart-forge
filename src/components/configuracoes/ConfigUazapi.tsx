@@ -269,12 +269,12 @@ export default function ConfigUazapi() {
                 <MessageSquare className="h-5 w-5" />
                 WhatsApp da Empresa
                 {instanceStatus === "connected" && (
-                  <Badge className="bg-green-100 text-green-700 border-green-300">
+                  <Badge className="bg-primary/10 text-primary border-primary/30">
                     <Wifi className="h-3 w-3 mr-1" /> Conectado
                   </Badge>
                 )}
                 {instanceStatus === "disconnected" && (
-                  <Badge variant="outline" className="text-orange-600 border-orange-300">
+                  <Badge variant="outline" className="text-destructive border-destructive/30">
                     <WifiOff className="h-3 w-3 mr-1" /> Desconectado
                   </Badge>
                 )}
@@ -291,7 +291,7 @@ export default function ConfigUazapi() {
             </CardHeader>
             <CardContent className="space-y-4">
               {phoneNumber && instanceStatus === "connected" && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm">
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
                   <span className="font-medium">Número conectado:</span> {phoneNumber}
                 </div>
               )}
