@@ -148,6 +148,7 @@ export default function ConfigEmail() {
     }
   };
 
+  const handleSendTest = async () => {
     if (!testEmail) {
       toast({ title: "Informe um e-mail para teste", variant: "destructive" });
       return;
