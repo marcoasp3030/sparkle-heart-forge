@@ -174,10 +174,10 @@ serve(async (req) => {
       ];
 
       let qrData: any = null;
-      for (const ep of qrEndpoints) {
+      for (const url of qrEndpoints) {
         try {
-          const response = await fetch(ep.url, {
-            method: ep.method,
+          const response = await fetch(url, {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
               "token": String(instToken),
@@ -185,14 +185,14 @@ serve(async (req) => {
             },
           });
           const text = await response.text();
-          console.log(`QR ${ep.method} ${ep.url} -> ${response.status}: ${text.substring(0, 500)}`);
+          console.log(`QR GET ${url} -> ${response.status}: ${text.substring(0, 500)}`);
           
           if (response.ok) {
             try { qrData = JSON.parse(text); } catch { qrData = { raw: text }; }
             break;
           }
         } catch (err) {
-          console.log(`QR fetch error for ${ep.url}:`, err);
+          console.log(`QR fetch error for ${url}:`, err);
         }
       }
 
