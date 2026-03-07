@@ -28,8 +28,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [bloqueado, setBloqueado] = useState(false);
-  const [msgBloqueio, setMsgBloqueio] = useState("");
+  const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
