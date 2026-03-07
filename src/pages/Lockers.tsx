@@ -44,6 +44,11 @@ export default function LockersPage() {
   const [newRows, setNewRows] = useState(4);
   const [newDoorSize, setNewDoorSize] = useState<"small" | "medium" | "large">("medium");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editLocker, setEditLocker] = useState<LockerData | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [deleteLocker, setDeleteLocker] = useState<LockerData | null>(null);
 
   const fetchLockers = useCallback(async () => {
     setLoading(true);
