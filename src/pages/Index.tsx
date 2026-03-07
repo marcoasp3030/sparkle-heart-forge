@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight } from "lucide-react";
+import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const stats = [
 
 const Index = () => {
   const [search, setSearch] = useState("");
+  const { user, signOut } = useAuth();
 
   const filtered = lockerData.filter(
     (l) =>
@@ -62,8 +64,11 @@ const Index = () => {
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary" />
             </Button>
             <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-              PB
+              {user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || "U"}
             </div>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
