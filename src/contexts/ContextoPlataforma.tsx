@@ -26,6 +26,18 @@ interface Images {
   sidebar_logo_url: string;
 }
 
+export interface CompanyBranding {
+  company_id: string;
+  logo_url: string;
+  sidebar_logo_url: string;
+  favicon_url: string;
+  login_bg_url: string;
+  platform_name: string;
+  login_title: string;
+  login_subtitle: string;
+  theme_colors: Partial<ThemeColors>;
+}
+
 interface PlatformSettings {
   theme_colors: ThemeColors;
   branding: Branding;
@@ -36,6 +48,9 @@ interface PlatformContextType {
   settings: PlatformSettings;
   loading: boolean;
   refreshSettings: () => Promise<void>;
+  companyBranding: CompanyBranding | null;
+  setCompanyBranding: (branding: CompanyBranding | null) => void;
+  effectiveSettings: PlatformSettings;
 }
 
 const defaultSettings: PlatformSettings = {
@@ -67,6 +82,9 @@ const PlatformContext = createContext<PlatformContextType>({
   settings: defaultSettings,
   loading: true,
   refreshSettings: async () => {},
+  companyBranding: null,
+  setCompanyBranding: () => {},
+  effectiveSettings: defaultSettings,
 });
 
 export const usePlatform = () => useContext(PlatformContext);
@@ -96,8 +114,42 @@ function applyFavicon(url: string) {
   link.href = url;
 }
 
+function mergeCompanyBranding(base: PlatformSettings, cb: CompanyBranding | null): PlatformSettings {
+  if (!cb) return base;
+  
+  const merged = { ...base };
+  
+  // Override images if company has them
+  merged.images = {
+    logo_url: cb.logo_url || base.images.logo_url,
+    sidebar_logo_url: cb.sidebar_logo_url || base.images.sidebar_logo_url,
+    favicon_url: cb.favicon_url || base.images.favicon_url,
+    login_bg_url: cb.login_bg_url || base.images.login_bg_url,
+  };
+  
+  // Override branding texts if company has them
+  merged.branding = {
+    platform_name: cb.platform_name || base.branding.platform_name,
+    login_title: cb.login_title || base.branding.login_title,
+    login_subtitle: cb.login_subtitle || base.branding.login_subtitle,
+    sidebar_description: base.branding.sidebar_description,
+  };
+  
+  // Override theme colors if company has them
+  if (cb.theme_colors && Object.keys(cb.theme_colors).length > 0) {
+    merged.theme_colors = {
+      ...base.theme_colors,
+      ...cb.theme_colors,
+      preset: "custom",
+    };
+  }
+  
+  return merged;
+}
+
 export const PlatformProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
+  const [companyBranding, setCompanyBranding] = useState<CompanyBranding | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = async () => {
@@ -119,8 +171,6 @@ export const PlatformProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setSettings(merged);
-      applyThemeColors(merged.theme_colors);
-      applyFavicon(merged.images.favicon_url);
     } catch {
       // silently use defaults
     } finally {
@@ -128,12 +178,20 @@ export const PlatformProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const effectiveSettings = mergeCompanyBranding(settings, companyBranding);
+
+  // Apply theme whenever effective settings change
+  useEffect(() => {
+    applyThemeColors(effectiveSettings.theme_colors);
+    applyFavicon(effectiveSettings.images.favicon_url);
+  }, [effectiveSettings.theme_colors, effectiveSettings.images.favicon_url]);
+
   useEffect(() => {
     fetchSettings();
   }, []);
 
   return (
-    <PlatformContext.Provider value={{ settings, loading, refreshSettings: fetchSettings }}>
+    <PlatformContext.Provider value={{ settings, loading, refreshSettings: fetchSettings, companyBranding, setCompanyBranding, effectiveSettings }}>
       {children}
     </PlatformContext.Provider>
   );
