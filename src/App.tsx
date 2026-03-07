@@ -6,12 +6,14 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/ContextoAutenticacao";
 import { CompanyProvider } from "@/contexts/ContextoEmpresa";
+import { PlatformProvider } from "@/contexts/ContextoPlataforma";
 import RotaProtegida from "@/components/RotaProtegida";
 import TransicaoPagina from "@/components/TransicaoPagina";
 import LayoutPrincipal from "@/components/layout/LayoutPrincipal";
 import PainelDeControle from "./pages/PainelDeControle";
 import Autenticacao from "./pages/Autenticacao";
 import Administracao from "./pages/Administracao";
+import Personalizacao from "./pages/Personalizacao";
 import Armarios from "./pages/Armarios";
 import Empresas from "./pages/Empresas";
 import Departamentos from "./pages/Departamentos";
@@ -43,6 +45,7 @@ function RotasAnimadas() {
         <Route path="/setores" element={protectedRoute(<Setores />)} />
         <Route path="/pessoas" element={protectedRoute(<Pessoas />)} />
         <Route path="/admin" element={protectedRoute(<Administracao />)} />
+        <Route path="/personalizacao" element={protectedRoute(<Personalizacao />)} />
         <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
     </AnimatePresence>
@@ -51,17 +54,19 @@ function RotasAnimadas() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CompanyProvider>
-        <TooltipProvider>
+    <PlatformProvider>
+      <AuthProvider>
+        <CompanyProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <RotasAnimadas />
           </BrowserRouter>
-        </TooltipProvider>
-      </CompanyProvider>
-    </AuthProvider>
+          </TooltipProvider>
+        </CompanyProvider>
+      </AuthProvider>
+    </PlatformProvider>
   </QueryClientProvider>
 );
 

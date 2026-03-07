@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { usePlatform } from "@/contexts/ContextoPlataforma";
 import lockerLogo from "@/assets/locker-logo.png";
 
 const Auth = () => {
@@ -19,6 +20,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { settings } = usePlatform();
+  const logoUrl = settings.images.logo_url || lockerLogo;
+  const loginBgUrl = settings.images.login_bg_url;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,17 +63,20 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex">
       {/* Left decorative panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar relative overflow-hidden items-center justify-center">
+        {loginBgUrl && (
+          <img src={loginBgUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+        )}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-secondary blur-[100px]" />
         </div>
         <div className="relative z-10 text-center px-12">
-          <img src={lockerLogo} alt="PB One Locker" className="h-16 mx-auto mb-8" />
+          <img src={logoUrl} alt="Logo" className="h-16 mx-auto mb-8" />
           <h2 className="text-3xl font-bold text-sidebar-primary-foreground mb-3">
-            Gestão Inteligente de Armários
+            {settings.branding.login_title || "Gestão Inteligente de Armários"}
           </h2>
           <p className="text-sidebar-foreground text-sm leading-relaxed max-w-md mx-auto">
-            Controle, monitore e gerencie seus armários em tempo real com uma plataforma projetada para eficiência corporativa.
+            {settings.branding.login_subtitle || "Controle, monitore e gerencie seus armários em tempo real."}
           </p>
         </div>
       </div>
@@ -83,7 +90,7 @@ const Auth = () => {
           className="w-full max-w-sm"
         >
           <div className="flex justify-center mb-8 lg:hidden">
-            <img src={lockerLogo} alt="PB One Locker" className="h-12" />
+            <img src={logoUrl} alt="Logo" className="h-12" />
           </div>
 
           <div className="text-center mb-8">
