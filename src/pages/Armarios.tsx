@@ -399,7 +399,7 @@ export default function LockersPage() {
           </p>
         </motion.div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className={viewMode === "grid" ? "grid gap-6 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
           {filteredLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
