@@ -48,14 +48,9 @@ export async function registrarAuditoria(entry: AuditEntry) {
   }
 }
 
-// Progressive lockout: increasing delays as failures accumulate
-// 1-2 failures: no delay, 3 failures: 1 min, 4 failures: 5 min, 5+: 15 min
-const LOCKOUT_TIERS = [
-  { maxAttempts: 2, lockoutMinutes: 0 },
-  { maxAttempts: 3, lockoutMinutes: 1 },
-  { maxAttempts: 4, lockoutMinutes: 5 },
-  { maxAttempts: 5, lockoutMinutes: 15 },
-];
+// Lockout: 5 failed attempts → 60-second block
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 60;
 const WINDOW_MINUTES = 30; // observation window
 
 export type NivelAlerta = "info" | "aviso" | "perigo" | "bloqueado";
