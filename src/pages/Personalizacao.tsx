@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Palette, Image, Type, Save, RotateCcw, Upload, X } from "lucide-react";
+import { Palette, Image, Type, Save, RotateCcw, Upload, X, Eye, History, FileJson, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { usePlatform } from "@/contexts/ContextoPlataforma";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import PreviewAoVivo from "@/components/personalizacao/PreviewAoVivo";
+import ValidacaoContraste from "@/components/personalizacao/ValidacaoContraste";
+import HistoricoConfiguracoes from "@/components/personalizacao/HistoricoConfiguracoes";
+import ExportarImportar from "@/components/personalizacao/ExportarImportar";
 
 const COLOR_PRESETS: Record<string, Record<string, string>> = {
   default: {
@@ -164,6 +168,19 @@ export default function Personalizacao() {
 
   const handleSave = async () => {
     setSaving(true);
+
+    // Save history of current settings before overwriting
+    const { data: currentData } = await supabase.from("platform_settings").select("key, value");
+    if (currentData) {
+      for (const row of currentData) {
+        await supabase.from("platform_settings_history").insert({
+          setting_key: row.key,
+          value: row.value as any,
+          changed_by: user?.id,
+        });
+      }
+    }
+
     const updates = [
       { key: "theme_colors", value: colors },
       { key: "branding", value: branding },
@@ -186,6 +203,18 @@ export default function Personalizacao() {
       await refreshSettings();
     }
     setSaving(false);
+  };
+
+  const handleImport = (data: { theme_colors?: any; branding?: any; images?: any }) => {
+    if (data.theme_colors) setColors({ ...colors, ...data.theme_colors });
+    if (data.branding) setBranding({ ...branding, ...data.branding });
+    if (data.images) setImages({ ...images, ...data.images });
+  };
+
+  const handleRestoreHistory = (key: string, value: any) => {
+    if (key === "theme_colors") setColors(value);
+    if (key === "branding") setBranding(value);
+    if (key === "images") setImages(value);
   };
 
   const handleReset = () => {
@@ -214,7 +243,8 @@ export default function Personalizacao() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Configure cores, logotipos, textos e imagens do sistema.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <ExportarImportar colors={colors as any} branding={branding as any} images={images as any} onImport={handleImport} />
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
             <RotateCcw className="h-3.5 w-3.5" /> Resetar
           </Button>
@@ -225,10 +255,13 @@ export default function Personalizacao() {
       </motion.div>
 
       <Tabs defaultValue="cores" className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="cores" className="gap-2"><Palette className="h-3.5 w-3.5" /> Cores</TabsTrigger>
-          <TabsTrigger value="textos" className="gap-2"><Type className="h-3.5 w-3.5" /> Textos</TabsTrigger>
-          <TabsTrigger value="imagens" className="gap-2"><Image className="h-3.5 w-3.5" /> Imagens</TabsTrigger>
+        <TabsList className="grid w-full max-w-2xl grid-cols-6">
+          <TabsTrigger value="cores" className="gap-1.5 text-xs"><Palette className="h-3.5 w-3.5" /> Cores</TabsTrigger>
+          <TabsTrigger value="textos" className="gap-1.5 text-xs"><Type className="h-3.5 w-3.5" /> Textos</TabsTrigger>
+          <TabsTrigger value="imagens" className="gap-1.5 text-xs"><Image className="h-3.5 w-3.5" /> Imagens</TabsTrigger>
+          <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" /> Preview</TabsTrigger>
+          <TabsTrigger value="contraste" className="gap-1.5 text-xs"><ShieldCheck className="h-3.5 w-3.5" /> Contraste</TabsTrigger>
+          <TabsTrigger value="historico" className="gap-1.5 text-xs"><History className="h-3.5 w-3.5" /> Histórico</TabsTrigger>
         </TabsList>
 
         {/* COLORS TAB */}
@@ -386,6 +419,45 @@ export default function Personalizacao() {
                   />
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PREVIEW TAB */}
+        <TabsContent value="preview" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><Eye className="h-4 w-4" /> Preview em Tempo Real</CardTitle>
+              <CardDescription>Visualize como as alterações ficarão antes de salvar.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PreviewAoVivo colors={colors as any} branding={branding} images={images} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONTRAST TAB */}
+        <TabsContent value="contraste" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Validação de Contraste</CardTitle>
+              <CardDescription>Verifique se as combinações de cores atendem aos padrões de acessibilidade WCAG.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ValidacaoContraste colors={colors as any} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* HISTORY TAB */}
+        <TabsContent value="historico" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><History className="h-4 w-4" /> Histórico de Alterações</CardTitle>
+              <CardDescription>Versões anteriores das configurações. Restaure qualquer versão e salve para aplicar.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HistoricoConfiguracoes onRestore={handleRestoreHistory} />
             </CardContent>
           </Card>
         </TabsContent>
