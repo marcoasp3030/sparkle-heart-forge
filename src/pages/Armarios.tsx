@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario";
 import { LockerDoorData } from "@/components/armario/PortaArmario";
@@ -24,6 +27,7 @@ import DetalhePortaPainel from "@/components/armario/DetalhePortaPainel";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
+  created_at: string;
 }
 
 export default function LockersPage() {
@@ -34,6 +38,8 @@ export default function LockersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -211,6 +217,18 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  // Unique locations for filter
+  const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
+
+  // Door counts for filter badges
+  const allDoors = lockers.flatMap((l) => l.doors);
+  const doorCounts = {
+    all: allDoors.length,
+    available: allDoors.filter((d) => d.status === "available").length,
+    occupied: allDoors.filter((d) => d.status === "occupied").length,
+    maintenance: allDoors.filter((d) => d.status === "maintenance").length,
+  };
+
   const filteredLockers = lockers
     .map((l) => {
       if (statusFilter === "all") return l;
@@ -218,16 +236,31 @@ export default function LockersPage() {
     })
     .filter((l) => {
       if (l.doors.length === 0 && statusFilter !== "all") return false;
-      return l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+      const matchLocation = locationFilter === "all" || l.location === locationFilter;
+      return matchSearch && matchLocation;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name": return a.name.localeCompare(b.name);
+        case "location": return a.location.localeCompare(b.location);
+        case "doors": return b.doors.length - a.doors.length;
+        case "occupation": {
+          const occA = a.doors.length ? a.doors.filter((d) => d.status === "occupied").length / a.doors.length : 0;
+          const occB = b.doors.length ? b.doors.filter((d) => d.status === "occupied").length / b.doors.length : 0;
+          return occB - occA;
+        }
+        case "created": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        default: return 0;
+      }
     });
 
   // Stats
-  const allDoors = lockers.flatMap((l) => l.doors);
   const stats = [
     { label: "Total de Portas", value: allDoors.length, icon: Package, accent: "" },
-    { label: "Disponíveis", value: allDoors.filter((d) => d.status === "available").length, icon: Unlock, accent: "success" },
-    { label: "Ocupados", value: allDoors.filter((d) => d.status === "occupied").length, icon: Lock, accent: "primary" },
-    { label: "Manutenção", value: allDoors.filter((d) => d.status === "maintenance").length, icon: Wrench, accent: "accent" },
+    { label: "Disponíveis", value: doorCounts.available, icon: Unlock, accent: "success" },
+    { label: "Ocupados", value: doorCounts.occupied, icon: Lock, accent: "primary" },
+    { label: "Manutenção", value: doorCounts.maintenance, icon: Wrench, accent: "accent" },
   ];
 
   return (
@@ -329,41 +362,92 @@ export default function LockersPage() {
         </div>
 
         {/* Search + Filters row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." className="pl-9 h-9 w-full sm:w-48 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Status filter - scrollable on mobile */}
-            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto flex-1 sm:flex-none">
-              {[
-                { value: "all", label: "Todos" },
-                { value: "available", label: "Livres" },
-                { value: "occupied", label: "Ocupados" },
-                { value: "maintenance", label: "Manut." },
-              ].map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setStatusFilter(f.value)}
-                  className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap ${
-                    statusFilter === f.value
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar armário..." className="pl-9 h-9 w-full sm:w-52 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            {/* View mode */}
-            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
-              <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                <List className="h-3.5 w-3.5" />
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Status filter with counters */}
+              <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto flex-1 sm:flex-none">
+                {[
+                  { value: "all", label: "Todos", count: doorCounts.all },
+                  { value: "available", label: "Livres", count: doorCounts.available },
+                  { value: "occupied", label: "Ocupados", count: doorCounts.occupied },
+                  { value: "maintenance", label: "Manut.", count: doorCounts.maintenance },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setStatusFilter(f.value)}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                      statusFilter === f.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      statusFilter === f.value ? "bg-primary/10 text-primary" : "bg-muted-foreground/10"
+                    }`}>
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Location filter */}
+              {uniqueLocations.length > 0 && (
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger className="h-9 w-auto min-w-[140px] bg-muted/50 border-transparent text-xs">
+                    <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="Localização" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">Todas localizações</SelectItem>
+                    {uniqueLocations.map((loc) => (
+                      <SelectItem key={loc} value={loc} className="text-xs">{loc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Sort */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 px-2.5 bg-muted/50 text-xs gap-1.5">
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Ordenar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {[
+                    { value: "name", label: "Nome" },
+                    { value: "location", label: "Localização" },
+                    { value: "doors", label: "Nº de Portas" },
+                    { value: "occupation", label: "% Ocupação" },
+                    { value: "created", label: "Data de criação" },
+                  ].map((s) => (
+                    <DropdownMenuItem
+                      key={s.value}
+                      onClick={() => setSortBy(s.value)}
+                      className={`text-xs ${sortBy === s.value ? "bg-primary/10 text-primary" : ""}`}
+                    >
+                      {s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* View mode */}
+              <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+                <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -409,8 +493,8 @@ export default function LockersPage() {
             {isAdmin ? "Crie um novo armário para começar." : "Aguarde um administrador cadastrar armários."}
           </p>
         </motion.div>
-      ) : (
-        <div className={viewMode === "grid" ? "grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {filteredLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
@@ -430,6 +514,75 @@ export default function LockersPage() {
             />
           ))}
         </div>
+      ) : (
+        /* Detailed List/Table View */
+        <Card className="shadow-card border-border/50 overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Armário</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Localização</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Portas</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Ocupação</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Livres</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Ocupados</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Manut.</TableHead>
+                  {isAdmin && <TableHead className="text-xs uppercase tracking-wider font-semibold text-right">Ações</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLockers.map((locker) => {
+                  const totalOriginalDoors = lockers.find(l => l.id === locker.id)?.doors.length || 0;
+                  const available = locker.doors.filter((d) => d.status === "available").length;
+                  const occupied = locker.doors.filter((d) => d.status === "occupied").length;
+                  const maintenance = locker.doors.filter((d) => d.status === "maintenance").length;
+                  const occupationPct = totalOriginalDoors > 0 ? Math.round((occupied / totalOriginalDoors) * 100) : 0;
+
+                  return (
+                    <TableRow key={locker.id} className="cursor-pointer hover:bg-muted/30">
+                      <TableCell className="font-semibold text-sm">{locker.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {locker.location || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-sm font-medium">{locker.doors.length}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Progress value={occupationPct} className="h-2 flex-1" />
+                          <span className="text-xs text-muted-foreground font-mono w-10 text-right">{occupationPct}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[11px]">{available}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[11px]">{occupied}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 text-[11px]">{maintenance}</Badge>
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(locker)}>
+                              <Filter className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteLocker(locker)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Door detail sheet */}
