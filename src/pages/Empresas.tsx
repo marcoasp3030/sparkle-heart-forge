@@ -451,7 +451,7 @@ export default function CompaniesPage() {
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!company.active ? (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => handleReactivate(company)} title="Reativar">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleReactivate(company)} title="Reativar">
                           <RotateCcw className="h-3.5 w-3.5" />
                         </Button>
                       ) : (
