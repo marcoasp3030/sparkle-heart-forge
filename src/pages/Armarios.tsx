@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -41,6 +41,8 @@ export default function LockersPage() {
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
   const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
