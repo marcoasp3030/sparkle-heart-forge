@@ -244,7 +244,7 @@ export default function Personalizacao() {
           <p className="mt-1 text-sm text-muted-foreground">Configure cores, logotipos, textos e imagens do sistema.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <ExportarImportar colors={colors} branding={branding} images={images} onImport={handleImport} />
+          <ExportarImportar colors={colors as any} branding={branding as any} images={images as any} onImport={handleImport} />
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
             <RotateCcw className="h-3.5 w-3.5" /> Resetar
           </Button>
@@ -419,6 +419,45 @@ export default function Personalizacao() {
                   />
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PREVIEW TAB */}
+        <TabsContent value="preview" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><Eye className="h-4 w-4" /> Preview em Tempo Real</CardTitle>
+              <CardDescription>Visualize como as alterações ficarão antes de salvar.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PreviewAoVivo colors={colors as any} branding={branding} images={images} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONTRAST TAB */}
+        <TabsContent value="contraste" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Validação de Contraste</CardTitle>
+              <CardDescription>Verifique se as combinações de cores atendem aos padrões de acessibilidade WCAG.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ValidacaoContraste colors={colors as any} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* HISTORY TAB */}
+        <TabsContent value="historico" className="space-y-4">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><History className="h-4 w-4" /> Histórico de Alterações</CardTitle>
+              <CardDescription>Versões anteriores das configurações. Restaure qualquer versão e salve para aplicar.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HistoricoConfiguracoes onRestore={handleRestoreHistory} />
             </CardContent>
           </Card>
         </TabsContent>
