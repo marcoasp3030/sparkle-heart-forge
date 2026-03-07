@@ -59,6 +59,7 @@ export interface StatusBloqueio {
   bloqueado: boolean;
   tentativasRestantes: number;
   minutosRestantes: number;
+  segundosRestantes: number;
   totalFalhas: number;
   nivel: NivelAlerta;
   mensagem: string;
@@ -116,6 +117,7 @@ export async function verificarBloqueioLogin(email: string): Promise<StatusBloqu
         bloqueado: true,
         tentativasRestantes: 0,
         minutosRestantes: minutos,
+        segundosRestantes: segundos,
         totalFalhas: falhas,
         nivel: "bloqueado",
         mensagem: `Sua conta foi temporariamente bloqueada por segurança. Aguarde ${segundos} segundo(s) antes de tentar novamente.`,
@@ -131,6 +133,7 @@ export async function verificarBloqueioLogin(email: string): Promise<StatusBloqu
     bloqueado: false,
     tentativasRestantes: Math.max(0, restantes),
     minutosRestantes: 0,
+    segundosRestantes: 0,
     totalFalhas: falhas,
     nivel,
     mensagem: gerarMensagem(falhas, restantes, 0),

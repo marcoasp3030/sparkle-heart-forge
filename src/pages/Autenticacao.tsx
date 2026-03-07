@@ -29,11 +29,27 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { settings, effectiveSettings } = usePlatform();
   const [companyLogin, setCompanyLogin] = useState<LoginBranding | null>(null);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (segundosRestantes <= 0) return;
+    const timer = setInterval(() => {
+      setSegundosRestantes((prev) => {
+        if (prev <= 1) {
+          setStatusLogin(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [segundosRestantes]);
 
   // Load company branding from ?company=ID query param
   useEffect(() => {
@@ -81,6 +97,7 @@ const Auth = () => {
         const status = await verificarBloqueioLogin(email);
         if (status.bloqueado) {
           setStatusLogin(status);
+          setSegundosRestantes(status.segundosRestantes ?? 60);
           setLoading(false);
           return;
         }
@@ -97,7 +114,9 @@ const Auth = () => {
           const updated = await verificarBloqueioLogin(email);
           setStatusLogin(updated);
 
-          if (!updated.bloqueado) {
+          if (updated.bloqueado) {
+            setSegundosRestantes(updated.segundosRestantes ?? 60);
+          } else {
             toast({
               title: traduzirErro(error.message),
               description: updated.mensagem,
@@ -216,8 +235,18 @@ const Auth = () => {
                 ) : (
                   <Info className="h-4 w-4 shrink-0" />
                 )}
-                <span>{statusLogin.mensagem}</span>
+                <span>
+                  {statusLogin.bloqueado && segundosRestantes > 0
+                    ? `Conta bloqueada por segurança. Desbloqueio em ${segundosRestantes}s`
+                    : statusLogin.mensagem}
+                </span>
               </div>
+              {statusLogin.bloqueado && segundosRestantes > 0 && (
+                <Progress
+                  value={(segundosRestantes / 60) * 100}
+                  className="h-1.5"
+                />
+              )}
               {!statusLogin.bloqueado && statusLogin.tentativasRestantes <= 3 && (
                 <Progress
                   value={(statusLogin.tentativasRestantes / 5) * 100}
@@ -291,8 +320,8 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading || (statusLogin?.bloqueado ?? false)}>
-              {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading || segundosRestantes > 0 || (statusLogin?.bloqueado ?? false)}>
+              {loading ? "Aguarde..." : segundosRestantes > 0 ? `Bloqueado (${segundosRestantes}s)` : isLogin ? "Entrar" : "Criar conta"}
             </Button>
           </form>
 
