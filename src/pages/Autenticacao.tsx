@@ -37,6 +37,8 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const { settings, effectiveSettings } = usePlatform();
   const [companyLogin, setCompanyLogin] = useState<LoginBranding | null>(null);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Countdown timer for lockout
   useEffect(() => {
