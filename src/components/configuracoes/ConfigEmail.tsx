@@ -116,7 +116,38 @@ export default function ConfigEmail() {
     }
   };
 
-  const handleSendTest = async () => {
+  const handleTestConnection = async () => {
+    if (!smtp.host || !smtp.port) {
+      toast({ title: "Preencha o servidor e a porta", variant: "destructive" });
+      return;
+    }
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-smtp", {
+        body: {
+          host: smtp.host,
+          port: smtp.port,
+          user: smtp.user,
+          password: smtp.password,
+          encryption: smtp.encryption,
+        },
+      });
+      if (error) throw error;
+      setConnectionResult(data);
+      toast({
+        title: data.success ? "Conexão bem-sucedida!" : "Falha na conexão",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (err: any) {
+      setConnectionResult({ success: false, message: err.message });
+      toast({ title: "Erro ao testar conexão", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
     if (!testEmail) {
       toast({ title: "Informe um e-mail para teste", variant: "destructive" });
       return;
