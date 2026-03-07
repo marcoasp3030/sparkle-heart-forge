@@ -123,11 +123,14 @@ export default function ConfigUazapi() {
       const res = await supabase.functions.invoke("uazapi-proxy", {
         body: { action: "create_instance", companyId: selectedCompany.id },
       });
-      if (res.data?.success) {
+      if (res.error) {
+        const errorData = typeof res.error === 'object' && 'message' in res.error ? res.error.message : String(res.error);
+        toast({ title: "Erro ao criar instância", description: errorData, variant: "destructive" });
+      } else if (res.data?.success) {
         toast({ title: "Instância criada com sucesso!" });
         await checkStatus();
       } else {
-        toast({ title: "Erro ao criar instância", description: res.data?.error, variant: "destructive" });
+        toast({ title: "Erro ao criar instância", description: res.data?.error || res.data?.details?.error || "Erro desconhecido", variant: "destructive" });
       }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
