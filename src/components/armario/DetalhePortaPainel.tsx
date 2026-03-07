@@ -62,9 +62,10 @@ const confirmConfig: Record<string, { title: string; description: string; action
 export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve, onRelease, isCurrentUser, loading, isAdmin, onSetMaintenance }: DoorDetailSheetProps) {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
+  const status = door ? statusLabels[door.status] : statusLabels.available;
+  const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : User;
+
   if (!door) return null;
-  const status = statusLabels[door.status];
-  const StatusIcon = door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : User;
 
   const handleConfirm = () => {
     if (!door) return;
