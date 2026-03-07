@@ -362,41 +362,92 @@ export default function LockersPage() {
         </div>
 
         {/* Search + Filters row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." className="pl-9 h-9 w-full sm:w-48 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Status filter - scrollable on mobile */}
-            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto flex-1 sm:flex-none">
-              {[
-                { value: "all", label: "Todos" },
-                { value: "available", label: "Livres" },
-                { value: "occupied", label: "Ocupados" },
-                { value: "maintenance", label: "Manut." },
-              ].map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setStatusFilter(f.value)}
-                  className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap ${
-                    statusFilter === f.value
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar armário..." className="pl-9 h-9 w-full sm:w-52 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            {/* View mode */}
-            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
-              <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                <List className="h-3.5 w-3.5" />
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Status filter with counters */}
+              <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto flex-1 sm:flex-none">
+                {[
+                  { value: "all", label: "Todos", count: doorCounts.all },
+                  { value: "available", label: "Livres", count: doorCounts.available },
+                  { value: "occupied", label: "Ocupados", count: doorCounts.occupied },
+                  { value: "maintenance", label: "Manut.", count: doorCounts.maintenance },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setStatusFilter(f.value)}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                      statusFilter === f.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      statusFilter === f.value ? "bg-primary/10 text-primary" : "bg-muted-foreground/10"
+                    }`}>
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Location filter */}
+              {uniqueLocations.length > 0 && (
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger className="h-9 w-auto min-w-[140px] bg-muted/50 border-transparent text-xs">
+                    <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="Localização" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">Todas localizações</SelectItem>
+                    {uniqueLocations.map((loc) => (
+                      <SelectItem key={loc} value={loc} className="text-xs">{loc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Sort */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 px-2.5 bg-muted/50 text-xs gap-1.5">
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Ordenar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {[
+                    { value: "name", label: "Nome" },
+                    { value: "location", label: "Localização" },
+                    { value: "doors", label: "Nº de Portas" },
+                    { value: "occupation", label: "% Ocupação" },
+                    { value: "created", label: "Data de criação" },
+                  ].map((s) => (
+                    <DropdownMenuItem
+                      key={s.value}
+                      onClick={() => setSortBy(s.value)}
+                      className={`text-xs ${sortBy === s.value ? "bg-primary/10 text-primary" : ""}`}
+                    >
+                      {s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* View mode */}
+              <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+                <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
