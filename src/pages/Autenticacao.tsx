@@ -479,7 +479,8 @@ const Auth = () => {
                 </button>
               </div>
             </>
-          )
+          )}
+
         </motion.div>
       </div>
     </div>
