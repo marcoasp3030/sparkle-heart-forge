@@ -37,6 +37,20 @@ const stats = [
 const Index = () => {
   const [search, setSearch] = useState("");
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useState(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.role === "superadmin") setIsSuperAdmin(true);
+      });
+  });
 
   const filtered = lockerData.filter(
     (l) =>
