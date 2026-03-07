@@ -216,6 +216,18 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  // Unique locations for filter
+  const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
+
+  // Door counts for filter badges
+  const allDoors = lockers.flatMap((l) => l.doors);
+  const doorCounts = {
+    all: allDoors.length,
+    available: allDoors.filter((d) => d.status === "available").length,
+    occupied: allDoors.filter((d) => d.status === "occupied").length,
+    maintenance: allDoors.filter((d) => d.status === "maintenance").length,
+  };
+
   const filteredLockers = lockers
     .map((l) => {
       if (statusFilter === "all") return l;
@@ -223,7 +235,23 @@ export default function LockersPage() {
     })
     .filter((l) => {
       if (l.doors.length === 0 && statusFilter !== "all") return false;
-      return l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+      const matchLocation = locationFilter === "all" || l.location === locationFilter;
+      return matchSearch && matchLocation;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name": return a.name.localeCompare(b.name);
+        case "location": return a.location.localeCompare(b.location);
+        case "doors": return b.doors.length - a.doors.length;
+        case "occupation": {
+          const occA = a.doors.length ? a.doors.filter((d) => d.status === "occupied").length / a.doors.length : 0;
+          const occB = b.doors.length ? b.doors.filter((d) => d.status === "occupied").length / b.doors.length : 0;
+          return occB - occA;
+        }
+        case "created": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        default: return 0;
+      }
     });
 
   // Stats
