@@ -55,13 +55,27 @@ const Auth = () => {
     return () => clearInterval(timer);
   }, [segundosRestantes]);
 
-  // Load company branding from ?company=ID query param
+  // Load company branding and google_login permission from ?company=ID query param
   useEffect(() => {
     const companyId = searchParams.get("company");
-    if (!companyId) return;
+    if (!companyId) {
+      // No company context — enable Google by default (platform-level)
+      setGoogleEnabled(true);
+      return;
+    }
 
-    const loadCompanyBranding = async () => {
-      // Check if company has white_label enabled
+    const loadCompanyData = async () => {
+      // Check google_login permission
+      const { data: googlePerm } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", companyId)
+        .eq("permission", "google_login")
+        .maybeSingle();
+
+      setGoogleEnabled(googlePerm?.enabled ?? false);
+
+      // Check white_label branding
       const { data: perm } = await supabase
         .from("company_permissions")
         .select("enabled")
@@ -82,7 +96,7 @@ const Auth = () => {
       }
     };
 
-    loadCompanyBranding();
+    loadCompanyData();
   }, [searchParams]);
 
   // Resolve final values: company branding > effective > defaults
