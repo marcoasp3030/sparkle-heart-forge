@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -36,12 +36,20 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 export default function CompaniesPage() {
-  const { companies, refreshCompanies, isSuperAdmin } = useCompany();
+  const { companies: activeCompanies, refreshCompanies, isSuperAdmin } = useCompany();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<any>(null);
   const [deleteCompany, setDeleteCompany] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // All companies (including inactive)
+  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "employee" | "rental">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
 
   // Permissions sheet
   const [permCompany, setPermCompany] = useState<any>(null);
@@ -68,17 +76,41 @@ export default function CompaniesPage() {
 
   // Fetch stats for all companies
   useEffect(() => {
-    if (!companies.length) return;
+  // Fetch all companies including inactive
+  const fetchAllCompanies = async () => {
+    const { data } = await supabase.from("companies").select("*").order("name");
+    if (data) setAllCompanies(data);
+  };
+
+  useEffect(() => {
+    if (isSuperAdmin) fetchAllCompanies();
+  }, [isSuperAdmin, activeCompanies]);
+
+  // Derived: companies to display based on filters
+  const companies = allCompanies.length > 0 ? allCompanies : activeCompanies;
+
+  const filteredCompanies = companies.filter((c) => {
+    const matchesSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = filterType === "all" || c.type === filterType;
+    const matchesStatus = filterStatus === "all" || (filterStatus === "active" ? c.active : !c.active);
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const hasActiveFilters = searchQuery || filterType !== "all" || filterStatus !== "all";
+
+  // Company stats
+  useEffect(() => {
+    const activeIds = companies.filter(c => c.active).map(c => c.id);
+    if (!activeIds.length) return;
     const fetchStats = async () => {
-      const ids = companies.map(c => c.id);
       const [profilesRes, deptRes, setoresRes, lockersRes] = await Promise.all([
-        supabase.from("profiles").select("company_id").in("company_id", ids),
-        supabase.from("departamentos").select("company_id").in("company_id", ids).eq("ativo", true),
-        supabase.from("setores").select("company_id").in("company_id", ids).eq("ativo", true),
-        supabase.from("lockers").select("company_id").in("company_id", ids),
+        supabase.from("profiles").select("company_id").in("company_id", activeIds),
+        supabase.from("departamentos").select("company_id").in("company_id", activeIds).eq("ativo", true),
+        supabase.from("setores").select("company_id").in("company_id", activeIds).eq("ativo", true),
+        supabase.from("lockers").select("company_id").in("company_id", activeIds),
       ]);
       const stats: Record<string, { users: number; departments: number; sectors: number; lockers: number }> = {};
-      ids.forEach(id => { stats[id] = { users: 0, departments: 0, sectors: 0, lockers: 0 }; });
+      activeIds.forEach(id => { stats[id] = { users: 0, departments: 0, sectors: 0, lockers: 0 }; });
       profilesRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].users++; });
       deptRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].departments++; });
       setoresRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].sectors++; });
