@@ -188,7 +188,7 @@ const Index = () => {
       </aside>
 
       {/* Main content */}
-      <div className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-[72px]"} transition-all duration-300`}>
+      <div className={`flex-1 ${sidebarOpen ? "ml-72" : "ml-[72px]"} transition-all duration-300`}>
         {/* Top bar */}
         <header className="sticky top-0 z-40 h-16 border-b border-border bg-background/80 backdrop-blur-xl flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
