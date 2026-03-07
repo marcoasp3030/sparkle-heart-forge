@@ -43,6 +43,23 @@ const PainelDeControle = () => {
       return;
     }
     fetchData();
+
+    // Subscribe to realtime changes on locker_doors
+    const channel = supabase
+      .channel("dashboard-doors")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "locker_doors" },
+        () => {
+          // Re-fetch all data on any door change
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedCompany]);
 
   const fetchData = async () => {
