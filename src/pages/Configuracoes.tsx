@@ -38,6 +38,12 @@ export default function Configuracoes() {
             Notificações
           </TabsTrigger>
           {isAdmin && (
+            <TabsTrigger value="email" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <Mail className="h-4 w-4" />
+              E-mail
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="sistema" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <Monitor className="h-4 w-4" />
               Sistema
@@ -54,6 +60,11 @@ export default function Configuracoes() {
         <TabsContent value="notificacoes">
           <ConfigNotificacoes />
         </TabsContent>
+        {isAdmin && (
+          <TabsContent value="email">
+            <ConfigEmail />
+          </TabsContent>
+        )}
         {isAdmin && (
           <TabsContent value="sistema">
             <ConfigSistema />
