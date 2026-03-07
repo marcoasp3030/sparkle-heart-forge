@@ -36,7 +36,7 @@ interface SidebarContentProps {
 export default function SidebarContent({ collapsed = false, onNavigate }: SidebarContentProps) {
   const { user, signOut } = useAuth();
   const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, hasPermission } = useCompany();
-  const { settings } = usePlatform();
+  const { settings, effectiveSettings } = usePlatform();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,12 +55,12 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
       <div className="relative flex h-20 items-center gap-3 px-5">
         <div className="absolute bottom-0 left-5 right-5 h-px bg-gradient-to-r from-primary/40 via-primary/20 to-transparent" />
         <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
-          <img src={settings.images.sidebar_logo_url || settings.images.logo_url || lockerLogo} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
+          <img src={effectiveSettings.images.sidebar_logo_url || effectiveSettings.images.logo_url || lockerLogo} alt="Logo" className="h-6 w-6 object-contain brightness-0 invert" />
         </div>
         {expanded && (
           <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
             <span className="text-sidebar-primary-foreground font-extrabold text-base tracking-tight">PB One</span>
-            <span className="block text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-[0.2em] -mt-0.5">{settings.branding.platform_name || "Locker System"}</span>
+            <span className="block text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-[0.2em] -mt-0.5">{effectiveSettings.branding.platform_name || "Locker System"}</span>
           </motion.div>
         )}
       </div>
