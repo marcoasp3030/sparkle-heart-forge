@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -41,6 +41,8 @@ export default function LockersPage() {
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
   const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -255,6 +257,11 @@ export default function LockersPage() {
       }
     });
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredLockers.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedLockers = filteredLockers.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
   // Stats
   const stats = [
     { label: "Total de Portas", value: allDoors.length, icon: Package, accent: "" },
@@ -379,7 +386,7 @@ export default function LockersPage() {
                 ].map((f) => (
                   <button
                     key={f.value}
-                    onClick={() => setStatusFilter(f.value)}
+                    onClick={() => { setStatusFilter(f.value); setCurrentPage(1); }}
                     className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
                       statusFilter === f.value
                         ? "bg-background text-foreground shadow-sm"
@@ -495,7 +502,7 @@ export default function LockersPage() {
         </motion.div>
       ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredLockers.map((locker, i) => (
+          {paginatedLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
               locker={locker}
@@ -532,7 +539,7 @@ export default function LockersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLockers.map((locker) => {
+                {paginatedLockers.map((locker) => {
                   const totalOriginalDoors = lockers.find(l => l.id === locker.id)?.doors.length || 0;
                   const available = locker.doors.filter((d) => d.status === "available").length;
                   const occupied = locker.doors.filter((d) => d.status === "occupied").length;
@@ -583,6 +590,46 @@ export default function LockersPage() {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {!loading && filteredLockers.length > ITEMS_PER_PAGE && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-muted-foreground">
+            Mostrando {((safePage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filteredLockers.length)} de {filteredLockers.length} armários
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage(safePage - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={page === safePage ? "default" : "outline"}
+                size="icon"
+                className={`h-8 w-8 text-xs ${page === safePage ? "gradient-primary border-0" : ""}`}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage(safePage + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Door detail sheet */}
