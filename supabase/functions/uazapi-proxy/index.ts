@@ -71,6 +71,7 @@ serve(async (req) => {
 
     const tryCreateInstance = async (name: string, token: string) => {
       const authAttempts: Record<string, string>[] = [
+        { admintoken: token },
         { admin_token: token },
         { Authorization: `Bearer ${token}` },
         { apikey: token },
@@ -149,7 +150,8 @@ serve(async (req) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -172,7 +174,8 @@ serve(async (req) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -202,11 +205,12 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      const response = await fetch(`${baseUrl}/instance/logout`, {
+      await fetch(`${baseUrl}/instance/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -233,7 +237,8 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": companyWa.instance_token as string,
+          "token": String(companyWa.instance_token),
+          "instance_token": String(companyWa.instance_token),
         },
         body: JSON.stringify({ phone, message }),
       });
