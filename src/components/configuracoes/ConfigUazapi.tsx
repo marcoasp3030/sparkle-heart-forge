@@ -94,15 +94,14 @@ export default function ConfigUazapi() {
     if (!selectedCompany) return;
     setLoadingStatus(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("uazapi-proxy", {
         body: { action: "get_status", companyId: selectedCompany.id },
       });
-      if (res.data?.status) {
+      if (res.error || res.data?.error) {
+        setInstanceStatus("not_created");
+      } else if (res.data?.status) {
         setInstanceStatus(res.data.status);
         setPhoneNumber(res.data.phone_number || "");
-      } else if (res.data?.error) {
-        setInstanceStatus("not_created");
       }
     } catch {
       // silent
