@@ -28,6 +28,7 @@ interface LockerWithDoors extends LockerData {
 
 export default function LockersPage() {
   const { user } = useAuth();
+  const { selectedCompany, isSuperAdmin, userRole } = useCompany();
   const { toast } = useToast();
   const [lockers, setLockers] = useState<LockerWithDoors[]>([]);
   const [loading, setLoading] = useState(true);
