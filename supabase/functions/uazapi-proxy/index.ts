@@ -161,19 +161,23 @@ serve(async (req) => {
       const instToken = companyWa.instance_token || adminToken;
       const instName = companyWa.instance_name;
       
-      // UAZAPI v2: GET /instance/connectionState/{instanceName} returns QR + state
+      // UAZAPI: try multiple known QR endpoints (with and without /v1 prefix)
+      const instName = companyWa.instance_name;
       const qrEndpoints = [
-        { url: `${baseUrl}/instance/connectionState/${instName}`, method: "GET" },
-        { url: `${baseUrl}/instance/qrcode/${instName}`, method: "GET" },
-        { url: `${baseUrl}/instance/connect/${instName}`, method: "GET" },
-        { url: `${baseUrl}/instance/qrcode`, method: "GET" },
+        `${baseUrl}/v1/instance/qr`,
+        `${baseUrl}/v1/instance/qrcode`,
+        `${baseUrl}/v1/instance/connectionState`,
+        `${baseUrl}/instance/connectionState/${instName}`,
+        `${baseUrl}/instance/qrcode/${instName}`,
+        `${baseUrl}/instance/qrcode`,
+        `${baseUrl}/instance/connect`,
       ];
 
       let qrData: any = null;
-      for (const ep of qrEndpoints) {
+      for (const url of qrEndpoints) {
         try {
-          const response = await fetch(ep.url, {
-            method: ep.method,
+          const response = await fetch(url, {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
               "token": String(instToken),
@@ -181,14 +185,14 @@ serve(async (req) => {
             },
           });
           const text = await response.text();
-          console.log(`QR ${ep.method} ${ep.url} -> ${response.status}: ${text.substring(0, 500)}`);
+          console.log(`QR GET ${url} -> ${response.status}: ${text.substring(0, 500)}`);
           
           if (response.ok) {
             try { qrData = JSON.parse(text); } catch { qrData = { raw: text }; }
             break;
           }
         } catch (err) {
-          console.log(`QR fetch error for ${ep.url}:`, err);
+          console.log(`QR fetch error for ${url}:`, err);
         }
       }
 
