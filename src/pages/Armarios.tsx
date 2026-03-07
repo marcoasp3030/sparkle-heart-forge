@@ -27,6 +27,7 @@ import DetalhePortaPainel from "@/components/armario/DetalhePortaPainel";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
+  created_at: string;
 }
 
 export default function LockersPage() {
@@ -255,12 +256,11 @@ export default function LockersPage() {
     });
 
   // Stats
-  const allDoors = lockers.flatMap((l) => l.doors);
   const stats = [
     { label: "Total de Portas", value: allDoors.length, icon: Package, accent: "" },
-    { label: "Disponíveis", value: allDoors.filter((d) => d.status === "available").length, icon: Unlock, accent: "success" },
-    { label: "Ocupados", value: allDoors.filter((d) => d.status === "occupied").length, icon: Lock, accent: "primary" },
-    { label: "Manutenção", value: allDoors.filter((d) => d.status === "maintenance").length, icon: Wrench, accent: "accent" },
+    { label: "Disponíveis", value: doorCounts.available, icon: Unlock, accent: "success" },
+    { label: "Ocupados", value: doorCounts.occupied, icon: Lock, accent: "primary" },
+    { label: "Manutenção", value: doorCounts.maintenance, icon: Wrench, accent: "accent" },
   ];
 
   return (
