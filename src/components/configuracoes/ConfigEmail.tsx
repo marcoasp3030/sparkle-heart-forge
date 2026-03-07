@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
-import { Mail, Server, Eye, Save, Loader2, Send, Palette } from "lucide-react";
+import { Mail, Server, Eye, Save, Loader2, Send, Palette, Plug, CheckCircle2, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SmtpConfig {
   host: string;
@@ -63,6 +64,8 @@ export default function ConfigEmail() {
   const [showPreview, setShowPreview] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -110,6 +113,38 @@ export default function ConfigEmail() {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!smtp.host || !smtp.port) {
+      toast({ title: "Preencha o servidor e a porta", variant: "destructive" });
+      return;
+    }
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-smtp", {
+        body: {
+          host: smtp.host,
+          port: smtp.port,
+          user: smtp.user,
+          password: smtp.password,
+          encryption: smtp.encryption,
+        },
+      });
+      if (error) throw error;
+      setConnectionResult(data);
+      toast({
+        title: data.success ? "Conexão bem-sucedida!" : "Falha na conexão",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (err: any) {
+      setConnectionResult({ success: false, message: err.message });
+      toast({ title: "Erro ao testar conexão", description: err.message, variant: "destructive" });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -219,6 +254,47 @@ export default function ConfigEmail() {
                 </SelectContent>
               </Select>
             </div>
+
+            <Separator />
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={testingConnection || !smtp.host || !smtp.port}
+                className="gap-2"
+              >
+                {testingConnection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
+                Testar conexão
+              </Button>
+
+              {connectionResult && (
+                <Badge
+                  variant="outline"
+                  className={connectionResult.success
+                    ? "text-green-600 border-green-300 bg-green-50 gap-1.5"
+                    : "text-destructive border-destructive/30 bg-destructive/10 gap-1.5"
+                  }
+                >
+                  {connectionResult.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  {connectionResult.message}
+                </Badge>
+              )}
+            </div>
+
+            {connectionResult?.details && connectionResult.details.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Detalhes da conexão:</p>
+                <ul className="space-y-1">
+                  {connectionResult.details.map((d, i) => (
+                    <li key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className={connectionResult.success ? "text-green-500" : "text-muted-foreground"}>•</span>
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
