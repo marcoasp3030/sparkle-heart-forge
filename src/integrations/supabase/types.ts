@@ -309,6 +309,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          setting_key: string
+          value: Json
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          setting_key: string
+          value?: Json
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          setting_key?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
