@@ -56,107 +56,129 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md"
-      >
-        <div className="flex justify-center mb-8">
-          <img src={lockerLogo} alt="PB One Locker" className="h-14" />
+    <div className="min-h-screen bg-background flex">
+      {/* Left decorative panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-sidebar relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-secondary blur-[100px]" />
         </div>
+        <div className="relative z-10 text-center px-12">
+          <img src={lockerLogo} alt="PB One Locker" className="h-16 mx-auto mb-8" />
+          <h2 className="text-3xl font-bold text-sidebar-primary-foreground mb-3">
+            Gestão Inteligente de Armários
+          </h2>
+          <p className="text-sidebar-foreground text-sm leading-relaxed max-w-md mx-auto">
+            Controle, monitore e gerencie seus armários em tempo real com uma plataforma projetada para eficiência corporativa.
+          </p>
+        </div>
+      </div>
 
-        <Card className="border-border/60 shadow-lg">
-          <CardContent className="p-8">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground">
-                {isLogin ? "Bem-vindo de volta" : "Criar conta"}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {isLogin
-                  ? "Entre com suas credenciais"
-                  : "Preencha os dados para se cadastrar"}
-              </p>
-            </div>
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-sm"
+        >
+          <div className="flex justify-center mb-8 lg:hidden">
+            <img src={lockerLogo} alt="PB One Locker" className="h-12" />
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      placeholder="Seu nome"
-                      className="pl-9"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-              )}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-foreground">
+              {isLogin ? "Bem-vindo de volta" : "Criar conta"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {isLogin
+                ? "Entre com suas credenciais para continuar"
+                : "Preencha os dados para se cadastrar"}
+            </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Nome completo
+                </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="pl-9"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="fullName"
+                    placeholder="Seu nome"
+                    className="pl-9 h-11"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     required
                   />
                 </div>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-9 pr-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                E-mail
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-9 h-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-primary hover:underline"
-              >
-                {isLogin
-                  ? "Não tem uma conta? Cadastre-se"
-                  : "Já tem uma conta? Faça login"}
-              </button>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Senha
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="pl-9 pr-10 h-11"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading}>
+              {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isLogin
+                ? "Não tem uma conta? Cadastre-se"
+                : "Já tem uma conta? Faça login"}
+            </button>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
