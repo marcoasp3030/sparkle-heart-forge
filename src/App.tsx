@@ -10,6 +10,7 @@ import PageTransition from "@/components/PageTransition";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import Lockers from "./pages/Lockers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -53,6 +53,7 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [profileName, setProfileName] = useState("");
 
