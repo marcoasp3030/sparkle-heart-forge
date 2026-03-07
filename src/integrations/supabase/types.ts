@@ -126,6 +126,7 @@ export type Database = {
           departamento_id: string | null
           email: string | null
           id: string
+          matricula: string | null
           nome: string
           setor_id: string | null
           telefone: string | null
@@ -140,6 +141,7 @@ export type Database = {
           departamento_id?: string | null
           email?: string | null
           id?: string
+          matricula?: string | null
           nome: string
           setor_id?: string | null
           telefone?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           departamento_id?: string | null
           email?: string | null
           id?: string
+          matricula?: string | null
           nome?: string
           setor_id?: string | null
           telefone?: string | null

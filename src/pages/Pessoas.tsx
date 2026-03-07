@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import ImportacaoMassa from "@/components/pessoas/ImportacaoMassa";
 
 interface Pessoa {
   id: string;
@@ -28,6 +29,7 @@ interface Pessoa {
   email: string | null;
   telefone: string | null;
   cargo: string;
+  matricula: string | null;
   tipo: "funcionario" | "cliente";
   ativo: boolean;
   created_at: string;
@@ -54,6 +56,7 @@ export default function PessoasPage() {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cargo, setCargo] = useState("");
+  const [matricula, setMatricula] = useState("");
   const [tipo, setTipo] = useState<"funcionario" | "cliente">("funcionario");
   const [departamentoId, setDepartamentoId] = useState("");
   const [setorId, setSetorId] = useState("");
@@ -78,7 +81,7 @@ export default function PessoasPage() {
   useEffect(() => { fetchData(); }, [selectedCompany]);
 
   const resetForm = () => {
-    setNome(""); setEmail(""); setTelefone(""); setCargo("");
+    setNome(""); setEmail(""); setTelefone(""); setCargo(""); setMatricula("");
     setTipo(companyType === "rental" ? "cliente" : "funcionario");
     setDepartamentoId(""); setSetorId(""); setEditItem(null);
   };
@@ -89,6 +92,7 @@ export default function PessoasPage() {
     setEmail(item.email || "");
     setTelefone(item.telefone || "");
     setCargo(item.cargo || "");
+    setMatricula(item.matricula || "");
     setTipo(item.tipo);
     setDepartamentoId(item.departamento_id || "");
     setSetorId(item.setor_id || "");
@@ -100,6 +104,7 @@ export default function PessoasPage() {
     setActionLoading(true);
     const payload = {
       nome, email: email || null, telefone: telefone || null, cargo, tipo,
+      matricula: matricula || null,
       departamento_id: departamentoId || null, setor_id: setorId || null,
       company_id: selectedCompany.id,
     };
@@ -155,10 +160,13 @@ export default function PessoasPage() {
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Gerencie {pageTitle.toLowerCase()} de {selectedCompany.name}.</p>
           </div>
           {isAdmin && (
-            <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs sm:text-sm"
-              onClick={() => { resetForm(); setDialogOpen(true); }}>
-              <Plus className="h-4 w-4" /> Novo
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <ImportacaoMassa companyId={selectedCompany.id} onImportComplete={fetchData} />
+              <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs sm:text-sm"
+                onClick={() => { resetForm(); setDialogOpen(true); }}>
+                <Plus className="h-4 w-4" /> Novo
+              </Button>
+            </div>
           )}
         </div>
         <div className="relative">
@@ -211,7 +219,8 @@ export default function PessoasPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-xs uppercase tracking-wider font-semibold">Nome</TableHead>
+                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Nome</TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider font-semibold">Matrícula</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Tipo</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Cargo</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Departamento</TableHead>
@@ -224,6 +233,7 @@ export default function PessoasPage() {
                       {filtered.map((pessoa) => (
                         <TableRow key={pessoa.id}>
                           <TableCell className="font-medium text-sm">{pessoa.nome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{pessoa.matricula || "—"}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`text-[10px] ${pessoa.tipo === "funcionario" ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-accent/10 text-accent border-accent/20"}`}>
                               {pessoa.tipo === "funcionario" ? "Funcionário" : "Cliente"}
@@ -312,7 +322,10 @@ export default function PessoasPage() {
               <div className="space-y-2"><Label>E-mail</Label><Input type="email" placeholder="email@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
               <div className="space-y-2"><Label>Telefone</Label><Input placeholder="(00) 00000-0000" value={telefone} onChange={(e) => setTelefone(e.target.value)} /></div>
             </div>
-            <div className="space-y-2"><Label>Cargo</Label><Input placeholder="Ex: Analista" value={cargo} onChange={(e) => setCargo(e.target.value)} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Cargo</Label><Input placeholder="Ex: Analista" value={cargo} onChange={(e) => setCargo(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Matrícula</Label><Input placeholder="Ex: MAT001 (opcional)" value={matricula} onChange={(e) => setMatricula(e.target.value)} /></div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Departamento</Label>
