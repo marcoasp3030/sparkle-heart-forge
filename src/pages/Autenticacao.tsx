@@ -271,6 +271,16 @@ const Auth = () => {
 
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground">
+              {isForgotPassword ? "Recuperar senha" : isLogin ? "Bem-vindo de volta" : "Criar conta"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {isForgotPassword
+                ? "Informe seu e-mail para receber o link de redefinição"
+                : isLogin
+                ? "Entre com suas credenciais para continuar"
+                : "Preencha os dados para se cadastrar"}
+            </p>
+          </div>
               {isLogin ? "Bem-vindo de volta" : "Criar conta"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5">
