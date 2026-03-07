@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight } from "lucide-react";
+import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
