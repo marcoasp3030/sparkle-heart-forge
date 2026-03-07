@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +40,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (!user) return;
     supabase
       .from("profiles")
@@ -50,7 +50,7 @@ const Index = () => {
       .then(({ data }) => {
         if (data?.role === "superadmin") setIsSuperAdmin(true);
       });
-  });
+  }, [user]);
 
   const filtered = lockerData.filter(
     (l) =>
