@@ -353,6 +353,9 @@ export default function LockersPage() {
               doors={locker.doors}
               index={i}
               currentUserId={user?.id}
+              isAdmin={isAdmin}
+              onEdit={openEditDialog}
+              onDelete={(l) => setDeleteLocker(l)}
               onSelectDoor={(door) => {
                 setSelectedDoor(door);
                 setSheetOpen(true);
