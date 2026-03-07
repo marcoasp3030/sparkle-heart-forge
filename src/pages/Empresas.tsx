@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -36,12 +36,20 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 export default function CompaniesPage() {
-  const { companies, refreshCompanies, isSuperAdmin } = useCompany();
+  const { companies: activeCompanies, refreshCompanies, isSuperAdmin } = useCompany();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<any>(null);
   const [deleteCompany, setDeleteCompany] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // All companies (including inactive)
+  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "employee" | "rental">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
 
   // Permissions sheet
   const [permCompany, setPermCompany] = useState<any>(null);
@@ -66,19 +74,41 @@ export default function CompaniesPage() {
   const [type, setType] = useState<"employee" | "rental">("employee");
   const [description, setDescription] = useState("");
 
-  // Fetch stats for all companies
+  // Fetch all companies including inactive
+  const fetchAllCompanies = async () => {
+    const { data } = await supabase.from("companies").select("*").order("name");
+    if (data) setAllCompanies(data);
+  };
+
   useEffect(() => {
-    if (!companies.length) return;
+    if (isSuperAdmin) fetchAllCompanies();
+  }, [isSuperAdmin, activeCompanies]);
+
+  // Derived: companies to display based on filters
+  const companies = allCompanies.length > 0 ? allCompanies : activeCompanies;
+
+  const filteredCompanies = companies.filter((c) => {
+    const matchesSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = filterType === "all" || c.type === filterType;
+    const matchesStatus = filterStatus === "all" || (filterStatus === "active" ? c.active : !c.active);
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const hasActiveFilters = searchQuery || filterType !== "all" || filterStatus !== "all";
+
+  // Company stats
+  useEffect(() => {
+    const activeIds = companies.filter(c => c.active).map(c => c.id);
+    if (!activeIds.length) return;
     const fetchStats = async () => {
-      const ids = companies.map(c => c.id);
       const [profilesRes, deptRes, setoresRes, lockersRes] = await Promise.all([
-        supabase.from("profiles").select("company_id").in("company_id", ids),
-        supabase.from("departamentos").select("company_id").in("company_id", ids).eq("ativo", true),
-        supabase.from("setores").select("company_id").in("company_id", ids).eq("ativo", true),
-        supabase.from("lockers").select("company_id").in("company_id", ids),
+        supabase.from("profiles").select("company_id").in("company_id", activeIds),
+        supabase.from("departamentos").select("company_id").in("company_id", activeIds).eq("ativo", true),
+        supabase.from("setores").select("company_id").in("company_id", activeIds).eq("ativo", true),
+        supabase.from("lockers").select("company_id").in("company_id", activeIds),
       ]);
       const stats: Record<string, { users: number; departments: number; sectors: number; lockers: number }> = {};
-      ids.forEach(id => { stats[id] = { users: 0, departments: 0, sectors: 0, lockers: 0 }; });
+      activeIds.forEach(id => { stats[id] = { users: 0, departments: 0, sectors: 0, lockers: 0 }; });
       profilesRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].users++; });
       deptRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].departments++; });
       setoresRes.data?.forEach((r: any) => { if (r.company_id && stats[r.company_id]) stats[r.company_id].sectors++; });
@@ -239,7 +269,19 @@ export default function CompaniesPage() {
     }
     setDeleteCompany(null);
     await refreshCompanies();
+    await fetchAllCompanies();
     setLoading(false);
+  };
+
+  const handleReactivate = async (company: any) => {
+    const { error } = await supabase.from("companies").update({ active: true }).eq("id", company.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Empresa reativada!", description: `${company.name} foi reativada.` });
+    }
+    await refreshCompanies();
+    await fetchAllCompanies();
   };
 
   if (!isSuperAdmin) {
@@ -306,9 +348,10 @@ export default function CompaniesPage() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total", value: companies.length },
+          { label: "Ativas", value: companies.filter((c) => c.active).length },
           { label: "Funcionários", value: companies.filter((c) => c.type === "employee").length },
           { label: "Aluguel", value: companies.filter((c) => c.type === "rental").length },
         ].map((stat, i) => (
@@ -323,20 +366,69 @@ export default function CompaniesPage() {
         ))}
       </div>
 
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar empresa por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 rounded-xl"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-[150px] rounded-xl">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="employee">Funcionários</SelectItem>
+              <SelectItem value="rental">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+            <SelectTrigger className="w-[140px] rounded-xl">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Ativas</SelectItem>
+              <SelectItem value="inactive">Inativas</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={() => { setSearchQuery(""); setFilterType("all"); setFilterStatus("all"); }} title="Limpar filtros">
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {hasActiveFilters && (
+        <p className="text-sm text-muted-foreground">
+          {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? "s" : ""} encontrada{filteredCompanies.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
       {/* Companies Grid */}
-      {companies.length === 0 ? (
+      {filteredCompanies.length === 0 ? (
         <div className="text-center py-16">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
             <Building2 className="h-7 w-7 text-muted-foreground/50" />
           </div>
-          <p className="text-muted-foreground font-medium">Nenhuma empresa cadastrada.</p>
-          <p className="text-sm text-muted-foreground/60 mt-1">Crie a primeira empresa para começar.</p>
+          <p className="text-muted-foreground font-medium">
+            {hasActiveFilters ? "Nenhuma empresa encontrada com os filtros aplicados." : "Nenhuma empresa cadastrada."}
+          </p>
+          {!hasActiveFilters && <p className="text-sm text-muted-foreground/60 mt-1">Crie a primeira empresa para começar.</p>}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {companies.map((company, i) => (
+          {filteredCompanies.map((company, i) => (
             <motion.div key={company.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
-              <Card className="shadow-card border-border/50 hover:shadow-elevated transition-shadow group relative">
+              <Card className={`shadow-card border-border/50 hover:shadow-elevated transition-shadow group relative ${!company.active ? "opacity-50" : ""}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -345,24 +437,39 @@ export default function CompaniesPage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-foreground">{company.name}</h3>
-                        <Badge variant="outline" className={`text-[10px] mt-1 ${typeLabels[company.type]?.className || ""}`}>
-                          {typeLabels[company.type]?.label || company.type}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Badge variant="outline" className={`text-[10px] ${typeLabels[company.type]?.className || ""}`}>
+                            {typeLabels[company.type]?.label || company.type}
+                          </Badge>
+                          {!company.active && (
+                            <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
+                              Inativa
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAdminDialog(company)} title="Criar Usuário">
-                        <UserPlus className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
-                        <Settings2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(company)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteCompany(company)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!company.active ? (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleReactivate(company)} title="Reativar">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAdminDialog(company)} title="Criar Usuário">
+                            <UserPlus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
+                            <Settings2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(company)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteCompany(company)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {company.description && (
