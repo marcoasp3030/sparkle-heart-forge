@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Lock, Mail, User, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, User, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria } from "@/services/auditoria";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [bloqueado, setBloqueado] = useState(false);
+  const [msgBloqueio, setMsgBloqueio] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -71,11 +74,52 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setBloqueado(false);
 
     try {
       if (isLogin) {
+        // Check rate limiting
+        const status = await verificarBloqueioLogin(email);
+        if (status.bloqueado) {
+          setBloqueado(true);
+          setMsgBloqueio(
+            `Conta temporariamente bloqueada. Tente novamente em ${status.minutosRestantes} minuto(s).`
+          );
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          await registrarTentativaLogin(email, false);
+          await registrarAuditoria({
+            action: "login_failed",
+            resource_type: "auth",
+            details: { email, reason: error.message },
+          });
+
+          const updated = await verificarBloqueioLogin(email);
+          if (updated.bloqueado) {
+            setBloqueado(true);
+            setMsgBloqueio(
+              `Muitas tentativas falhas. Conta bloqueada por ${updated.minutosRestantes} minuto(s).`
+            );
+          } else {
+            toast({
+              title: "Erro de autenticação",
+              description: `${error.message} (${updated.tentativasRestantes} tentativa(s) restante(s))`,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        await registrarTentativaLogin(email, true);
+        await registrarAuditoria({
+          action: "login_success",
+          resource_type: "auth",
+          details: { email },
+        });
         navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({
