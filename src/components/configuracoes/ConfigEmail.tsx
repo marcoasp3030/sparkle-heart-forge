@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
-import { Mail, Server, Eye, Save, Loader2, Send, Palette } from "lucide-react";
+import { Mail, Server, Eye, Save, Loader2, Send, Palette, Plug, CheckCircle2, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SmtpConfig {
   host: string;
