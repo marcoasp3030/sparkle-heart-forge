@@ -64,6 +64,8 @@ export default function ConfigEmail() {
   const [showPreview, setShowPreview] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
 
   useEffect(() => {
     loadSettings();
