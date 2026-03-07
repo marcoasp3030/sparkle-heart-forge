@@ -42,10 +42,10 @@ const stats = [
 ];
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: Archive, label: "Armários" },
-  { icon: BarChart3, label: "Relatórios" },
-  { icon: Settings, label: "Configurações" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Archive, label: "Armários", path: "/lockers" },
+  { icon: BarChart3, label: "Relatórios", path: "/reports" },
+  { icon: Settings, label: "Configurações", path: "/settings" },
 ];
 
 const Index = () => {
