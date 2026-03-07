@@ -74,8 +74,6 @@ export default function CompaniesPage() {
   const [type, setType] = useState<"employee" | "rental">("employee");
   const [description, setDescription] = useState("");
 
-  // Fetch stats for all companies
-  useEffect(() => {
   // Fetch all companies including inactive
   const fetchAllCompanies = async () => {
     const { data } = await supabase.from("companies").select("*").order("name");
