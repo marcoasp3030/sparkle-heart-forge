@@ -34,6 +34,7 @@ const stats = [
 
 const Index = () => {
   const [search, setSearch] = useState("");
+  const { user, signOut } = useAuth();
 
   const filtered = lockerData.filter(
     (l) =>
