@@ -1,7 +1,9 @@
-import { motion } from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { Lock, Unlock, Wrench, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface LockerDoorData {
   id: string;
@@ -16,6 +18,8 @@ interface LockerDoorProps {
   door: LockerDoorData;
   index: number;
   onSelect?: (door: LockerDoorData) => void;
+  onQuickReserve?: (door: LockerDoorData) => void;
+  onQuickRelease?: (door: LockerDoorData) => void;
   isCurrentUser?: boolean;
   isAdmin?: boolean;
 }
@@ -77,11 +81,155 @@ const statusConfig = {
   },
 };
 
-export default function PortaArmario({ door, index, onSelect, isCurrentUser, isAdmin }: LockerDoorProps) {
+const SWIPE_THRESHOLD = 50;
+const ACTION_WIDTH = 64;
+
+export default function PortaArmario({ door, index, onSelect, onQuickReserve, onQuickRelease, isCurrentUser, isAdmin }: LockerDoorProps) {
   const config = statusConfig[door.status];
   const Icon = config.icon;
   const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance");
+  const isMobile = useIsMobile();
+  const [swiped, setSwiped] = useState(false);
+  const x = useMotionValue(0);
+  const actionOpacity = useTransform(x, [-ACTION_WIDTH, -20, 0], [1, 0.5, 0]);
 
+  const canSwipe = isMobile && (
+    (door.status === "available" && !!onQuickReserve) ||
+    (door.status === "occupied" && isCurrentUser && !!onQuickRelease)
+  );
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.offset.x < -SWIPE_THRESHOLD && canSwipe) {
+      animate(x, -ACTION_WIDTH, { type: "spring", stiffness: 300, damping: 30 });
+      setSwiped(true);
+    } else {
+      animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
+      setSwiped(false);
+    }
+  };
+
+  const handleQuickAction = () => {
+    if (door.status === "available") {
+      onQuickReserve?.(door);
+    } else if (door.status === "occupied" && isCurrentUser) {
+      onQuickRelease?.(door);
+    }
+    animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
+    setSwiped(false);
+  };
+
+  const handleTap = () => {
+    if (swiped) {
+      animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
+      setSwiped(false);
+      return;
+    }
+    if (isClickable) onSelect?.(door);
+  };
+
+  const doorContent = (
+    <div
+      className={cn(
+        "relative w-full rounded-lg border-2 transition-all duration-300 flex flex-col items-center justify-center gap-1 group overflow-hidden",
+        "bg-gradient-to-b",
+        sizeMap[door.size],
+        config.bg,
+        config.border,
+        config.hoverBorder,
+        config.hoverShadow,
+        isClickable ? "cursor-pointer" : "cursor-default",
+        isCurrentUser && "ring-2 ring-primary/50 ring-offset-1 ring-offset-background"
+      )}
+    >
+      {/* Metallic top edge */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
+      {/* Inner shadow */}
+      <div className="absolute inset-0 rounded-lg shadow-[inset_0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none" />
+      {/* LED */}
+      <div className="absolute top-2 left-2">
+        <div className={cn("h-2 w-2 rounded-full transition-all duration-500", config.led, config.ledGlow, door.status === "available" && "animate-pulse")} />
+      </div>
+      {/* Handle */}
+      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5">
+        <div className={cn("w-3 h-3 rounded-full border-2 border-foreground/15 dark:border-foreground/20 transition-colors", config.handleColor)} />
+        <div className="w-[2px] h-3 rounded-full bg-foreground/10 dark:bg-foreground/15" />
+      </div>
+      {/* Content */}
+      <Icon className={cn("h-4 w-4 transition-all duration-200 drop-shadow-sm", config.iconColor, isClickable && "group-hover:scale-110")} />
+      <span className="text-[10px] font-bold text-foreground/60 font-mono tracking-wide">
+        {door.label || `${door.door_number}`}
+      </span>
+      {/* Ventilation */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="w-5 h-[1.5px] rounded-full bg-foreground/[0.06] dark:bg-foreground/[0.08]" />
+        ))}
+      </div>
+      {/* Hover overlay */}
+      {isClickable && (
+        <div className="absolute inset-0 bg-gradient-to-b from-white/0 to-white/20 dark:from-white/0 dark:to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      )}
+      {/* Swipe hint for mobile */}
+      {canSwipe && !swiped && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-30">
+          <div className="w-1 h-4 rounded-full bg-foreground/20 animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
+
+  // Mobile: swipeable version
+  if (canSwipe) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: index * 0.025, duration: 0.3, type: "spring", stiffness: 300 }}
+        className="relative overflow-hidden rounded-lg"
+      >
+        {/* Action behind */}
+        <motion.div
+          style={{ opacity: actionOpacity }}
+          className={cn(
+            "absolute right-0 top-0 bottom-0 flex items-center justify-center rounded-r-lg",
+            door.status === "available"
+              ? "bg-emerald-500 dark:bg-emerald-600"
+              : "bg-rose-500 dark:bg-rose-600"
+          )}
+          onClick={handleQuickAction}
+        >
+          <div className="w-16 flex flex-col items-center justify-center gap-0.5 text-white">
+            {door.status === "available" ? (
+              <>
+                <Lock className="h-4 w-4" />
+                <span className="text-[8px] font-bold uppercase tracking-wider">Reservar</span>
+              </>
+            ) : (
+              <>
+                <Unlock className="h-4 w-4" />
+                <span className="text-[8px] font-bold uppercase tracking-wider">Liberar</span>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Draggable door */}
+        <motion.div
+          style={{ x }}
+          drag="x"
+          dragConstraints={{ left: -ACTION_WIDTH, right: 0 }}
+          dragElastic={0.1}
+          onDragEnd={handleDragEnd}
+          onClick={handleTap}
+          className="relative z-10"
+        >
+          {doorContent}
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // Desktop / non-swipeable: standard version with tooltip
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -93,63 +241,9 @@ export default function PortaArmario({ door, index, onSelect, isCurrentUser, isA
           whileTap={isClickable ? { scale: 0.97 } : undefined}
           onClick={() => isClickable && onSelect?.(door)}
           disabled={!isClickable}
-          className={cn(
-            "relative w-full rounded-lg border-2 transition-all duration-300 flex flex-col items-center justify-center gap-1 group overflow-hidden",
-            "bg-gradient-to-b",
-            sizeMap[door.size],
-            config.bg,
-            config.border,
-            config.hoverBorder,
-            config.hoverShadow,
-            isClickable ? "cursor-pointer" : "cursor-default",
-            isCurrentUser && "ring-2 ring-primary/50 ring-offset-1 ring-offset-background"
-          )}
+          className="w-full"
         >
-          {/* Metallic top edge */}
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
-
-          {/* Inner shadow for depth */}
-          <div className="absolute inset-0 rounded-lg shadow-[inset_0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none" />
-
-          {/* LED indicator */}
-          <div className="absolute top-2 left-2">
-            <div className={cn(
-              "h-2 w-2 rounded-full transition-all duration-500",
-              config.led, config.ledGlow,
-              door.status === "available" && "animate-pulse"
-            )} />
-          </div>
-
-          {/* Door handle - circular realistic */}
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5">
-            <div className={cn(
-              "w-3 h-3 rounded-full border-2 border-foreground/15 dark:border-foreground/20 transition-colors",
-              config.handleColor
-            )} />
-            <div className="w-[2px] h-3 rounded-full bg-foreground/10 dark:bg-foreground/15" />
-          </div>
-
-          {/* Content */}
-          <Icon className={cn(
-            "h-4 w-4 transition-all duration-200 drop-shadow-sm",
-            config.iconColor,
-            isClickable && "group-hover:scale-110"
-          )} />
-          <span className="text-[10px] font-bold text-foreground/60 font-mono tracking-wide">
-            {door.label || `${door.door_number}`}
-          </span>
-
-          {/* Ventilation slots */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="w-5 h-[1.5px] rounded-full bg-foreground/[0.06] dark:bg-foreground/[0.08]" />
-            ))}
-          </div>
-
-          {/* Hover overlay */}
-          {isClickable && (
-            <div className="absolute inset-0 bg-gradient-to-b from-white/0 to-white/20 dark:from-white/0 dark:to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          )}
+          {doorContent}
         </motion.button>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-xs">

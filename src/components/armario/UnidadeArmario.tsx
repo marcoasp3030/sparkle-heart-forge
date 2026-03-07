@@ -16,6 +16,8 @@ interface LockerUnitProps {
   locker: LockerData;
   doors: LockerDoorData[];
   onSelectDoor?: (door: LockerDoorData) => void;
+  onQuickReserve?: (door: LockerDoorData) => void;
+  onQuickRelease?: (door: LockerDoorData) => void;
   onEdit?: (locker: LockerData) => void;
   onDelete?: (locker: LockerData) => void;
   currentUserId?: string;
@@ -23,7 +25,7 @@ interface LockerUnitProps {
   index?: number;
 }
 
-export default function UnidadeArmario({ locker, doors, onSelectDoor, onEdit, onDelete, currentUserId, isAdmin, index = 0 }: LockerUnitProps) {
+export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickReserve, onQuickRelease, onEdit, onDelete, currentUserId, isAdmin, index = 0 }: LockerUnitProps) {
   const gridCols = locker.orientation === "horizontal" ? locker.rows : locker.columns;
 
   const available = doors.filter((d) => d.status === "available").length;
@@ -86,7 +88,7 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onEdit, on
             {doors
               .sort((a, b) => a.door_number - b.door_number)
               .map((door, i) => (
-                <PortaArmario key={door.id} door={door} index={i} onSelect={onSelectDoor} isCurrentUser={door.occupied_by === currentUserId} isAdmin={isAdmin} />
+                <PortaArmario key={door.id} door={door} index={i} onSelect={onSelectDoor} onQuickReserve={onQuickReserve} onQuickRelease={onQuickRelease} isCurrentUser={door.occupied_by === currentUserId} isAdmin={isAdmin} />
               ))}
           </div>
         </div>
