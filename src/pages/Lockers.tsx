@@ -54,7 +54,11 @@ export default function LockersPage() {
 
   const fetchLockers = useCallback(async () => {
     setLoading(true);
-    const { data: lockersData } = await supabase.from("lockers").select("*").order("created_at");
+    let lockersQuery = supabase.from("lockers").select("*").order("created_at");
+    if (selectedCompany) {
+      lockersQuery = lockersQuery.eq("company_id", selectedCompany.id);
+    }
+    const { data: lockersData } = await lockersQuery;
     const { data: doorsData } = await supabase.from("locker_doors").select("*");
 
     if (lockersData && doorsData) {
@@ -65,7 +69,7 @@ export default function LockersPage() {
       setLockers(merged);
     }
     setLoading(false);
-  }, []);
+  }, [selectedCompany]);
 
   useEffect(() => {
     fetchLockers();
