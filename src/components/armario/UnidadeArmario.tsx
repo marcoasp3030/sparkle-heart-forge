@@ -88,7 +88,7 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
             {doors
               .sort((a, b) => a.door_number - b.door_number)
               .map((door, i) => (
-                <PortaArmario key={door.id} door={door} index={i} onSelect={onSelectDoor} isCurrentUser={door.occupied_by === currentUserId} isAdmin={isAdmin} />
+                <PortaArmario key={door.id} door={door} index={i} onSelect={onSelectDoor} onQuickReserve={onQuickReserve} onQuickRelease={onQuickRelease} isCurrentUser={door.occupied_by === currentUserId} isAdmin={isAdmin} />
               ))}
           </div>
         </div>
