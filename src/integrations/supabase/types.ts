@@ -44,6 +44,41 @@ export type Database = {
         }
         Relationships: []
       }
+      company_permissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          permission: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          permission: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          permission?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departamentos: {
         Row: {
           ativo: boolean
