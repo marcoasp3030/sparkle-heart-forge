@@ -97,6 +97,7 @@ const Auth = () => {
         const status = await verificarBloqueioLogin(email);
         if (status.bloqueado) {
           setStatusLogin(status);
+          setSegundosRestantes(status.segundosRestantes ?? 60);
           setLoading(false);
           return;
         }
@@ -113,7 +114,9 @@ const Auth = () => {
           const updated = await verificarBloqueioLogin(email);
           setStatusLogin(updated);
 
-          if (!updated.bloqueado) {
+          if (updated.bloqueado) {
+            setSegundosRestantes(updated.segundosRestantes ?? 60);
+          } else {
             toast({
               title: traduzirErro(error.message),
               description: updated.mensagem,
