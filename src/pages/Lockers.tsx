@@ -147,6 +147,46 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  const openEditDialog = (locker: LockerData) => {
+    setEditLocker(locker);
+    setEditName(locker.name);
+    setEditLocation(locker.location);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditLocker = async () => {
+    if (!editLocker || !editName.trim()) return;
+    setActionLoading(true);
+    const { error } = await supabase
+      .from("lockers")
+      .update({ name: editName, location: editLocation })
+      .eq("id", editLocker.id);
+
+    if (error) {
+      toast({ title: "Erro ao editar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Atualizado!", description: `${editName} atualizado com sucesso.` });
+      setEditDialogOpen(false);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
+  const handleDeleteLocker = async () => {
+    if (!deleteLocker) return;
+    setActionLoading(true);
+    const { error } = await supabase.from("lockers").delete().eq("id", deleteLocker.id);
+
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Excluído!", description: `${deleteLocker.name} removido.` });
+      setDeleteLocker(null);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
   const filteredLockers = lockers.filter(
     (l) =>
       l.name.toLowerCase().includes(search.toLowerCase()) ||
