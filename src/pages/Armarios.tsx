@@ -227,57 +227,24 @@ export default function LockersPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Armários</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visualize e gerencie os armários inteligentes.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." className="pl-9 h-9 w-48 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          {/* Status filter */}
-          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5">
-            {[
-              { value: "all", label: "Todos" },
-              { value: "available", label: "Livres" },
-              { value: "occupied", label: "Ocupados" },
-              { value: "maintenance", label: "Manut." },
-            ].map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                  statusFilter === f.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          {/* View mode */}
-          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5">
-            <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              <List className="h-3.5 w-3.5" />
-            </button>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Armários</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20">
+                <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs md:text-sm">
                   <Plus className="h-4 w-4" />
-                  Novo Armário
+                  <span className="hidden sm:inline">Novo Armário</span>
+                  <span className="sm:hidden">Novo</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md rounded-2xl">
+              <DialogContent className="sm:max-w-md rounded-2xl mx-4">
                 <DialogHeader>
                   <DialogTitle>Criar Novo Armário</DialogTitle>
                 </DialogHeader>
@@ -356,27 +323,67 @@ export default function LockersPage() {
             </Dialog>
           )}
         </div>
+
+        {/* Search + Filters row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar..." className="pl-9 h-9 w-full sm:w-48 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Status filter - scrollable on mobile */}
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto flex-1 sm:flex-none">
+              {[
+                { value: "all", label: "Todos" },
+                { value: "available", label: "Livres" },
+                { value: "occupied", label: "Ocupados" },
+                { value: "maintenance", label: "Manut." },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setStatusFilter(f.value)}
+                  className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap ${
+                    statusFilter === f.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {/* View mode */}
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+              <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
         {stats.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
             <Card className="shadow-card hover:shadow-elevated transition-shadow border-border/50">
-              <CardContent className="p-5">
-                <div className={`rounded-lg p-2 w-fit mb-3 ${
+              <CardContent className="p-3 md:p-5">
+                <div className={`rounded-lg p-1.5 md:p-2 w-fit mb-2 md:mb-3 ${
                   stat.accent === "success" ? "bg-success/10" :
                   stat.accent === "primary" ? "bg-primary/10" :
                   stat.accent === "accent" ? "bg-accent/10" : "bg-muted"
                 }`}>
-                  <stat.icon className={`h-4 w-4 ${
+                  <stat.icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${
                     stat.accent === "success" ? "text-success" :
                     stat.accent === "primary" ? "text-primary" :
                     stat.accent === "accent" ? "text-accent" : "text-muted-foreground"
                   }`} />
                 </div>
-                <p className="text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
+                <p className="text-xs md:text-sm text-muted-foreground mt-0.5">{stat.label}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -399,7 +406,7 @@ export default function LockersPage() {
           </p>
         </motion.div>
       ) : (
-        <div className={viewMode === "grid" ? "grid gap-6 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
+        <div className={viewMode === "grid" ? "grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
           {filteredLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}

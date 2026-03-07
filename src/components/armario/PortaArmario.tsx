@@ -21,9 +21,9 @@ interface LockerDoorProps {
 }
 
 const sizeMap = {
-  small: "h-20",
-  medium: "h-28",
-  large: "h-36",
+  small: "h-16 md:h-20",
+  medium: "h-20 md:h-28",
+  large: "h-28 md:h-36",
 };
 
 const statusConfig = {
