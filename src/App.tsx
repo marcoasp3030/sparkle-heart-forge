@@ -21,6 +21,7 @@ import Departamentos from "./pages/Departamentos";
 import Setores from "./pages/Setores";
 import Pessoas from "./pages/Pessoas";
 import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
+import Configuracoes from "./pages/Configuracoes";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ function RotasAnimadas() {
         <Route path="/admin" element={protectedRoute(<Administracao />)} />
         <Route path="/personalizacao" element={protectedRoute(<Personalizacao />)} />
         <Route path="/white-label" element={protectedRoute(<PersonalizacaoEmpresa />)} />
+        <Route path="/configuracoes" element={protectedRoute(<Configuracoes />)} />
         <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
     </AnimatePresence>

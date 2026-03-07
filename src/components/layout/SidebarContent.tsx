@@ -229,8 +229,8 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 rounded-xl p-1">
-            <DropdownMenuItem className="rounded-lg py-2 text-sm">Meu Perfil</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg py-2 text-sm">Preferências</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNav("/configuracoes")} className="rounded-lg py-2 text-sm">Meu Perfil</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNav("/configuracoes")} className="rounded-lg py-2 text-sm">Preferências</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="rounded-lg py-2 text-sm text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
