@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, ArrowLeft, Save } from "lucide-react";
+import { Shield, Users, ArrowLeft, Save, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,11 @@ interface Profile {
 
 const ROLES = ["user", "admin", "superadmin"];
 
-const roleBadgeVariant = (role: string | null) => {
+const roleBadgeClass = (role: string | null) => {
   switch (role) {
-    case "superadmin": return "default";
-    case "admin": return "secondary";
-    default: return "outline";
+    case "superadmin": return "bg-primary/10 text-primary border-primary/20";
+    case "admin": return "bg-secondary/10 text-secondary border-secondary/20";
+    default: return "bg-muted text-muted-foreground";
   }
 };
 
@@ -112,45 +112,47 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <img src={lockerLogo} alt="PB One Locker" className="h-10" />
-            <Badge variant="default" className="gap-1">
+            <img src={lockerLogo} alt="PB One Locker" className="h-8" />
+            <Badge variant="outline" className="gap-1 bg-primary/10 text-primary border-primary/20 text-[11px]">
               <Shield className="h-3 w-3" />
               Super Admin
             </Badge>
           </div>
-          <Button variant="ghost" onClick={() => navigate("/")} className="gap-2">
+          <Button variant="ghost" onClick={() => navigate("/")} size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
-            Voltar ao Dashboard
+            Dashboard
           </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" />
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
             Gestão de Usuários
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Gerencie permissões e roles dos usuários do sistema.
           </p>
         </motion.div>
 
         {/* Stats */}
-        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="mb-8 grid grid-cols-3 gap-4">
           {[
             { label: "Total de Usuários", value: profiles.length },
             { label: "Administradores", value: profiles.filter((p) => p.role === "admin" || p.role === "superadmin").length },
             { label: "Usuários Comuns", value: profiles.filter((p) => p.role === "user" || !p.role).length },
           ].map((stat, i) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className="border-border/60">
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+              <Card className="shadow-card border-border/50">
                 <CardContent className="p-5">
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{stat.label}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -158,31 +160,31 @@ const Admin = () => {
         </div>
 
         {/* Users Table */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Usuários</CardTitle>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card className="shadow-card border-border/50 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border px-6">
+              <CardTitle className="text-base font-bold">Usuários</CardTitle>
               {Object.keys(pendingChanges).length > 0 && (
-                <Button onClick={saveChanges} disabled={saving} className="gap-2">
-                  <Save className="h-4 w-4" />
+                <Button onClick={saveChanges} disabled={saving} size="sm" className="gap-2 gradient-primary border-0 hover:opacity-90">
+                  <Save className="h-3.5 w-3.5" />
                   {saving ? "Salvando..." : `Salvar (${Object.keys(pendingChanges).length})`}
                 </Button>
               )}
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
-                <div className="flex justify-center py-12">
+                <div className="flex justify-center py-16">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>ID do Usuário</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead>Role Atual</TableHead>
-                      <TableHead>Nova Role</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">Nome</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">ID</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">Criado em</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">Role</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">Alterar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -193,20 +195,20 @@ const Admin = () => {
 
                       return (
                         <TableRow key={profile.id} className={hasChange ? "bg-primary/5" : ""}>
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-sm">
                             {profile.full_name || "Sem nome"}
                             {isCurrentUser && (
-                              <span className="ml-2 text-xs text-muted-foreground">(você)</span>
+                              <span className="ml-2 text-[11px] text-muted-foreground">(você)</span>
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">
-                            {profile.user_id.slice(0, 8)}...
+                            {profile.user_id.slice(0, 8)}…
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-sm text-muted-foreground">
                             {new Date(profile.created_at).toLocaleDateString("pt-BR")}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={roleBadgeVariant(profile.role)}>
+                            <Badge variant="outline" className={`text-[11px] ${roleBadgeClass(profile.role)}`}>
                               {profile.role || "user"}
                             </Badge>
                           </TableCell>
@@ -216,12 +218,12 @@ const Admin = () => {
                               onValueChange={(v) => handleRoleChange(profile.user_id, v)}
                               disabled={isCurrentUser}
                             >
-                              <SelectTrigger className="w-36">
+                              <SelectTrigger className="w-32 h-8 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {ROLES.map((r) => (
-                                  <SelectItem key={r} value={r}>
+                                  <SelectItem key={r} value={r} className="text-xs">
                                     {r}
                                   </SelectItem>
                                 ))}
