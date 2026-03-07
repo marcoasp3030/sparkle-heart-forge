@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut } from "lucide-react";
+import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,20 @@ const stats = [
 const Index = () => {
   const [search, setSearch] = useState("");
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.role === "superadmin") setIsSuperAdmin(true);
+      });
+  }, [user]);
 
   const filtered = lockerData.filter(
     (l) =>
@@ -59,6 +75,12 @@ const Index = () => {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin")} className="gap-1.5">
+                <Shield className="h-4 w-4" />
+                Admin
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary" />
