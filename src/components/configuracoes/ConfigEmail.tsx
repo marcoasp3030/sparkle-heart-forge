@@ -155,12 +155,45 @@ export default function ConfigEmail() {
     }
     setSendingTest(true);
     try {
-      // Use built-in password reset as test
-      const { error } = await supabase.auth.resetPasswordForEmail(testEmail, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      if (error) throw error;
-      toast({ title: "E-mail de teste enviado!", description: `Verifique a caixa de entrada de ${testEmail}` });
+      if (smtp.enabled && smtp.host) {
+        // Send via custom SMTP
+        const primaryColor = template.primary_color || "#2563eb";
+        const fromName = smtp.from_name || "Sistema";
+        const html = `
+          <div style="max-width:520px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+            <div style="background:${primaryColor};padding:32px 24px;text-align:center;">
+              ${template.logo_url ? `<img src="${template.logo_url}" alt="Logo" style="height:40px;margin-bottom:16px;" />` : ""}
+              <h1 style="color:#ffffff;font-size:22px;margin:0;font-weight:700;">${template.heading}</h1>
+            </div>
+            <div style="padding:32px 24px;">
+              <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px;">${template.body}</p>
+              <div style="text-align:center;margin:24px 0;">
+                <a href="#" style="display:inline-block;background:${primaryColor};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">${template.button_text}</a>
+              </div>
+              <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:24px 0 0;text-align:center;">${template.footer}</p>
+            </div>
+            <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="color:#9ca3af;font-size:12px;margin:0;">© ${new Date().getFullYear()} ${fromName}</p>
+            </div>
+          </div>
+        `;
+
+        const { data, error } = await supabase.functions.invoke("send-smtp-email", {
+          body: { to: testEmail, subject: template.subject, html },
+        });
+
+        if (error) throw error;
+        if (data && !data.success) throw new Error(data.message);
+
+        toast({ title: "E-mail de teste enviado via SMTP!", description: `Verifique a caixa de entrada de ${testEmail}` });
+      } else {
+        // Fallback to built-in
+        const { error } = await supabase.auth.resetPasswordForEmail(testEmail, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        if (error) throw error;
+        toast({ title: "E-mail de teste enviado!", description: `Verifique a caixa de entrada de ${testEmail} (via sistema padrão)` });
+      }
     } catch (err: any) {
       toast({ title: "Erro ao enviar e-mail de teste", description: err.message, variant: "destructive" });
     } finally {

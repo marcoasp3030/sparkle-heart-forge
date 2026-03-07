@@ -186,10 +186,63 @@ const Auth = () => {
     }
     setLoading(true);
     try {
+      // Generate a password reset link via Supabase
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth`,
       });
       if (error) throw error;
+
+      // Also try to send via custom SMTP if configured
+      // Load template from platform_settings
+      const { data: templateData } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "recovery_email_template")
+        .maybeSingle();
+
+      const { data: smtpData } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "smtp_config")
+        .maybeSingle();
+
+      const smtpConfig = smtpData?.value as Record<string, any> | null;
+
+      if (smtpConfig?.enabled) {
+        const tmpl = (templateData?.value as Record<string, any>) || {};
+        const primaryColor = tmpl.primary_color || "#2563eb";
+        const heading = tmpl.heading || "Redefinir sua senha";
+        const body = tmpl.body || "Clique no botão abaixo para redefinir sua senha.";
+        const buttonText = tmpl.button_text || "Redefinir Senha";
+        const footer = tmpl.footer || "Este link expira em 1 hora.";
+        const logoUrl = tmpl.logo_url || "";
+        const fromName = smtpConfig.from_name || "Sistema";
+
+        const resetUrl = `${window.location.origin}/auth`;
+        const html = `
+          <div style="max-width:520px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+            <div style="background:${primaryColor};padding:32px 24px;text-align:center;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height:40px;margin-bottom:16px;" />` : ""}
+              <h1 style="color:#ffffff;font-size:22px;margin:0;font-weight:700;">${heading}</h1>
+            </div>
+            <div style="padding:32px 24px;">
+              <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px;">${body}</p>
+              <div style="text-align:center;margin:24px 0;">
+                <a href="${resetUrl}" style="display:inline-block;background:${primaryColor};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">${buttonText}</a>
+              </div>
+              <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:24px 0 0;text-align:center;">${footer}</p>
+            </div>
+            <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="color:#9ca3af;font-size:12px;margin:0;">© ${new Date().getFullYear()} ${fromName}</p>
+            </div>
+          </div>
+        `;
+
+        await supabase.functions.invoke("send-smtp-email", {
+          body: { to: email, subject: tmpl.subject || "Recuperação de Senha", html },
+        });
+      }
+
       toast({
         title: "E-mail enviado!",
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
