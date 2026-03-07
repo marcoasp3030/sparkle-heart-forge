@@ -103,38 +103,28 @@ export async function verificarBloqueioLogin(email: string): Promise<StatusBloqu
 
   const falhas = data?.length ?? 0;
 
-  // Determine which lockout tier applies
-  let lockoutMinutes = 0;
-  let maxForTier = Infinity;
-  for (const tier of LOCKOUT_TIERS) {
-    if (falhas >= tier.maxAttempts && tier.lockoutMinutes > lockoutMinutes) {
-      lockoutMinutes = tier.lockoutMinutes;
-      maxForTier = tier.maxAttempts;
-    }
-  }
-
-  // Check if currently locked out
-  if (lockoutMinutes > 0 && data && data.length > 0) {
+  // Check if locked out (5+ failures → 60s block)
+  if (falhas >= MAX_ATTEMPTS && data && data.length > 0) {
     const lastAttempt = new Date(data[0].created_at).getTime();
-    const unlockAt = lastAttempt + lockoutMinutes * 60 * 1000;
+    const unlockAt = lastAttempt + LOCKOUT_SECONDS * 1000;
     const now = Date.now();
 
     if (now < unlockAt) {
-      const minutos = Math.ceil((unlockAt - now) / 60000);
+      const segundos = Math.ceil((unlockAt - now) / 1000);
+      const minutos = Math.max(1, Math.ceil(segundos / 60));
       return {
         bloqueado: true,
         tentativasRestantes: 0,
-        minutosRestantes: Math.max(1, minutos),
+        minutosRestantes: minutos,
         totalFalhas: falhas,
         nivel: "bloqueado",
-        mensagem: gerarMensagem(falhas, 0, Math.max(1, minutos)),
+        mensagem: `Sua conta foi temporariamente bloqueada por segurança. Aguarde ${segundos} segundo(s) antes de tentar novamente.`,
       };
     }
   }
 
-  // Not locked — calculate remaining attempts until next tier
-  const nextTier = LOCKOUT_TIERS.find((t) => falhas < t.maxAttempts);
-  const restantes = nextTier ? nextTier.maxAttempts - falhas : 0;
+  // Not locked — calculate remaining attempts
+  const restantes = Math.max(0, MAX_ATTEMPTS - falhas);
   const nivel = calcularNivel(falhas);
 
   return {
