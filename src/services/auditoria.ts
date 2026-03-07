@@ -59,6 +59,7 @@ export interface StatusBloqueio {
   bloqueado: boolean;
   tentativasRestantes: number;
   minutosRestantes: number;
+  segundosRestantes: number;
   totalFalhas: number;
   nivel: NivelAlerta;
   mensagem: string;
