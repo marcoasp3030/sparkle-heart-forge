@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut } from "lucide-react";
+import { Lock, Unlock, Package, MapPin, BarChart3, Settings, Bell, Search, ChevronRight, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
