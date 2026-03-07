@@ -338,9 +338,10 @@ export default function CompaniesPage() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total", value: companies.length },
+          { label: "Ativas", value: companies.filter((c) => c.active).length },
           { label: "Funcionários", value: companies.filter((c) => c.type === "employee").length },
           { label: "Aluguel", value: companies.filter((c) => c.type === "rental").length },
         ].map((stat, i) => (
@@ -355,18 +356,67 @@ export default function CompaniesPage() {
         ))}
       </div>
 
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar empresa por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 rounded-xl"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-[150px] rounded-xl">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="employee">Funcionários</SelectItem>
+              <SelectItem value="rental">Aluguel</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+            <SelectTrigger className="w-[140px] rounded-xl">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Ativas</SelectItem>
+              <SelectItem value="inactive">Inativas</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={() => { setSearchQuery(""); setFilterType("all"); setFilterStatus("all"); }} title="Limpar filtros">
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {hasActiveFilters && (
+        <p className="text-sm text-muted-foreground">
+          {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? "s" : ""} encontrada{filteredCompanies.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
       {/* Companies Grid */}
-      {companies.length === 0 ? (
+      {filteredCompanies.length === 0 ? (
         <div className="text-center py-16">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
             <Building2 className="h-7 w-7 text-muted-foreground/50" />
           </div>
-          <p className="text-muted-foreground font-medium">Nenhuma empresa cadastrada.</p>
-          <p className="text-sm text-muted-foreground/60 mt-1">Crie a primeira empresa para começar.</p>
+          <p className="text-muted-foreground font-medium">
+            {hasActiveFilters ? "Nenhuma empresa encontrada com os filtros aplicados." : "Nenhuma empresa cadastrada."}
+          </p>
+          {!hasActiveFilters && <p className="text-sm text-muted-foreground/60 mt-1">Crie a primeira empresa para começar.</p>}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {companies.map((company, i) => (
+          {filteredCompanies.map((company, i) => (
             <motion.div key={company.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
               <Card className="shadow-card border-border/50 hover:shadow-elevated transition-shadow group relative">
                 <CardContent className="p-6">
