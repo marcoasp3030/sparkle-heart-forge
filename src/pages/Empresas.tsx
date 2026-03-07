@@ -271,7 +271,19 @@ export default function CompaniesPage() {
     }
     setDeleteCompany(null);
     await refreshCompanies();
+    await fetchAllCompanies();
     setLoading(false);
+  };
+
+  const handleReactivate = async (company: any) => {
+    const { error } = await supabase.from("companies").update({ active: true }).eq("id", company.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Empresa reativada!", description: `${company.name} foi reativada.` });
+    }
+    await refreshCompanies();
+    await fetchAllCompanies();
   };
 
   if (!isSuperAdmin) {
@@ -418,7 +430,7 @@ export default function CompaniesPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredCompanies.map((company, i) => (
             <motion.div key={company.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
-              <Card className="shadow-card border-border/50 hover:shadow-elevated transition-shadow group relative">
+              <Card className={`shadow-card border-border/50 hover:shadow-elevated transition-shadow group relative ${!company.active ? "opacity-50" : ""}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -427,24 +439,39 @@ export default function CompaniesPage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-foreground">{company.name}</h3>
-                        <Badge variant="outline" className={`text-[10px] mt-1 ${typeLabels[company.type]?.className || ""}`}>
-                          {typeLabels[company.type]?.label || company.type}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Badge variant="outline" className={`text-[10px] ${typeLabels[company.type]?.className || ""}`}>
+                            {typeLabels[company.type]?.label || company.type}
+                          </Badge>
+                          {!company.active && (
+                            <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
+                              Inativa
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAdminDialog(company)} title="Criar Usuário">
-                        <UserPlus className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
-                        <Settings2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(company)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteCompany(company)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!company.active ? (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => handleReactivate(company)} title="Reativar">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAdminDialog(company)} title="Criar Usuário">
+                            <UserPlus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
+                            <Settings2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(company)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteCompany(company)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {company.description && (
