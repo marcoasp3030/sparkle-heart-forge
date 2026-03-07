@@ -353,7 +353,7 @@ export default function LockersPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredLockers.map((locker, i) => (
-            <LockerUnit
+            <UnidadeArmario
               key={locker.id}
               locker={locker}
               doors={locker.doors}
@@ -372,7 +372,7 @@ export default function LockersPage() {
       )}
 
       {/* Door detail sheet */}
-      <DoorDetailSheet
+      <DetalhePortaPainel
         door={selectedDoor}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
