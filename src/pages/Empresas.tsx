@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2 } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,16 @@ export default function CompaniesPage() {
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [permLoading, setPermLoading] = useState(false);
 
+  // Create admin dialog
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [adminCompany, setAdminCompany] = useState<any>(null);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminFullName, setAdminFullName] = useState("");
+  const [adminRole, setAdminRole] = useState<"admin" | "user">("admin");
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+
   // Form fields
   const [name, setName] = useState("");
   const [type, setType] = useState<"employee" | "rental">("employee");
@@ -56,6 +66,55 @@ export default function CompaniesPage() {
     setType("employee");
     setDescription("");
     setEditCompany(null);
+  };
+
+  const openAdminDialog = (company: any) => {
+    setAdminCompany(company);
+    setAdminEmail("");
+    setAdminPassword("");
+    setAdminFullName("");
+    setAdminRole("admin");
+    setShowAdminPassword(false);
+    setAdminDialogOpen(true);
+  };
+
+  const handleCreateAdmin = async () => {
+    if (!adminEmail.trim() || !adminPassword || !adminCompany) return;
+    setAdminLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-company-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            email: adminEmail.trim(),
+            password: adminPassword,
+            full_name: adminFullName.trim(),
+            company_id: adminCompany.id,
+            role: adminRole,
+          }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        toast({ title: "Erro ao criar usuário", description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: "Usuário criado!", description: `${adminEmail} vinculado à ${adminCompany.name}` });
+        setAdminDialogOpen(false);
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setAdminLoading(false);
+    }
   };
 
   const openEdit = (company: any) => {
@@ -265,6 +324,9 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAdminDialog(company)} title="Criar Usuário">
+                        <UserPlus className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPermissions(company)} title="Permissões">
                         <Settings2 className="h-3.5 w-3.5" />
                       </Button>
@@ -341,6 +403,69 @@ export default function CompaniesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Admin Dialog */}
+      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Criar Usuário — {adminCompany?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input placeholder="Nome do usuário" value={adminFullName} onChange={(e) => setAdminFullName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input type="email" placeholder="usuario@empresa.com" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <div className="relative">
+                <Input
+                  type={showAdminPassword ? "text" : "password"}
+                  placeholder="Mínimo 6 caracteres"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Perfil de Acesso</Label>
+              <Select value={adminRole} onValueChange={(v) => setAdminRole(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador — gerencia a empresa</SelectItem>
+                  <SelectItem value="user">Usuário — acesso básico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="rounded-xl">Cancelar</Button>
+            </DialogClose>
+            <Button
+              onClick={handleCreateAdmin}
+              disabled={adminLoading || !adminEmail.trim() || adminPassword.length < 6}
+              className="gradient-primary border-0 rounded-xl hover:opacity-90"
+            >
+              {adminLoading ? "Criando..." : "Criar Usuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
