@@ -81,32 +81,38 @@ serve(async (req) => {
 
       for (const endpoint of endpoints) {
         for (const bodyPayload of bodies) {
-          const response = await fetch(`${baseUrl}${endpoint}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "admintoken": token,
-            },
-            body: JSON.stringify(bodyPayload),
-          });
+          console.log(`Trying ${endpoint} with body:`, JSON.stringify(bodyPayload));
+          try {
+            const response = await fetch(`${baseUrl}${endpoint}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "admintoken": token,
+              },
+              body: JSON.stringify(bodyPayload),
+            });
 
-          const contentType = response.headers.get("content-type") || "";
-          const data = contentType.includes("application/json")
-            ? await response.json()
-            : { raw: await response.text() };
+            const contentType = response.headers.get("content-type") || "";
+            const text = await response.text();
+            let data: any;
+            try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-          if (response.ok) {
+            console.log(`Response ${response.status}:`, text.substring(0, 200));
+
+            if (response.ok) {
+              return { response, data };
+            }
+
+            // If error is about missing name or 404, try next
+            const errorStr = JSON.stringify(data).toLowerCase();
+            if (errorStr.includes("missing") || response.status === 404) continue;
+
+            // For other errors, return immediately
             return { response, data };
+          } catch (fetchErr) {
+            console.log(`Fetch error for ${endpoint}:`, fetchErr);
+            continue;
           }
-
-          // If error is about missing name, try next body format
-          const missingName = data?.error?.toLowerCase?.()?.includes?.("missing name") ||
-                              data?.error?.toLowerCase?.()?.includes?.("missing instancename") ||
-                              data?.message?.toLowerCase?.()?.includes?.("missing");
-          if (missingName) continue;
-
-          // For other errors (not related to name), return immediately
-          return { response, data };
         }
       }
 
