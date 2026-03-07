@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PageTransition from "@/components/PageTransition";
+import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
@@ -26,7 +27,9 @@ function AnimatedRoutes() {
           path="/"
           element={
             <ProtectedRoute>
-              <PageTransition><Index /></PageTransition>
+              <AppLayout>
+                <PageTransition><Index /></PageTransition>
+              </AppLayout>
             </ProtectedRoute>
           }
         />
@@ -34,7 +37,9 @@ function AnimatedRoutes() {
           path="/lockers"
           element={
             <ProtectedRoute>
-              <PageTransition><Lockers /></PageTransition>
+              <AppLayout>
+                <PageTransition><Lockers /></PageTransition>
+              </AppLayout>
             </ProtectedRoute>
           }
         />
@@ -42,7 +47,9 @@ function AnimatedRoutes() {
           path="/admin"
           element={
             <ProtectedRoute>
-              <PageTransition><Admin /></PageTransition>
+              <AppLayout>
+                <PageTransition><Admin /></PageTransition>
+              </AppLayout>
             </ProtectedRoute>
           }
         />
