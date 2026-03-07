@@ -69,20 +69,52 @@ serve(async (req) => {
       .eq("company_id", companyId)
       .single();
 
+    const tryCreateInstance = async (name: string, token: string) => {
+      const authAttempts: Record<string, string>[] = [
+        { admintoken: token },
+        { admin_token: token },
+        { Authorization: `Bearer ${token}` },
+        { apikey: token },
+        { token },
+      ];
+
+      for (const authHeaders of authAttempts) {
+        const response = await fetch(`${baseUrl}/instance/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders,
+          },
+          body: JSON.stringify({ instName: name, instanceName: name }),
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const data = contentType.includes("application/json")
+          ? await response.json()
+          : { raw: await response.text() };
+
+        if (response.ok) {
+          return { response, data };
+        }
+
+        const unauthorized = response.status === 401 || data?.error === "Unauthorized";
+        if (!unauthorized) {
+          return { response, data };
+        }
+      }
+
+      return {
+        response: new Response(null, { status: 401 }),
+        data: { error: "Unauthorized" },
+      };
+    };
+
     if (action === "create_instance") {
       // Create a new instance for the company
       const name = instanceName || `company_${companyId.substring(0, 8)}`;
-      
-      const response = await fetch(`${baseUrl}/instance/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "admin_token": adminToken as string,
-        },
-        body: JSON.stringify({ instName: name }),
-      });
+      const sanitizedAdminToken = String(adminToken).trim();
 
-      const data = await response.json();
+      const { response, data } = await tryCreateInstance(name, sanitizedAdminToken);
 
       if (!response.ok) {
         return new Response(JSON.stringify({ error: "Erro ao criar instância", details: data }), {
@@ -118,7 +150,8 @@ serve(async (req) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -141,7 +174,8 @@ serve(async (req) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -171,11 +205,12 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      const response = await fetch(`${baseUrl}/instance/logout`, {
+      await fetch(`${baseUrl}/instance/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": instToken as string,
+          "token": String(instToken),
+          "instance_token": String(instToken),
         },
       });
 
@@ -202,7 +237,8 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "instance_token": companyWa.instance_token as string,
+          "token": String(companyWa.instance_token),
+          "instance_token": String(companyWa.instance_token),
         },
         body: JSON.stringify({ phone, message }),
       });
