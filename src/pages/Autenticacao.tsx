@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Lock, Mail, User, Eye, EyeOff, ShieldAlert } from "lucide-react";
-import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria } from "@/services/auditoria";
+import { Lock, Mail, User, Eye, EyeOff, ShieldAlert, AlertTriangle, Info } from "lucide-react";
+import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria, type StatusBloqueio, type NivelAlerta } from "@/services/auditoria";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
