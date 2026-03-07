@@ -257,6 +257,11 @@ export default function LockersPage() {
       }
     });
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredLockers.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedLockers = filteredLockers.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
   // Stats
   const stats = [
     { label: "Total de Portas", value: allDoors.length, icon: Package, accent: "" },
