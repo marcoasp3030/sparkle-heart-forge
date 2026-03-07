@@ -4,68 +4,68 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { CompanyProvider } from "@/contexts/CompanyContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import PageTransition from "@/components/PageTransition";
-import AppLayout from "@/components/layout/AppLayout";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Admin from "./pages/Admin";
-import Lockers from "./pages/Lockers";
-import Companies from "./pages/Companies";
-import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/contexts/ContextoAutenticacao";
+import { CompanyProvider } from "@/contexts/ContextoEmpresa";
+import RotaProtegida from "@/components/RotaProtegida";
+import TransicaoPagina from "@/components/TransicaoPagina";
+import LayoutPrincipal from "@/components/layout/LayoutPrincipal";
+import PainelDeControle from "./pages/PainelDeControle";
+import Autenticacao from "./pages/Autenticacao";
+import Administracao from "./pages/Administracao";
+import Armarios from "./pages/Armarios";
+import Empresas from "./pages/Empresas";
+import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
 
-function AnimatedRoutes() {
+function RotasAnimadas() {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
+        <Route path="/auth" element={<TransicaoPagina><Autenticacao /></TransicaoPagina>} />
         <Route
           path="/"
           element={
-            <ProtectedRoute>
-              <AppLayout>
-                <PageTransition><Index /></PageTransition>
-              </AppLayout>
-            </ProtectedRoute>
+            <RotaProtegida>
+              <LayoutPrincipal>
+                <TransicaoPagina><PainelDeControle /></TransicaoPagina>
+              </LayoutPrincipal>
+            </RotaProtegida>
           }
         />
         <Route
           path="/lockers"
           element={
-            <ProtectedRoute>
-              <AppLayout>
-                <PageTransition><Lockers /></PageTransition>
-              </AppLayout>
-            </ProtectedRoute>
+            <RotaProtegida>
+              <LayoutPrincipal>
+                <TransicaoPagina><Armarios /></TransicaoPagina>
+              </LayoutPrincipal>
+            </RotaProtegida>
           }
         />
         <Route
           path="/companies"
           element={
-            <ProtectedRoute>
-              <AppLayout>
-                <PageTransition><Companies /></PageTransition>
-              </AppLayout>
-            </ProtectedRoute>
+            <RotaProtegida>
+              <LayoutPrincipal>
+                <TransicaoPagina><Empresas /></TransicaoPagina>
+              </LayoutPrincipal>
+            </RotaProtegida>
           }
         />
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
-              <AppLayout>
-                <PageTransition><Admin /></PageTransition>
-              </AppLayout>
-            </ProtectedRoute>
+            <RotaProtegida>
+              <LayoutPrincipal>
+                <TransicaoPagina><Administracao /></TransicaoPagina>
+              </LayoutPrincipal>
+            </RotaProtegida>
           }
         />
-        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+        <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
     </AnimatePresence>
   );
@@ -79,7 +79,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AnimatedRoutes />
+            <RotasAnimadas />
           </BrowserRouter>
         </TooltipProvider>
       </CompanyProvider>
