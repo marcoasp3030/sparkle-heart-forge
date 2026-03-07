@@ -1,11 +1,12 @@
 import { useState, ReactNode } from "react";
-import { Bell, Menu, Building2, Sun, Moon } from "lucide-react";
+import { Menu, Building2, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SidebarContent from "./SidebarContent";
+import SinoNotificacoes from "./SinoNotificacoes";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -65,10 +66,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-            </Button>
+            <SinoNotificacoes />
           </div>
         </header>
         <main className="p-4 md:p-6 lg:p-8">{children}</main>
