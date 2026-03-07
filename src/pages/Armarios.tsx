@@ -502,7 +502,7 @@ export default function LockersPage() {
         </motion.div>
       ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredLockers.map((locker, i) => (
+          {paginatedLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
               locker={locker}
