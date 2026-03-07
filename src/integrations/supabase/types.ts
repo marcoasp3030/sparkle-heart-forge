@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      locker_doors: {
+        Row: {
+          created_at: string
+          door_number: number
+          id: string
+          label: string | null
+          locker_id: string
+          occupied_at: string | null
+          occupied_by: string | null
+          size: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          door_number: number
+          id?: string
+          label?: string | null
+          locker_id: string
+          occupied_at?: string | null
+          occupied_by?: string | null
+          size?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          door_number?: number
+          id?: string
+          label?: string | null
+          locker_id?: string
+          occupied_at?: string | null
+          occupied_by?: string | null
+          size?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locker_doors_locker_id_fkey"
+            columns: ["locker_id"]
+            isOneToOne: false
+            referencedRelation: "lockers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_doors_occupied_by_fkey"
+            columns: ["occupied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      lockers: {
+        Row: {
+          columns: number
+          created_at: string
+          id: string
+          location: string
+          name: string
+          orientation: string
+          rows: number
+          updated_at: string
+        }
+        Insert: {
+          columns?: number
+          created_at?: string
+          id?: string
+          location?: string
+          name: string
+          orientation?: string
+          rows?: number
+          updated_at?: string
+        }
+        Update: {
+          columns?: number
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          orientation?: string
+          rows?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
