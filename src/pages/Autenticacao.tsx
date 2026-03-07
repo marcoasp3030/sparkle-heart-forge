@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, Mail, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlatform } from "@/contexts/ContextoPlataforma";
 import lockerLogo from "@/assets/locker-logo.png";
 
+interface LoginBranding {
+  logo_url: string;
+  login_bg_url: string;
+  login_title: string;
+  login_subtitle: string;
+  theme_colors: Record<string, string>;
+}
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -20,9 +28,45 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { settings } = usePlatform();
-  const logoUrl = settings.images.logo_url || lockerLogo;
-  const loginBgUrl = settings.images.login_bg_url;
+  const [searchParams] = useSearchParams();
+  const { settings, effectiveSettings } = usePlatform();
+  const [companyLogin, setCompanyLogin] = useState<LoginBranding | null>(null);
+
+  // Load company branding from ?company=ID query param
+  useEffect(() => {
+    const companyId = searchParams.get("company");
+    if (!companyId) return;
+
+    const loadCompanyBranding = async () => {
+      // Check if company has white_label enabled
+      const { data: perm } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", companyId)
+        .eq("permission", "white_label")
+        .maybeSingle();
+
+      if (!perm?.enabled) return;
+
+      const { data } = await supabase
+        .from("company_branding")
+        .select("logo_url, login_bg_url, login_title, login_subtitle, theme_colors")
+        .eq("company_id", companyId)
+        .maybeSingle();
+
+      if (data) {
+        setCompanyLogin(data as unknown as LoginBranding);
+      }
+    };
+
+    loadCompanyBranding();
+  }, [searchParams]);
+
+  // Resolve final values: company branding > effective > defaults
+  const logoUrl = companyLogin?.logo_url || effectiveSettings.images.logo_url || lockerLogo;
+  const loginBgUrl = companyLogin?.login_bg_url || effectiveSettings.images.login_bg_url;
+  const loginTitle = companyLogin?.login_title || effectiveSettings.branding.login_title || "Gestão Inteligente de Armários";
+  const loginSubtitle = companyLogin?.login_subtitle || effectiveSettings.branding.login_subtitle || "Controle, monitore e gerencie seus armários em tempo real.";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,10 +117,10 @@ const Auth = () => {
         <div className="relative z-10 text-center px-12">
           <img src={logoUrl} alt="Logo" className="h-16 mx-auto mb-8" />
           <h2 className="text-3xl font-bold text-sidebar-primary-foreground mb-3">
-            {settings.branding.login_title || "Gestão Inteligente de Armários"}
+            {loginTitle}
           </h2>
           <p className="text-sidebar-foreground text-sm leading-relaxed max-w-md mx-auto">
-            {settings.branding.login_subtitle || "Controle, monitore e gerencie seus armários em tempo real."}
+            {loginSubtitle}
           </p>
         </div>
       </div>
