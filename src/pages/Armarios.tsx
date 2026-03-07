@@ -155,6 +155,22 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  const handleSetMaintenance = async (door: LockerDoorData) => {
+    setActionLoading(true);
+    const { error } = await supabase
+      .from("locker_doors")
+      .update({ status: "maintenance", occupied_by: null, occupied_at: null })
+      .eq("id", door.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
+      setSheetOpen(false);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
   const openEditDialog = (locker: LockerData) => {
     setEditLocker(locker);
     setEditName(locker.name);
