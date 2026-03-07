@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Palette, Image, Type, Save, RotateCcw, Upload, X } from "lucide-react";
+import { Palette, Image, Type, Save, RotateCcw, Upload, X, Eye, History, FileJson, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { usePlatform } from "@/contexts/ContextoPlataforma";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import PreviewAoVivo from "@/components/personalizacao/PreviewAoVivo";
+import ValidacaoContraste from "@/components/personalizacao/ValidacaoContraste";
+import HistoricoConfiguracoes from "@/components/personalizacao/HistoricoConfiguracoes";
+import ExportarImportar from "@/components/personalizacao/ExportarImportar";
 
 const COLOR_PRESETS: Record<string, Record<string, string>> = {
   default: {
