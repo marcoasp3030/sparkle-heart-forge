@@ -14,19 +14,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import lockerLogo from "@/assets/locker-logo.png";
 
-const navItems = [
+interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+  permission?: string;
+}
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Archive, label: "Armários", path: "/armarios" },
+  { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
-  { icon: Users, label: "Pessoas", path: "/pessoas" },
+  { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { user, signOut } = useAuth();
-  const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, userRole } = useCompany();
+  const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, userRole, hasPermission } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -98,7 +105,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         <nav className="flex-1 py-2 px-3 space-y-0.5">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button
