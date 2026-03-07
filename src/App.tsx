@@ -14,6 +14,9 @@ import Autenticacao from "./pages/Autenticacao";
 import Administracao from "./pages/Administracao";
 import Armarios from "./pages/Armarios";
 import Empresas from "./pages/Empresas";
+import Departamentos from "./pages/Departamentos";
+import Setores from "./pages/Setores";
+import Pessoas from "./pages/Pessoas";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
@@ -21,50 +24,25 @@ const queryClient = new QueryClient();
 function RotasAnimadas() {
   const location = useLocation();
 
+  const protectedRoute = (element: React.ReactNode) => (
+    <RotaProtegida>
+      <LayoutPrincipal>
+        <TransicaoPagina>{element}</TransicaoPagina>
+      </LayoutPrincipal>
+    </RotaProtegida>
+  );
+
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/auth" element={<TransicaoPagina><Autenticacao /></TransicaoPagina>} />
-        <Route
-          path="/"
-          element={
-            <RotaProtegida>
-              <LayoutPrincipal>
-                <TransicaoPagina><PainelDeControle /></TransicaoPagina>
-              </LayoutPrincipal>
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/lockers"
-          element={
-            <RotaProtegida>
-              <LayoutPrincipal>
-                <TransicaoPagina><Armarios /></TransicaoPagina>
-              </LayoutPrincipal>
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/companies"
-          element={
-            <RotaProtegida>
-              <LayoutPrincipal>
-                <TransicaoPagina><Empresas /></TransicaoPagina>
-              </LayoutPrincipal>
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <RotaProtegida>
-              <LayoutPrincipal>
-                <TransicaoPagina><Administracao /></TransicaoPagina>
-              </LayoutPrincipal>
-            </RotaProtegida>
-          }
-        />
+        <Route path="/" element={protectedRoute(<PainelDeControle />)} />
+        <Route path="/armarios" element={protectedRoute(<Armarios />)} />
+        <Route path="/empresas" element={protectedRoute(<Empresas />)} />
+        <Route path="/departamentos" element={protectedRoute(<Departamentos />)} />
+        <Route path="/setores" element={protectedRoute(<Setores />)} />
+        <Route path="/pessoas" element={protectedRoute(<Pessoas />)} />
+        <Route path="/admin" element={protectedRoute(<Administracao />)} />
         <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
     </AnimatePresence>

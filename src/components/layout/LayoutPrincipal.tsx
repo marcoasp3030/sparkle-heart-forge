@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Settings, Bell,
   LogOut, Shield, LayoutDashboard, Archive,
-  BarChart3, ChevronDown, Menu, Building2, ChevronsUpDown
+  Building, Layers, Users, ChevronDown, Menu, Building2, ChevronsUpDown
 } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -16,9 +16,11 @@ import lockerLogo from "@/assets/locker-logo.png";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Archive, label: "Armários", path: "/lockers" },
-  { icon: BarChart3, label: "Relatórios", path: "/reports" },
-  { icon: Settings, label: "Configurações", path: "/settings" },
+  { icon: Archive, label: "Armários", path: "/armarios" },
+  { icon: Building, label: "Departamentos", path: "/departamentos" },
+  { icon: Layers, label: "Setores", path: "/setores" },
+  { icon: Users, label: "Pessoas", path: "/pessoas" },
+  { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
