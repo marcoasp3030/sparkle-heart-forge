@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import ImportacaoMassa from "@/components/pessoas/ImportacaoMassa";
 
 interface Pessoa {
   id: string;
@@ -28,6 +29,7 @@ interface Pessoa {
   email: string | null;
   telefone: string | null;
   cargo: string;
+  matricula: string | null;
   tipo: "funcionario" | "cliente";
   ativo: boolean;
   created_at: string;
@@ -54,6 +56,7 @@ export default function PessoasPage() {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cargo, setCargo] = useState("");
+  const [matricula, setMatricula] = useState("");
   const [tipo, setTipo] = useState<"funcionario" | "cliente">("funcionario");
   const [departamentoId, setDepartamentoId] = useState("");
   const [setorId, setSetorId] = useState("");
@@ -78,7 +81,7 @@ export default function PessoasPage() {
   useEffect(() => { fetchData(); }, [selectedCompany]);
 
   const resetForm = () => {
-    setNome(""); setEmail(""); setTelefone(""); setCargo("");
+    setNome(""); setEmail(""); setTelefone(""); setCargo(""); setMatricula("");
     setTipo(companyType === "rental" ? "cliente" : "funcionario");
     setDepartamentoId(""); setSetorId(""); setEditItem(null);
   };
@@ -89,6 +92,7 @@ export default function PessoasPage() {
     setEmail(item.email || "");
     setTelefone(item.telefone || "");
     setCargo(item.cargo || "");
+    setMatricula(item.matricula || "");
     setTipo(item.tipo);
     setDepartamentoId(item.departamento_id || "");
     setSetorId(item.setor_id || "");
@@ -100,6 +104,7 @@ export default function PessoasPage() {
     setActionLoading(true);
     const payload = {
       nome, email: email || null, telefone: telefone || null, cargo, tipo,
+      matricula: matricula || null,
       departamento_id: departamentoId || null, setor_id: setorId || null,
       company_id: selectedCompany.id,
     };
