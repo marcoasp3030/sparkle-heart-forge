@@ -159,44 +159,26 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      const instName = companyWa.instance_name;
       
-      // UAZAPI: try multiple known QR endpoints (with and without /v1 prefix)
-      const instName = companyWa.instance_name;
-      const qrEndpoints = [
-        `${baseUrl}/v1/instance/qr`,
-        `${baseUrl}/v1/instance/qrcode`,
-        `${baseUrl}/v1/instance/connectionState`,
-        `${baseUrl}/instance/connectionState/${instName}`,
-        `${baseUrl}/instance/qrcode/${instName}`,
-        `${baseUrl}/instance/qrcode`,
-        `${baseUrl}/instance/connect`,
-      ];
+      // UAZAPI: POST /instance/connect triggers QR code generation
+      const response = await fetch(`${baseUrl}/instance/connect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "token": String(instToken),
+          "admintoken": String(adminToken),
+        },
+        body: JSON.stringify({}),
+      });
 
-      let qrData: any = null;
-      for (const url of qrEndpoints) {
-        try {
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "token": String(instToken),
-              "admintoken": String(adminToken),
-            },
-          });
-          const text = await response.text();
-          console.log(`QR GET ${url} -> ${response.status}: ${text.substring(0, 500)}`);
-          
-          if (response.ok) {
-            try { qrData = JSON.parse(text); } catch { qrData = { raw: text }; }
-            break;
-          }
-        } catch (err) {
-          console.log(`QR fetch error for ${url}:`, err);
-        }
-      }
+      const text = await response.text();
+      console.log(`QR POST /instance/connect -> ${response.status}: ${text.substring(0, 500)}`);
+      
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-      return new Response(JSON.stringify({ success: true, data: qrData }), {
+      return new Response(JSON.stringify({ success: response.ok, data }), {
+        status: response.ok ? 200 : response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -209,28 +191,34 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      const response = await fetch(`${baseUrl}/instance/info`, {
+      // UAZAPI: GET /instance/status
+      const response = await fetch(`${baseUrl}/instance/status`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           "token": String(instToken),
-          "instance_token": String(instToken),
+          "admintoken": String(adminToken),
         },
       });
 
-      const data = await response.json();
-      const connected = data?.instance?.state === "open" || data?.state === "open";
+      const text = await response.text();
+      console.log(`Status GET /instance/status -> ${response.status}: ${text.substring(0, 500)}`);
+      
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      
+      const connected = data?.instance?.state === "open" || data?.state === "open" ||
+                        data?.status === "connected" || data?.instance?.status === "connected";
 
-      // Update status in DB
       const newStatus = connected ? "connected" : "disconnected";
-      const phoneNumber = data?.instance?.phoneNumber || data?.phoneNumber || companyWa.phone_number || "";
+      const phoneNum = data?.instance?.phoneNumber || data?.phoneNumber || data?.phone || companyWa.phone_number || "";
       
       await supabaseClient.from("company_whatsapp").update({
         status: newStatus,
-        phone_number: phoneNumber,
+        phone_number: phoneNum,
       }).eq("company_id", companyId);
 
-      return new Response(JSON.stringify({ success: true, status: newStatus, phone_number: phoneNumber, data }), {
+      return new Response(JSON.stringify({ success: true, status: newStatus, phone_number: phoneNum, data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -244,12 +232,13 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
-      await fetch(`${baseUrl}/instance/logout`, {
+      // UAZAPI: POST /instance/disconnect
+      await fetch(`${baseUrl}/instance/disconnect`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "token": String(instToken),
-          "instance_token": String(instToken),
+          "admintoken": String(adminToken),
         },
       });
 
@@ -272,14 +261,14 @@ serve(async (req) => {
         });
       }
 
-      const response = await fetch(`${baseUrl}/message/send-text`, {
+      // UAZAPI: POST /send/text
+      const response = await fetch(`${baseUrl}/send/text`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "token": String(companyWa.instance_token),
-          "instance_token": String(companyWa.instance_token),
         },
-        body: JSON.stringify({ phone, message }),
+        body: JSON.stringify({ number: phone, text: message }),
       });
 
       const data = await response.json();
