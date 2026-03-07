@@ -281,14 +281,6 @@ const Auth = () => {
                 : "Preencha os dados para se cadastrar"}
             </p>
           </div>
-              {isLogin ? "Bem-vindo de volta" : "Criar conta"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1.5">
-              {isLogin
-                ? "Entre com suas credenciais para continuar"
-                : "Preencha os dados para se cadastrar"}
-            </p>
-          </div>
 
           {statusLogin && statusLogin.totalFalhas > 0 && (
             <motion.div
