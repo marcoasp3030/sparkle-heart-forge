@@ -74,6 +74,7 @@ const Index = () => {
               </Button>
             ))}
           </nav>
+          <div className="flex items-center gap-2">
             {isSuperAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")} className="gap-1.5">
                 <Shield className="h-4 w-4" />
