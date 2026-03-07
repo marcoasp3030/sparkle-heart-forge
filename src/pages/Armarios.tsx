@@ -539,7 +539,7 @@ export default function LockersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLockers.map((locker) => {
+                {paginatedLockers.map((locker) => {
                   const totalOriginalDoors = lockers.find(l => l.id === locker.id)?.doors.length || 0;
                   const available = locker.doors.filter((d) => d.status === "available").length;
                   const occupied = locker.doors.filter((d) => d.status === "occupied").length;
