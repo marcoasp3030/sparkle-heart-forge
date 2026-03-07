@@ -31,6 +31,14 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/lockers"
+          element={
+            <ProtectedRoute>
+              <PageTransition><Lockers /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin"
           element={
             <ProtectedRoute>
