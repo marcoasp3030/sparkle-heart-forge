@@ -375,6 +375,51 @@ export default function LockersPage() {
         isCurrentUser={selectedDoor?.occupied_by === user?.id}
         loading={actionLoading}
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Armário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Localização</Label>
+              <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="rounded-xl">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleEditLocker} disabled={actionLoading || !editName.trim()} className="gradient-primary border-0 rounded-xl hover:opacity-90">
+              {actionLoading ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteLocker} onOpenChange={(open) => !open && setDeleteLocker(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir armário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O armário <strong>{deleteLocker?.name}</strong> e todas as suas portas serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLocker} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">
+              {actionLoading ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
