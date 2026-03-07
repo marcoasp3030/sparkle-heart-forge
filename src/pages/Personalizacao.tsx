@@ -168,6 +168,19 @@ export default function Personalizacao() {
 
   const handleSave = async () => {
     setSaving(true);
+
+    // Save history of current settings before overwriting
+    const { data: currentData } = await supabase.from("platform_settings").select("key, value");
+    if (currentData) {
+      for (const row of currentData) {
+        await supabase.from("platform_settings_history").insert({
+          setting_key: row.key,
+          value: row.value as any,
+          changed_by: user?.id,
+        });
+      }
+    }
+
     const updates = [
       { key: "theme_colors", value: colors },
       { key: "branding", value: branding },
@@ -190,6 +203,18 @@ export default function Personalizacao() {
       await refreshSettings();
     }
     setSaving(false);
+  };
+
+  const handleImport = (data: { theme_colors?: any; branding?: any; images?: any }) => {
+    if (data.theme_colors) setColors({ ...colors, ...data.theme_colors });
+    if (data.branding) setBranding({ ...branding, ...data.branding });
+    if (data.images) setImages({ ...images, ...data.images });
+  };
+
+  const handleRestoreHistory = (key: string, value: any) => {
+    if (key === "theme_colors") setColors(value);
+    if (key === "branding") setBranding(value);
+    if (key === "images") setImages(value);
   };
 
   const handleReset = () => {
