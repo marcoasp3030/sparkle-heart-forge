@@ -65,7 +65,8 @@ export interface StatusBloqueio {
 }
 
 function calcularNivel(falhas: number): NivelAlerta {
-  if (falhas <= 1) return "info";
+  if (falhas === 0) return "info";
+  if (falhas <= 2) return "info";
   if (falhas <= 3) return "aviso";
   if (falhas <= 4) return "perigo";
   return "bloqueado";
