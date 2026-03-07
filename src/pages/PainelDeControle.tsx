@@ -189,7 +189,7 @@ const PainelDeControle = () => {
         className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
             Painel de Controle
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -212,7 +212,7 @@ const PainelDeControle = () => {
       </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -223,28 +223,28 @@ const PainelDeControle = () => {
             <Card className="group relative overflow-hidden border-border/40 shadow-card hover:shadow-elevated transition-all duration-300">
               {/* Gradient accent stripe */}
               <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
-              <CardContent className="p-5 pt-6">
+              <CardContent className="p-3 pt-4 md:p-5 md:pt-6">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     {loading ? (
                       <>
-                        <Skeleton className="h-10 w-16" />
-                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-8 md:h-10 w-12 md:w-16" />
+                        <Skeleton className="h-4 w-20 md:w-24" />
                       </>
                     ) : (
                       <>
-                        <p className="text-4xl font-extrabold tracking-tight text-foreground">
+                        <p className="text-2xl md:text-4xl font-extrabold tracking-tight text-foreground">
                           {stat.value}
                         </p>
                         <div>
-                          <p className="text-sm font-semibold text-foreground/80">{stat.label}</p>
-                          <p className="text-xs text-muted-foreground">{stat.sublabel}</p>
+                          <p className="text-xs md:text-sm font-semibold text-foreground/80">{stat.label}</p>
+                          <p className="text-[10px] md:text-xs text-muted-foreground">{stat.sublabel}</p>
                         </div>
                       </>
                     )}
                   </div>
-                  <div className={`rounded-xl p-2.5 ${stat.iconBg} transition-transform duration-300 group-hover:scale-110`}>
-                    <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+                  <div className={`rounded-lg md:rounded-xl p-2 md:p-2.5 ${stat.iconBg} transition-transform duration-300 group-hover:scale-110`}>
+                    <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.iconColor}`} />
                   </div>
                 </div>
                 {/* Mini progress bar */}
