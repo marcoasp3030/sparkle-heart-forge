@@ -11,6 +11,24 @@ import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Server, Key, QrCode, Wifi, WifiOff, Loader2, RefreshCw, Unplug, Send } from "lucide-react";
 
+// Helper to extract error message from supabase.functions.invoke response
+async function extractError(res: { data: any; error: any }): Promise<string | null> {
+  if (res.error) {
+    // Try to parse error body from FunctionsHttpError
+    try {
+      if (res.error.context && typeof res.error.context.json === 'function') {
+        const body = await res.error.context.json();
+        return body?.error || body?.details?.error || body?.message || String(res.error.message);
+      }
+    } catch {}
+    return res.error.message || String(res.error);
+  }
+  if (res.data?.error) {
+    return typeof res.data.error === 'string' ? res.data.error : JSON.stringify(res.data.error);
+  }
+  return null;
+}
+
 export default function ConfigUazapi() {
   const { user } = useAuth();
   const { isSuperAdmin, selectedCompany, userRole } = useCompany();
@@ -123,14 +141,12 @@ export default function ConfigUazapi() {
       const res = await supabase.functions.invoke("uazapi-proxy", {
         body: { action: "create_instance", companyId: selectedCompany.id },
       });
-      if (res.error) {
-        const errorData = typeof res.error === 'object' && 'message' in res.error ? res.error.message : String(res.error);
-        toast({ title: "Erro ao criar instância", description: errorData, variant: "destructive" });
+      const errorMsg = await extractError(res);
+      if (errorMsg) {
+        toast({ title: "Erro ao criar instância", description: errorMsg, variant: "destructive" });
       } else if (res.data?.success) {
         toast({ title: "Instância criada com sucesso!" });
         await checkStatus();
-      } else {
-        toast({ title: "Erro ao criar instância", description: res.data?.error || res.data?.details?.error || "Erro desconhecido", variant: "destructive" });
       }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -147,11 +163,16 @@ export default function ConfigUazapi() {
       const res = await supabase.functions.invoke("uazapi-proxy", {
         body: { action: "get_qrcode", companyId: selectedCompany.id },
       });
-      const qr = res.data?.data?.qrcode || res.data?.data?.data?.qrcode || res.data?.data?.base64 || null;
-      if (qr) {
-        setQrCode(qr);
+      const errorMsg = await extractError(res);
+      if (errorMsg) {
+        toast({ title: "Erro ao obter QR Code", description: errorMsg, variant: "destructive" });
       } else {
-        toast({ title: "QR Code não disponível", description: "Tente novamente em alguns segundos.", variant: "destructive" });
+        const qr = res.data?.data?.qrcode || res.data?.data?.data?.qrcode || res.data?.data?.base64 || null;
+        if (qr) {
+          setQrCode(qr);
+        } else {
+          toast({ title: "QR Code não disponível", description: "Tente novamente em alguns segundos.", variant: "destructive" });
+        }
       }
     } catch (err: any) {
       toast({ title: "Erro ao obter QR Code", description: err.message, variant: "destructive" });
@@ -167,7 +188,10 @@ export default function ConfigUazapi() {
       const res = await supabase.functions.invoke("uazapi-proxy", {
         body: { action: "disconnect", companyId: selectedCompany.id },
       });
-      if (res.data?.success) {
+      const errorMsg = await extractError(res);
+      if (errorMsg) {
+        toast({ title: "Erro ao desconectar", description: errorMsg, variant: "destructive" });
+      } else if (res.data?.success) {
         toast({ title: "WhatsApp desconectado!" });
         setInstanceStatus("disconnected");
         setPhoneNumber("");
@@ -192,12 +216,13 @@ export default function ConfigUazapi() {
           message: testMessage,
         },
       });
-      if (res.data?.success) {
+      const errorMsg = await extractError(res);
+      if (errorMsg) {
+        toast({ title: "Erro ao enviar", description: errorMsg, variant: "destructive" });
+      } else if (res.data?.success) {
         toast({ title: "Mensagem enviada com sucesso!" });
         setTestPhone("");
         setTestMessage("");
-      } else {
-        toast({ title: "Erro ao enviar", description: res.data?.error || res.data?.data?.message, variant: "destructive" });
       }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
