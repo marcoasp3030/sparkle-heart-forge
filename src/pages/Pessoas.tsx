@@ -160,10 +160,13 @@ export default function PessoasPage() {
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Gerencie {pageTitle.toLowerCase()} de {selectedCompany.name}.</p>
           </div>
           {isAdmin && (
-            <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs sm:text-sm"
-              onClick={() => { resetForm(); setDialogOpen(true); }}>
-              <Plus className="h-4 w-4" /> Novo
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <ImportacaoMassa companyId={selectedCompany.id} onImportComplete={fetchData} />
+              <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs sm:text-sm"
+                onClick={() => { resetForm(); setDialogOpen(true); }}>
+                <Plus className="h-4 w-4" /> Novo
+              </Button>
+            </div>
           )}
         </div>
         <div className="relative">
@@ -216,7 +219,8 @@ export default function PessoasPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-xs uppercase tracking-wider font-semibold">Nome</TableHead>
+                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Nome</TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider font-semibold">Matrícula</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Tipo</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Cargo</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Departamento</TableHead>
@@ -229,6 +233,7 @@ export default function PessoasPage() {
                       {filtered.map((pessoa) => (
                         <TableRow key={pessoa.id}>
                           <TableCell className="font-medium text-sm">{pessoa.nome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{pessoa.matricula || "—"}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`text-[10px] ${pessoa.tipo === "funcionario" ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-accent/10 text-accent border-accent/20"}`}>
                               {pessoa.tipo === "funcionario" ? "Funcionário" : "Cliente"}
