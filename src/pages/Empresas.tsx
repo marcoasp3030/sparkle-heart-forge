@@ -31,6 +31,7 @@ const typeLabels: Record<string, { label: string; className: string }> = {
 const AVAILABLE_PERMISSIONS = [
   { key: "manage_employees", label: "Gerenciar Funcionários/Clientes", description: "Cadastrar, editar e remover funcionários e clientes" },
   { key: "manage_lockers", label: "Gerenciar Armários", description: "Reservar e administrar portas de armários" },
+  { key: "white_label", label: "White Label", description: "Permitir personalização de logotipos, cores e textos exclusivos da empresa" },
 ];
 
 export default function CompaniesPage() {
