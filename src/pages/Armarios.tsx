@@ -386,7 +386,7 @@ export default function LockersPage() {
                 ].map((f) => (
                   <button
                     key={f.value}
-                    onClick={() => setStatusFilter(f.value)}
+                    onClick={() => { setStatusFilter(f.value); setCurrentPage(1); }}
                     className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
                       statusFilter === f.value
                         ? "bg-background text-foreground shadow-sm"
