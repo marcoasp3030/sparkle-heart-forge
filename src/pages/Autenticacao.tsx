@@ -29,11 +29,27 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { settings, effectiveSettings } = usePlatform();
   const [companyLogin, setCompanyLogin] = useState<LoginBranding | null>(null);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (segundosRestantes <= 0) return;
+    const timer = setInterval(() => {
+      setSegundosRestantes((prev) => {
+        if (prev <= 1) {
+          setStatusLogin(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [segundosRestantes]);
 
   // Load company branding from ?company=ID query param
   useEffect(() => {
