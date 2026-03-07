@@ -159,13 +159,14 @@ serve(async (req) => {
       }
 
       const instToken = companyWa.instance_token || adminToken;
+      const instName = companyWa.instance_name;
       
-      // Try multiple QR code endpoints
+      // UAZAPI v2: GET /instance/connectionState/{instanceName} returns QR + state
       const qrEndpoints = [
+        { url: `${baseUrl}/instance/connectionState/${instName}`, method: "GET" },
+        { url: `${baseUrl}/instance/qrcode/${instName}`, method: "GET" },
+        { url: `${baseUrl}/instance/connect/${instName}`, method: "GET" },
         { url: `${baseUrl}/instance/qrcode`, method: "GET" },
-        { url: `${baseUrl}/instance/connect`, method: "GET" },
-        { url: `${baseUrl}/instance/qr`, method: "GET" },
-        { url: `${baseUrl}/instance/qrcode`, method: "POST" },
       ];
 
       let qrData: any = null;
@@ -180,7 +181,7 @@ serve(async (req) => {
             },
           });
           const text = await response.text();
-          console.log(`QR ${ep.method} ${ep.url} -> ${response.status}: ${text.substring(0, 300)}`);
+          console.log(`QR ${ep.method} ${ep.url} -> ${response.status}: ${text.substring(0, 500)}`);
           
           if (response.ok) {
             try { qrData = JSON.parse(text); } catch { qrData = { raw: text }; }
