@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Lock, Mail, User, Eye, EyeOff, ShieldAlert } from "lucide-react";
-import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria } from "@/services/auditoria";
+import { Lock, Mail, User, Eye, EyeOff, ShieldAlert, AlertTriangle, Info } from "lucide-react";
+import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria, type StatusBloqueio, type NivelAlerta } from "@/services/auditoria";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +28,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [bloqueado, setBloqueado] = useState(false);
-  const [msgBloqueio, setMsgBloqueio] = useState("");
+  const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -74,17 +74,13 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setBloqueado(false);
+    setStatusLogin(null);
 
     try {
       if (isLogin) {
-        // Check rate limiting
         const status = await verificarBloqueioLogin(email);
         if (status.bloqueado) {
-          setBloqueado(true);
-          setMsgBloqueio(
-            `Conta temporariamente bloqueada. Tente novamente em ${status.minutosRestantes} minuto(s).`
-          );
+          setStatusLogin(status);
           setLoading(false);
           return;
         }
@@ -99,15 +95,12 @@ const Auth = () => {
           });
 
           const updated = await verificarBloqueioLogin(email);
-          if (updated.bloqueado) {
-            setBloqueado(true);
-            setMsgBloqueio(
-              `Muitas tentativas falhas. Conta bloqueada por ${updated.minutosRestantes} minuto(s).`
-            );
-          } else {
+          setStatusLogin(updated);
+
+          if (!updated.bloqueado) {
             toast({
-              title: "Erro de autenticação",
-              description: `${error.message} (${updated.tentativasRestantes} tentativa(s) restante(s))`,
+              title: traduzirErro(error.message),
+              description: updated.mensagem,
               variant: "destructive",
             });
           }
@@ -132,20 +125,29 @@ const Auth = () => {
         });
         if (error) throw error;
         toast({
-          title: "Conta criada!",
-          description: "Verifique seu e-mail para confirmar o cadastro.",
+          title: "Conta criada com sucesso!",
+          description: "Enviamos um link de confirmação para seu e-mail. Verifique sua caixa de entrada e spam.",
         });
       }
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: traduzirErro(error.message),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  function traduzirErro(msg: string): string {
+    if (msg.includes("Invalid login credentials")) return "E-mail ou senha incorretos";
+    if (msg.includes("Email not confirmed")) return "E-mail não confirmado. Verifique sua caixa de entrada.";
+    if (msg.includes("User already registered")) return "Este e-mail já está cadastrado.";
+    if (msg.includes("Password should be")) return "A senha deve ter pelo menos 6 caracteres.";
+    if (msg.includes("rate limit")) return "Muitas requisições. Aguarde um momento.";
+    return msg;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -192,11 +194,37 @@ const Auth = () => {
             </p>
           </div>
 
-          {bloqueado && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-              <ShieldAlert className="h-4 w-4 shrink-0" />
-              <span>{msgBloqueio}</span>
-            </div>
+          {statusLogin && statusLogin.totalFalhas > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-col gap-2 p-3 rounded-lg border text-sm mb-2 ${
+                statusLogin.nivel === "bloqueado"
+                  ? "bg-destructive/10 border-destructive/30 text-destructive"
+                  : statusLogin.nivel === "perigo"
+                  ? "bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                  : statusLogin.nivel === "aviso"
+                  ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
+                  : "bg-muted border-border text-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {statusLogin.nivel === "bloqueado" ? (
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                ) : statusLogin.nivel === "perigo" ? (
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                ) : (
+                  <Info className="h-4 w-4 shrink-0" />
+                )}
+                <span>{statusLogin.mensagem}</span>
+              </div>
+              {!statusLogin.bloqueado && statusLogin.tentativasRestantes <= 3 && (
+                <Progress
+                  value={(statusLogin.tentativasRestantes / 5) * 100}
+                  className="h-1.5"
+                />
+              )}
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -263,7 +291,7 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading}>
+            <Button type="submit" className="w-full h-11 font-semibold gradient-primary border-0 hover:opacity-90 transition-opacity" disabled={loading || (statusLogin?.bloqueado ?? false)}>
               {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
             </Button>
           </form>
