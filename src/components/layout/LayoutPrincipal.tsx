@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { user, signOut } = useAuth();
-  const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, userRole } = useCompany();
+  const { companies, selectedCompany, setSelectedCompany, isSuperAdmin, userRole, hasPermission } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
 
