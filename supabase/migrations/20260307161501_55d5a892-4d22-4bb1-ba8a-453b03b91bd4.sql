@@ -1,0 +1,1 @@
+DELETE FROM login_attempts WHERE created_at < now() - interval '1 minute';
