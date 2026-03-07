@@ -5,8 +5,8 @@ import {
   LogOut, Shield, LayoutDashboard, Archive,
   BarChart3, ChevronDown, Menu, Building2, ChevronsUpDown
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/contexts/ContextoAutenticacao";
+import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {

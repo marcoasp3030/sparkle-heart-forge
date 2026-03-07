@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import LockerDoor, { LockerDoorData } from "./LockerDoor";
+import PortaArmario, { LockerDoorData } from "./PortaArmario";
 
 export interface LockerData {
   id: string;
@@ -66,7 +66,7 @@ export default function LockerUnit({ locker, doors, onSelectDoor, onEdit, onDele
             {doors
               .sort((a, b) => a.door_number - b.door_number)
               .map((door, i) => (
-                <LockerDoor key={door.id} door={door} index={i} onSelect={onSelectDoor} isCurrentUser={door.occupied_by === currentUserId} />
+                <PortaArmario key={door.id} door={door} index={i} onSelect={onSelectDoor} isCurrentUser={door.occupied_by === currentUserId} />
               ))}
           </div>
         </div>
