@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2 } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,16 @@ export default function CompaniesPage() {
   const [permCompany, setPermCompany] = useState<any>(null);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [permLoading, setPermLoading] = useState(false);
+
+  // Create admin dialog
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [adminCompany, setAdminCompany] = useState<any>(null);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminFullName, setAdminFullName] = useState("");
+  const [adminRole, setAdminRole] = useState<"admin" | "user">("admin");
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Form fields
   const [name, setName] = useState("");
