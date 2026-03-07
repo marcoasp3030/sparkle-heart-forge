@@ -33,6 +33,8 @@ export default function LockersPage() {
   const [lockers, setLockers] = useState<LockerWithDoors[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
