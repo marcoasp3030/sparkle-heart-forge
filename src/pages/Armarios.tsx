@@ -493,8 +493,8 @@ export default function LockersPage() {
             {isAdmin ? "Crie um novo armário para começar." : "Aguarde um administrador cadastrar armários."}
           </p>
         </motion.div>
-      ) : (
-        <div className={viewMode === "grid" ? "grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {filteredLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
@@ -514,6 +514,75 @@ export default function LockersPage() {
             />
           ))}
         </div>
+      ) : (
+        /* Detailed List/Table View */
+        <Card className="shadow-card border-border/50 overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Armário</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Localização</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Portas</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold">Ocupação</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Livres</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Ocupados</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Manut.</TableHead>
+                  {isAdmin && <TableHead className="text-xs uppercase tracking-wider font-semibold text-right">Ações</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLockers.map((locker) => {
+                  const totalOriginalDoors = lockers.find(l => l.id === locker.id)?.doors.length || 0;
+                  const available = locker.doors.filter((d) => d.status === "available").length;
+                  const occupied = locker.doors.filter((d) => d.status === "occupied").length;
+                  const maintenance = locker.doors.filter((d) => d.status === "maintenance").length;
+                  const occupationPct = totalOriginalDoors > 0 ? Math.round((occupied / totalOriginalDoors) * 100) : 0;
+
+                  return (
+                    <TableRow key={locker.id} className="cursor-pointer hover:bg-muted/30">
+                      <TableCell className="font-semibold text-sm">{locker.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {locker.location || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-sm font-medium">{locker.doors.length}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Progress value={occupationPct} className="h-2 flex-1" />
+                          <span className="text-xs text-muted-foreground font-mono w-10 text-right">{occupationPct}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[11px]">{available}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[11px]">{occupied}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 text-[11px]">{maintenance}</Badge>
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(locker)}>
+                              <Filter className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteLocker(locker)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Door detail sheet */}
