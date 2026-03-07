@@ -105,7 +105,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         <nav className="flex-1 py-2 px-3 space-y-0.5">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button
