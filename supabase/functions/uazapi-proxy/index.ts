@@ -261,14 +261,14 @@ serve(async (req) => {
         });
       }
 
-      const response = await fetch(`${baseUrl}/message/send-text`, {
+      // UAZAPI: POST /send/text
+      const response = await fetch(`${baseUrl}/send/text`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "token": String(companyWa.instance_token),
-          "instance_token": String(companyWa.instance_token),
         },
-        body: JSON.stringify({ phone, message }),
+        body: JSON.stringify({ number: phone, text: message }),
       });
 
       const data = await response.json();
