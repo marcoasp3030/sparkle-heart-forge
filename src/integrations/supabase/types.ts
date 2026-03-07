@@ -44,6 +44,59 @@ export type Database = {
         }
         Relationships: []
       }
+      company_branding: {
+        Row: {
+          company_id: string
+          created_at: string
+          favicon_url: string | null
+          id: string
+          login_bg_url: string | null
+          login_subtitle: string | null
+          login_title: string | null
+          logo_url: string | null
+          platform_name: string | null
+          sidebar_logo_url: string | null
+          theme_colors: Json | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          login_bg_url?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
+          logo_url?: string | null
+          platform_name?: string | null
+          sidebar_logo_url?: string | null
+          theme_colors?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          login_bg_url?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
+          logo_url?: string | null
+          platform_name?: string | null
+          sidebar_logo_url?: string | null
+          theme_colors?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_branding_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_permissions: {
         Row: {
           company_id: string
