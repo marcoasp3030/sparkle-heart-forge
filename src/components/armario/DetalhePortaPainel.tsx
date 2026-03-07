@@ -83,7 +83,7 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-[400px] sm:w-[440px] rounded-l-2xl p-0 overflow-hidden">
+        <SheetContent className="w-full sm:w-[400px] md:w-[440px] rounded-l-2xl p-0 overflow-hidden">
           {/* Door illustration header */}
           <div className="relative bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 px-6 pt-8 pb-6">
             <div className="mx-auto w-28 h-40 rounded-lg bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-600 dark:to-slate-700 border-2 border-slate-300 dark:border-slate-500 shadow-lg relative overflow-hidden">

@@ -65,7 +65,7 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onEdit, on
               {locker.orientation === "vertical" ? "V" : "H"} • {doors.length}p
             </span>
             {isAdmin && (
-              <div className="flex items-center gap-0.5 opacity-0 group-hover/locker:opacity-100 transition-opacity">
+              <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover/locker:opacity-100 transition-opacity">
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => onEdit?.(locker)}>
                   <Pencil className="h-3 w-3" />
                 </Button>
