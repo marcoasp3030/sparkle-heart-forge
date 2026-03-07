@@ -235,8 +235,18 @@ const Auth = () => {
                 ) : (
                   <Info className="h-4 w-4 shrink-0" />
                 )}
-                <span>{statusLogin.mensagem}</span>
+                <span>
+                  {statusLogin.bloqueado && segundosRestantes > 0
+                    ? `Conta bloqueada por segurança. Desbloqueio em ${segundosRestantes}s`
+                    : statusLogin.mensagem}
+                </span>
               </div>
+              {statusLogin.bloqueado && segundosRestantes > 0 && (
+                <Progress
+                  value={(segundosRestantes / 60) * 100}
+                  className="h-1.5"
+                />
+              )}
               {!statusLogin.bloqueado && statusLogin.tentativasRestantes <= 3 && (
                 <Progress
                   value={(statusLogin.tentativasRestantes / 5) * 100}
