@@ -254,6 +254,47 @@ export default function ConfigEmail() {
                 </SelectContent>
               </Select>
             </div>
+
+            <Separator />
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={testingConnection || !smtp.host || !smtp.port}
+                className="gap-2"
+              >
+                {testingConnection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
+                Testar conexão
+              </Button>
+
+              {connectionResult && (
+                <Badge
+                  variant="outline"
+                  className={connectionResult.success
+                    ? "text-green-600 border-green-300 bg-green-50 gap-1.5"
+                    : "text-destructive border-destructive/30 bg-destructive/10 gap-1.5"
+                  }
+                >
+                  {connectionResult.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  {connectionResult.message}
+                </Badge>
+              )}
+            </div>
+
+            {connectionResult?.details && connectionResult.details.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Detalhes da conexão:</p>
+                <ul className="space-y-1">
+                  {connectionResult.details.map((d, i) => (
+                    <li key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className={connectionResult.success ? "text-green-500" : "text-muted-foreground"}>•</span>
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
