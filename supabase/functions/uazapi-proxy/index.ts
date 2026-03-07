@@ -70,42 +70,55 @@ serve(async (req) => {
       .single();
 
     const tryCreateInstance = async (name: string, token: string) => {
-      const authAttempts: Record<string, string>[] = [
-        { admintoken: token },
-        { admin_token: token },
-        { Authorization: `Bearer ${token}` },
-        { apikey: token },
-        { token },
+      const endpoints = ["/instance/create", "/instance/init"];
+      const bodies = [
+        { instanceName: name },
+        { Name: name },
+        { name: name },
+        { instName: name },
+        { instanceName: name, Name: name, name: name, instName: name },
       ];
 
-      for (const authHeaders of authAttempts) {
-        const response = await fetch(`${baseUrl}/instance/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders,
-          },
-          body: JSON.stringify({ instName: name, instanceName: name }),
-        });
+      for (const endpoint of endpoints) {
+        for (const bodyPayload of bodies) {
+          console.log(`Trying ${endpoint} with body:`, JSON.stringify(bodyPayload));
+          try {
+            const response = await fetch(`${baseUrl}${endpoint}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "admintoken": token,
+              },
+              body: JSON.stringify(bodyPayload),
+            });
 
-        const contentType = response.headers.get("content-type") || "";
-        const data = contentType.includes("application/json")
-          ? await response.json()
-          : { raw: await response.text() };
+            const contentType = response.headers.get("content-type") || "";
+            const text = await response.text();
+            let data: any;
+            try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-        if (response.ok) {
-          return { response, data };
-        }
+            console.log(`Response ${response.status}:`, text.substring(0, 200));
 
-        const unauthorized = response.status === 401 || data?.error === "Unauthorized";
-        if (!unauthorized) {
-          return { response, data };
+            if (response.ok) {
+              return { response, data };
+            }
+
+            // If error is about missing name or 404, try next
+            const errorStr = JSON.stringify(data).toLowerCase();
+            if (errorStr.includes("missing") || response.status === 404) continue;
+
+            // For other errors, return immediately
+            return { response, data };
+          } catch (fetchErr) {
+            console.log(`Fetch error for ${endpoint}:`, fetchErr);
+            continue;
+          }
         }
       }
 
       return {
-        response: new Response(null, { status: 401 }),
-        data: { error: "Unauthorized" },
+        response: new Response(null, { status: 400 }),
+        data: { error: "Nenhum formato de payload aceito pela API UAZAPI" },
       };
     };
 
