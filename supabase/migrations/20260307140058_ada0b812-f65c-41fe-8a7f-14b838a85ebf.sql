@@ -1,0 +1,1 @@
+ALTER TABLE public.funcionarios_clientes ADD COLUMN matricula text DEFAULT NULL;
