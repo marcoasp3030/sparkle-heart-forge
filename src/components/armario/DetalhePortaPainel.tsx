@@ -2,7 +2,7 @@ import { Lock, Unlock, Wrench, User, Clock } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LockerDoorData } from "./LockerDoor";
+import { LockerDoorData } from "./PortaArmario";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   available: { label: "Disponível", className: "bg-success/10 text-success border-success/20" },

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import LockerDoor, { LockerDoorData } from "./LockerDoor";
+import PortaArmario, { LockerDoorData } from "./PortaArmario";
 
 export interface LockerData {
   id: string;
