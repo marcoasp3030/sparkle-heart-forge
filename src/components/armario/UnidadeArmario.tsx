@@ -25,7 +25,7 @@ interface LockerUnitProps {
   index?: number;
 }
 
-export default function UnidadeArmario({ locker, doors, onSelectDoor, onEdit, onDelete, currentUserId, isAdmin, index = 0 }: LockerUnitProps) {
+export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickReserve, onQuickRelease, onEdit, onDelete, currentUserId, isAdmin, index = 0 }: LockerUnitProps) {
   const gridCols = locker.orientation === "horizontal" ? locker.rows : locker.columns;
 
   const available = doors.filter((d) => d.status === "available").length;
