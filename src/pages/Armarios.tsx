@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2 } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -33,6 +33,8 @@ export default function LockersPage() {
   const [lockers, setLockers] = useState<LockerWithDoors[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -153,6 +155,22 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  const handleSetMaintenance = async (door: LockerDoorData) => {
+    setActionLoading(true);
+    const { error } = await supabase
+      .from("locker_doors")
+      .update({ status: "maintenance", occupied_by: null, occupied_at: null })
+      .eq("id", door.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
+      setSheetOpen(false);
+      fetchLockers();
+    }
+    setActionLoading(false);
+  };
+
   const openEditDialog = (locker: LockerData) => {
     setEditLocker(locker);
     setEditName(locker.name);
@@ -193,11 +211,11 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const filteredLockers = lockers.filter(
-    (l) =>
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.location.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredLockers = lockers.filter((l) => {
+    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+    if (statusFilter === "all") return matchSearch;
+    return matchSearch && l.doors.some((d) => d.status === statusFilter);
+  }).map((l) => statusFilter === "all" ? l : { ...l, doors: l.doors });
 
   // Stats
   const allDoors = lockers.flatMap((l) => l.doors);
@@ -216,10 +234,40 @@ export default function LockersPage() {
           <h1 className="text-2xl font-bold text-foreground">Armários</h1>
           <p className="text-sm text-muted-foreground mt-1">Visualize e gerencie os armários inteligentes.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." className="pl-9 h-9 w-56 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Buscar..." className="pl-9 h-9 w-48 bg-muted/50 border-transparent" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          {/* Status filter */}
+          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5">
+            {[
+              { value: "all", label: "Todos" },
+              { value: "available", label: "Livres" },
+              { value: "occupied", label: "Ocupados" },
+              { value: "maintenance", label: "Manut." },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                  statusFilter === f.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {/* View mode */}
+          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5">
+            <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <List className="h-3.5 w-3.5" />
+            </button>
           </div>
           {isAdmin && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -351,7 +399,7 @@ export default function LockersPage() {
           </p>
         </motion.div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className={viewMode === "grid" ? "grid gap-6 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
           {filteredLockers.map((locker, i) => (
             <UnidadeArmario
               key={locker.id}
@@ -380,6 +428,8 @@ export default function LockersPage() {
         onRelease={handleRelease}
         isCurrentUser={selectedDoor?.occupied_by === user?.id}
         loading={actionLoading}
+        isAdmin={isAdmin}
+        onSetMaintenance={handleSetMaintenance}
       />
 
       {/* Edit Dialog */}
