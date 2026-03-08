@@ -36,6 +36,7 @@ interface Pessoa {
   tipo: "funcionario" | "cliente";
   ativo: boolean;
   created_at: string;
+  user_id: string | null;
 }
 
 interface Ref { id: string; nome: string; }
