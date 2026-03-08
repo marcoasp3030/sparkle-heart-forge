@@ -136,6 +136,7 @@ export type Database = {
       company_notification_templates: {
         Row: {
           active: boolean
+          channel: string
           company_id: string
           created_at: string
           footer: string | null
@@ -146,6 +147,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          channel?: string
           company_id: string
           created_at?: string
           footer?: string | null
@@ -156,6 +158,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          channel?: string
           company_id?: string
           created_at?: string
           footer?: string | null

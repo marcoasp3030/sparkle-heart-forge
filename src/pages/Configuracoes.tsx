@@ -8,7 +8,7 @@ import ConfigNotificacoes from "@/components/configuracoes/ConfigNotificacoes";
 import ConfigSistema from "@/components/configuracoes/ConfigSistema";
 import ConfigEmail from "@/components/configuracoes/ConfigEmail";
 import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
-import ConfigTemplatesWhatsApp from "@/components/configuracoes/ConfigTemplatesWhatsApp";
+import ConfigTemplatesNotificacoes from "@/components/configuracoes/ConfigTemplatesWhatsApp";
 import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText } from "lucide-react";
 
 export default function Configuracoes() {
@@ -86,7 +86,7 @@ export default function Configuracoes() {
         )}
         {isAdmin && (
           <TabsContent value="templates">
-            <ConfigTemplatesWhatsApp />
+            <ConfigTemplatesNotificacoes />
           </TabsContent>
         )}
         {isAdmin && (
