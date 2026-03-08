@@ -64,6 +64,12 @@ const TEMPLATE_TYPES = [
     description: "Enviada quando uma nova pessoa é cadastrada",
     variables: ["{nome}"],
   },
+  {
+    type: "waitlist_available",
+    label: "Fila de Espera — Vaga Disponível",
+    description: "Enviada quando uma porta libera e há alguém na fila de espera",
+    variables: ["{nome}", "{porta}", "{armario}"],
+  },
 ];
 
 const WHATSAPP_DEFAULTS: Record<string, { text: string; footer: string }> = {
