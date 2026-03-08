@@ -679,6 +679,7 @@ export default function LockersPage() {
         loading={actionLoading}
         isAdmin={isAdmin}
         onSetMaintenance={handleSetMaintenance}
+        onRefresh={fetchLockers}
       />
 
       {/* Edit Dialog */}
