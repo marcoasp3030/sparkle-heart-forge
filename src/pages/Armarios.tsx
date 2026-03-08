@@ -218,6 +218,21 @@ export default function LockersPage() {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
       triggerFeedback("release");
       playSound("release");
+
+      // WhatsApp notification (non-blocking)
+      if (door.occupied_by && selectedCompany) {
+        const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
+        const extDoor = door as LockerDoorDataExtended;
+        sendWhatsAppNotify({
+          type: "reservation_released",
+          companyId: selectedCompany,
+          personId: extDoor.occupied_by_person || undefined,
+          doorLabel: door.label,
+          doorNumber: door.door_number,
+          lockerName: locker?.name,
+        });
+      }
+
       setSheetOpen(false);
       fetchLockers();
     }
