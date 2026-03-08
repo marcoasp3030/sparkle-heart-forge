@@ -249,7 +249,7 @@ export default function CompaniesPage() {
     } else {
       const { data: newCompany, error } = await supabase
         .from("companies")
-        .insert({ name, type, description })
+        .insert({ name, type, description, email, phone, cnpj, contact_name: contactName, address, city, state })
         .select()
         .single();
       if (error) {
