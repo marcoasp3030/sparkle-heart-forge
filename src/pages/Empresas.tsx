@@ -329,24 +329,54 @@ export default function CompaniesPage() {
             <DialogHeader>
               <DialogTitle>{editCompany ? "Editar Empresa" : "Criar Nova Empresa"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Nome da Empresa</Label>
-                <Input placeholder="Ex: Academia XYZ" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={type} onValueChange={(v) => setType(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Funcionários — armários para colaboradores</SelectItem>
-                    <SelectItem value="rental">Aluguel — armários para clientes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea placeholder="Descrição opcional..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label>Nome da Empresa</Label>
+                  <Input placeholder="Ex: Academia XYZ" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>CNPJ</Label>
+                  <Input placeholder="00.000.000/0000-00" value={cnpj} onChange={(e) => setCnpj(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={type} onValueChange={(v) => setType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">Funcionários</SelectItem>
+                      <SelectItem value="rental">Aluguel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input type="email" placeholder="contato@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input placeholder="(11) 99999-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Responsável / Contato</Label>
+                  <Input placeholder="Nome do responsável" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Endereço</Label>
+                  <Input placeholder="Rua, número, bairro" value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cidade</Label>
+                  <Input placeholder="São Paulo" value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Input placeholder="SP" value={state} onChange={(e) => setState(e.target.value)} maxLength={2} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Descrição</Label>
+                  <Textarea placeholder="Descrição opcional..." value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+                </div>
               </div>
             </div>
             <DialogFooter>
