@@ -78,6 +78,11 @@ function getDefaultButtons(type: NotificationType): Array<{ buttonId: string; bu
         { buttonId: "btn_how_it_works", buttonText: "❓ Como funciona" },
         { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
       ];
+    case "waitlist_available":
+      return [
+        { buttonId: "btn_reserve_now", buttonText: "📦 Reservar agora" },
+        { buttonId: "btn_leave_queue", buttonText: "❌ Sair da fila" },
+      ];
     default:
       return [];
   }
