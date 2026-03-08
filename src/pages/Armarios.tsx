@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario";
 import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
+import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
