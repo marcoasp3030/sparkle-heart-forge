@@ -22,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
+  { icon: History, label: "Histórico", path: "/historico" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
   { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },

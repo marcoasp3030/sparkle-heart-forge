@@ -44,6 +44,7 @@ function RotasAnimadas() {
         <Route path="/auth" element={<TransicaoPagina><Autenticacao /></TransicaoPagina>} />
         <Route path="/" element={protectedRoute(<PainelDeControle />)} />
         <Route path="/armarios" element={protectedRoute(<Armarios />)} />
+        <Route path="/historico" element={protectedRoute(<HistoricoPortas />)} />
         <Route path="/empresas" element={protectedRoute(<Empresas />)} />
         <Route path="/departamentos" element={protectedRoute(<Departamentos />)} />
         <Route path="/setores" element={protectedRoute(<Setores />)} />
