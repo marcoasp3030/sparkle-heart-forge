@@ -481,6 +481,30 @@ export default function Portal() {
                               </>
                             )}
                           </div>
+
+                          {/* Renewal request button */}
+                          {door.expires_at && (
+                            getPendingRenewal(door.id) ? (
+                              <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/20 gap-1">
+                                <Hourglass className="h-3 w-3" />
+                                Renovação solicitada
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs gap-1.5 h-7"
+                                onClick={() => {
+                                  setRenewalDoor(door);
+                                  setRenewalHours("1");
+                                  setShowRenewalDialog(true);
+                                }}
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                Solicitar Renovação
+                              </Button>
+                            )
+                          )}
                         </div>
                       </div>
                     </CardContent>
