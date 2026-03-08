@@ -325,7 +325,7 @@ export default function CompaniesPage() {
               Nova Empresa
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogContent className="sm:max-w-lg rounded-2xl">
             <DialogHeader>
               <DialogTitle>{editCompany ? "Editar Empresa" : "Criar Nova Empresa"}</DialogTitle>
             </DialogHeader>
