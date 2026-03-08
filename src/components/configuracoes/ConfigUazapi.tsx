@@ -287,6 +287,32 @@ export default function ConfigUazapi() {
                     Token de autenticação do painel admin UAZAPI
                   </p>
                 </div>
+
+                {/* Webhook URL */}
+                <div className="space-y-2">
+                  <Label>Webhook URL (para configurar na UAZAPI)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={`https://pnnoypsyrccdfxdqjakp.supabase.co/functions/v1/whatsapp-webhook`}
+                      className="font-mono text-xs bg-muted"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://pnnoypsyrccdfxdqjakp.supabase.co/functions/v1/whatsapp-webhook`);
+                        toast({ title: "URL copiada!" });
+                      }}
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Configure esta URL como webhook na UAZAPI para receber respostas dos botões e comandos interativos.
+                  </p>
+                </div>
+
                 <Button onClick={handleSaveConfig} disabled={savingConfig || !serverUrl || !adminToken}>
                   {savingConfig ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Key className="h-4 w-4 mr-2" />}
                   Salvar Configuração
