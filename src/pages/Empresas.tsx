@@ -95,7 +95,11 @@ export default function CompaniesPage() {
   const companies = allCompanies.length > 0 ? allCompanies : activeCompanies;
 
   const filteredCompanies = companies.filter((c) => {
-    const matchesSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      c.name.toLowerCase().includes(q) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.cnpj && c.cnpj.toLowerCase().includes(q));
     const matchesType = filterType === "all" || c.type === filterType;
     const matchesStatus = filterStatus === "all" || (filterStatus === "active" ? c.active : !c.active);
     return matchesSearch && matchesType && matchesStatus;
