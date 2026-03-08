@@ -705,6 +705,9 @@ export default function LockersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Occupation Report */}
+      <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }
