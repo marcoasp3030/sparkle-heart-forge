@@ -677,10 +677,9 @@ export default function Portal() {
         }}
       >
         <DialogContent
-          className="max-w-md"
+          className={`max-w-md ${mustChangePassword ? "[&>button]:hidden" : ""}`}
           onPointerDownOutside={mustChangePassword ? (e) => e.preventDefault() : undefined}
           onEscapeKeyDown={mustChangePassword ? (e) => e.preventDefault() : undefined}
-          hideCloseButton={mustChangePassword}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
