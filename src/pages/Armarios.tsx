@@ -242,6 +242,11 @@ export default function LockersPage() {
           doorNumber: door.door_number,
           lockerName: locker?.name,
         });
+
+        // Notify waitlist (non-blocking)
+        if (locker) {
+          notifyWaitlist(locker.id, selectedCompany.id, door.label, door.door_number, locker.name);
+        }
       }
 
       setSheetOpen(false);
