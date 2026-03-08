@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye, KeyRound } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye, KeyRound, MessageSquare, Send } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,8 @@ export default function PessoasPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [sendWhatsapp, setSendWhatsapp] = useState(true);
+  const [sendEmailNotif, setSendEmailNotif] = useState(true);
 
   // Form
   const [nome, setNome] = useState("");
@@ -217,11 +220,30 @@ export default function PessoasPage() {
     setLoginLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-person-login", {
-        body: { person_id: loginPerson.id, email: loginEmail, password: loginPassword },
+        body: {
+          person_id: loginPerson.id,
+          email: loginEmail,
+          password: loginPassword,
+          send_whatsapp: sendWhatsapp,
+          send_email: sendEmailNotif,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Acesso criado!", description: data.message });
+
+      // Build notification feedback
+      const notifications = data.notifications || [];
+      const waSent = notifications.find((n: any) => n.channel === "whatsapp");
+      const emailSent = notifications.find((n: any) => n.channel === "email");
+      let notifDesc = data.message;
+      const parts: string[] = [];
+      if (waSent?.success) parts.push("WhatsApp ✓");
+      else if (sendWhatsapp && waSent) parts.push(`WhatsApp ✗ (${waSent.reason || "falha"})`);
+      if (emailSent?.success) parts.push("E-mail ✓");
+      else if (sendEmailNotif && emailSent) parts.push(`E-mail ✗ (${emailSent.reason || "falha"})`);
+      if (parts.length > 0) notifDesc += ` | Envio: ${parts.join(", ")}`;
+
+      toast({ title: "Acesso criado!", description: notifDesc });
       setLoginDialogOpen(false);
       setLoginPerson(null);
       setLoginEmail("");
@@ -238,6 +260,8 @@ export default function PessoasPage() {
     setLoginPerson(pessoa);
     setLoginEmail(pessoa.email || "");
     setLoginPassword("");
+    setSendWhatsapp(!!pessoa.telefone);
+    setSendEmailNotif(true);
     setLoginDialogOpen(true);
   };
 
@@ -594,9 +618,40 @@ export default function PessoasPage() {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
-                Informe esta senha ao {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} para o primeiro acesso.
+            </div>
+
+            {/* Notification options */}
+            <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/30">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Send className="h-3.5 w-3.5" />
+                Enviar credenciais automaticamente
               </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="send-whatsapp"
+                  checked={sendWhatsapp}
+                  onCheckedChange={(v) => setSendWhatsapp(!!v)}
+                  disabled={!loginPerson?.telefone}
+                />
+                <label htmlFor="send-whatsapp" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  <MessageSquare className="h-3.5 w-3.5 text-green-600" />
+                  WhatsApp
+                  {!loginPerson?.telefone && (
+                    <span className="text-[10px] text-muted-foreground">(sem telefone)</span>
+                  )}
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="send-email"
+                  checked={sendEmailNotif}
+                  onCheckedChange={(v) => setSendEmailNotif(!!v)}
+                />
+                <label htmlFor="send-email" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  <Mail className="h-3.5 w-3.5 text-primary" />
+                  E-mail
+                </label>
+              </div>
             </div>
           </div>
           <DialogFooter>
