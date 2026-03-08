@@ -325,6 +325,9 @@ const PainelDeControle = () => {
         </motion.div>
       )}
 
+      {/* Charts & Metrics */}
+      <GraficosDashboard />
+
       {/* Door List */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
