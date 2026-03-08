@@ -23,6 +23,7 @@ import Pessoas from "./pages/Pessoas";
 import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
 import Configuracoes from "./pages/Configuracoes";
 import HistoricoPortas from "./pages/HistoricoPortas";
+import Renovacoes from "./pages/Renovacoes";
 import Portal from "./pages/Portal";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
