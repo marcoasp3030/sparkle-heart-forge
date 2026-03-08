@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck } from "lucide-react";
+import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
+import { useToast } from "@/hooks/use-toast";
 
 export interface LockerDoorDataExtended {
   id: string;
@@ -23,6 +26,7 @@ export interface LockerDoorDataExtended {
   occupied_by_person: string | null;
   usage_type: string;
   expires_at: string | null;
+  locker_id?: string;
 }
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
@@ -33,6 +37,16 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
 };
 
 const sizeLabels: Record<string, string> = { small: "Pequeno", medium: "Médio", large: "Grande" };
+
+// Quick duration presets (hours)
+const DURATION_PRESETS = [
+  { label: "1h", hours: 1 },
+  { label: "2h", hours: 2 },
+  { label: "4h", hours: 4 },
+  { label: "6h", hours: 6 },
+  { label: "8h", hours: 8 },
+  { label: "12h", hours: 12 },
+];
 
 interface Pessoa {
   id: string;
@@ -45,15 +59,16 @@ interface DoorDetailSheetProps {
   door: LockerDoorDataExtended | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReserve?: (door: LockerDoorDataExtended, personId: string, usageType: string, expiresAt: string | null) => void;
+  onReserve?: (door: LockerDoorDataExtended, personId: string, usageType: string, expiresAt: string | null, startsAt?: string | null) => void;
   onRelease?: (door: LockerDoorDataExtended) => void;
   isCurrentUser?: boolean;
   loading?: boolean;
   isAdmin?: boolean;
   onSetMaintenance?: (door: LockerDoorDataExtended) => void;
+  onRefresh?: () => void;
 }
 
-type ConfirmAction = "reserve" | "release" | "maintenance" | "unmaintenance" | null;
+type ConfirmAction = "reserve" | "release" | "maintenance" | "unmaintenance" | "renew" | "schedule" | null;
 
 const confirmConfig: Record<string, { title: string; description: string; actionLabel: string; variant: "default" | "destructive" }> = {
   reserve: {
@@ -80,18 +95,41 @@ const confirmConfig: Record<string, { title: string; description: string; action
     actionLabel: "Retirar manutenção",
     variant: "default",
   },
+  renew: {
+    title: "Renovar reserva",
+    description: "Deseja estender o prazo desta reserva temporária?",
+    actionLabel: "Renovar",
+    variant: "default",
+  },
+  schedule: {
+    title: "Confirmar agendamento",
+    description: "Tem certeza que deseja agendar esta porta para uso futuro?",
+    actionLabel: "Agendar",
+    variant: "default",
+  },
 };
 
-export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve, onRelease, isCurrentUser, loading, isAdmin, onSetMaintenance }: DoorDetailSheetProps) {
+export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve, onRelease, isCurrentUser, loading, isAdmin, onSetMaintenance, onRefresh }: DoorDetailSheetProps) {
   const { selectedCompany } = useCompany();
+  const { toast } = useToast();
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string>("");
   const [usageType, setUsageType] = useState<string>("temporary");
   const [expiresAt, setExpiresAt] = useState<string>("");
   const [personName, setPersonName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("now");
 
-  // Fetch people for selection
+  // Scheduling fields
+  const [schedStartsAt, setSchedStartsAt] = useState<string>("");
+  const [schedDurationPreset, setSchedDurationPreset] = useState<number | null>(null);
+  const [schedExpiresAt, setSchedExpiresAt] = useState<string>("");
+
+  // Renewal fields
+  const [renewHours, setRenewHours] = useState<number>(2);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Fetch people
   useEffect(() => {
     if (!open || !selectedCompany) return;
     const fetchPessoas = async () => {
@@ -128,6 +166,11 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
     setSelectedPersonId("");
     setUsageType("temporary");
     setExpiresAt("");
+    setActiveTab("now");
+    setSchedStartsAt("");
+    setSchedDurationPreset(null);
+    setSchedExpiresAt("");
+    setRenewHours(2);
   }, [door?.id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
@@ -135,25 +178,132 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
 
   if (!door) return null;
 
-  const handleConfirm = () => {
+  const applyDurationPreset = (hours: number, target: "now" | "schedule") => {
+    const date = new Date();
+    if (target === "schedule" && schedStartsAt) {
+      date.setTime(new Date(schedStartsAt).getTime());
+    }
+    date.setHours(date.getHours() + hours);
+    const formatted = date.toISOString().slice(0, 16);
+    if (target === "now") {
+      setExpiresAt(formatted);
+    } else {
+      setSchedExpiresAt(formatted);
+      setSchedDurationPreset(hours);
+    }
+  };
+
+  const handleConfirm = async () => {
     if (!door) return;
     switch (confirmAction) {
-      case "reserve": onReserve?.(door, selectedPersonId, usageType, usageType === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null); break;
-      case "release": onRelease?.(door); break;
-      case "maintenance": onSetMaintenance?.(door); break;
-      case "unmaintenance": onRelease?.(door); break;
+      case "reserve":
+        onReserve?.(door, selectedPersonId, usageType, usageType === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null);
+        break;
+      case "release":
+        onRelease?.(door);
+        break;
+      case "maintenance":
+        onSetMaintenance?.(door);
+        break;
+      case "unmaintenance":
+        onRelease?.(door);
+        break;
+      case "renew":
+        await handleRenew();
+        break;
+      case "schedule":
+        await handleSchedule();
+        break;
     }
     setConfirmAction(null);
   };
 
+  const handleRenew = async () => {
+    if (!door) return;
+    setActionLoading(true);
+    const currentExpiry = door.expires_at ? new Date(door.expires_at) : new Date();
+    const newExpiry = new Date(currentExpiry.getTime() + renewHours * 60 * 60 * 1000);
+
+    const { error } = await supabase
+      .from("locker_doors")
+      .update({ expires_at: newExpiry.toISOString() })
+      .eq("id", door.id);
+
+    if (!error) {
+      // Update reservation record
+      await supabase
+        .from("locker_reservations")
+        .update({ 
+          expires_at: newExpiry.toISOString(), 
+          renewed_count: (await supabase.from("locker_reservations").select("renewed_count").eq("door_id", door.id).eq("status", "active").single()).data?.renewed_count + 1 || 1,
+          expiry_notified: false
+        })
+        .eq("door_id", door.id)
+        .eq("status", "active");
+
+      toast({ title: "Renovado!", description: `Reserva estendida por ${renewHours}h até ${newExpiry.toLocaleString("pt-BR")}.` });
+      onOpenChange(false);
+      onRefresh?.();
+    } else {
+      toast({ title: "Erro ao renovar", description: error.message, variant: "destructive" });
+    }
+    setActionLoading(false);
+  };
+
+  const handleSchedule = async () => {
+    if (!door || !selectedPersonId || !schedStartsAt) return;
+    setActionLoading(true);
+
+    const startsAt = new Date(schedStartsAt).toISOString();
+    const expiresAtVal = usageType === "temporary" && schedExpiresAt ? new Date(schedExpiresAt).toISOString() : null;
+
+    // Create reservation record with "scheduled" status
+    const { data: reservation, error: resError } = await supabase
+      .from("locker_reservations")
+      .insert({
+        door_id: door.id,
+        locker_id: door.locker_id || "",
+        person_id: selectedPersonId,
+        reserved_by: (await supabase.auth.getUser()).data.user?.id,
+        usage_type: usageType,
+        status: "scheduled",
+        starts_at: startsAt,
+        expires_at: expiresAtVal,
+      })
+      .select()
+      .single();
+
+    if (resError || !reservation) {
+      toast({ title: "Erro ao agendar", description: resError?.message, variant: "destructive" });
+      setActionLoading(false);
+      return;
+    }
+
+    // Mark the door as having a scheduled reservation
+    await supabase
+      .from("locker_doors")
+      .update({ scheduled_reservation_id: reservation.id })
+      .eq("id", door.id);
+
+    toast({ 
+      title: "Agendado!", 
+      description: `Reserva agendada para ${new Date(startsAt).toLocaleString("pt-BR")}.` 
+    });
+    onOpenChange(false);
+    onRefresh?.();
+    setActionLoading(false);
+  };
+
   const canReserve = selectedPersonId && (usageType === "permanent" || (usageType === "temporary" && expiresAt));
+  const canSchedule = selectedPersonId && schedStartsAt && (usageType === "permanent" || (usageType === "temporary" && schedExpiresAt));
 
   const config = confirmAction ? confirmConfig[confirmAction] : null;
+  const isTemporaryOccupied = door.status === "occupied" && door.usage_type === "temporary" && door.expires_at;
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:w-[400px] md:w-[440px] rounded-l-2xl p-0 overflow-hidden">
+        <SheetContent className="w-full sm:w-[420px] md:w-[460px] rounded-l-2xl p-0 overflow-hidden">
           {/* Door illustration header */}
           <div className="relative bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 px-6 pt-8 pb-6">
             <div className="mx-auto w-28 h-40 rounded-lg bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-600 dark:to-slate-700 border-2 border-slate-300 dark:border-slate-500 shadow-lg relative overflow-hidden">
@@ -191,34 +341,35 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
             </div>
           </div>
 
-          <div className="px-6 pt-6 pb-8 space-y-6 overflow-y-auto max-h-[calc(100vh-280px)]">
+          <div className="px-6 pt-5 pb-8 space-y-5 overflow-y-auto max-h-[calc(100vh-280px)]">
             <SheetHeader className="p-0">
               <SheetTitle className="text-xl font-extrabold">
                 {door.label || `Porta #${door.door_number}`}
               </SheetTitle>
             </SheetHeader>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-muted/50 border border-border/40 text-center">
-                <Hash className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Número</p>
+            {/* Info cards */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="p-2.5 rounded-xl bg-muted/50 border border-border/40 text-center">
+                <Hash className="h-3.5 w-3.5 mx-auto text-muted-foreground mb-0.5" />
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Número</p>
                 <p className="text-sm font-bold text-foreground font-mono mt-0.5">#{door.door_number}</p>
               </div>
-              <div className="p-3 rounded-xl bg-muted/50 border border-border/40 text-center">
-                <Maximize2 className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tamanho</p>
+              <div className="p-2.5 rounded-xl bg-muted/50 border border-border/40 text-center">
+                <Maximize2 className="h-3.5 w-3.5 mx-auto text-muted-foreground mb-0.5" />
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Tamanho</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{sizeLabels[door.size]}</p>
               </div>
-              <div className="p-3 rounded-xl bg-muted/50 border border-border/40 text-center">
-                <StatusIcon className={`h-4 w-4 mx-auto mb-1 ${status.color}`} />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</p>
+              <div className="p-2.5 rounded-xl bg-muted/50 border border-border/40 text-center">
+                <StatusIcon className={`h-3.5 w-3.5 mx-auto mb-0.5 ${status.color}`} />
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Status</p>
                 <p className={`text-sm font-bold mt-0.5 ${status.color}`}>{status.label}</p>
               </div>
             </div>
 
             {/* Occupied info */}
             {door.status === "occupied" && (personName || door.usage_type || door.expires_at) && (
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-2">
+              <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 space-y-2">
                 {personName && (
                   <div className="flex items-center gap-2">
                     <UserCheck className="h-4 w-4 text-muted-foreground" />
@@ -230,88 +381,209 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
                   <span className="text-xs text-muted-foreground">
                     {door.usage_type === "permanent" ? "Uso permanente" : "Uso temporário"}
                   </span>
+                  {door.usage_type === "temporary" && (
+                    <Badge variant="outline" className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20 ml-auto">
+                      Temporário
+                    </Badge>
+                  )}
                 </div>
                 {door.expires_at && (
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
-                      Expira em: {new Date(door.expires_at).toLocaleDateString("pt-BR")} às {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      Expira: {new Date(door.expires_at).toLocaleDateString("pt-BR")} às {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     </span>
+                    {new Date(door.expires_at) < new Date() && (
+                      <Badge variant="destructive" className="text-[9px] ml-auto">Expirado</Badge>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Reservation form */}
-            {door.status === "available" && isAdmin && (
-              <div className="space-y-4 p-4 rounded-xl bg-muted/30 border border-border/40">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vincular pessoa</p>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Pessoa</Label>
-                  <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione uma pessoa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pessoas.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-sm">
-                          <span>{p.nome}</span>
-                          <span className="text-muted-foreground ml-2 text-xs">
-                            ({p.tipo === "funcionario" ? "Funcionário" : "Cliente"}{p.matricula ? ` • ${p.matricula}` : ""})
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {/* Renewal for occupied temporary doors */}
+            {isTemporaryOccupied && isAdmin && (
+              <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-primary" />
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Renovar reserva</p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Tipo de uso</Label>
-                  <Select value={usageType} onValueChange={setUsageType}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="permanent">Permanente</SelectItem>
-                      <SelectItem value="temporary">Temporário</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[1, 2, 4, 6, 8, 12].map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setRenewHours(h)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        renewHours === h
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      +{h}h
+                    </button>
+                  ))}
                 </div>
-
-                {usageType === "temporary" && (
-                  <div className="space-y-2">
-                    <Label className="text-xs">Data de expiração</Label>
-                    <Input
-                      type="datetime-local"
-                      value={expiresAt}
-                      onChange={(e) => setExpiresAt(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {door.status === "available" && isAdmin && (
                 <Button
-                  onClick={() => setConfirmAction("reserve")}
-                  disabled={loading || !canReserve}
-                  className="w-full h-12 gradient-primary border-0 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity"
+                  onClick={() => setConfirmAction("renew")}
+                  disabled={loading || actionLoading}
+                  size="sm"
+                  className="w-full rounded-xl gradient-primary border-0 text-primary-foreground"
                 >
-                  <Lock className="mr-2 h-4 w-4" />
-                  Reservar para pessoa selecionada
+                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                  Renovar por {renewHours}h
                 </Button>
-              )}
+              </div>
+            )}
 
+            {/* Reservation form (available doors) */}
+            {door.status === "available" && isAdmin && (
+              <div className="space-y-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="w-full grid grid-cols-2">
+                    <TabsTrigger value="now" className="text-xs gap-1.5">
+                      <Lock className="h-3.5 w-3.5" />
+                      Reservar agora
+                    </TabsTrigger>
+                    <TabsTrigger value="schedule" className="text-xs gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      Agendar
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Common fields */}
+                  <div className="space-y-3 pt-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Pessoa</Label>
+                      <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione uma pessoa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pessoas.map((p) => (
+                            <SelectItem key={p.id} value={p.id} className="text-sm">
+                              {p.nome}
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                ({p.tipo === "funcionario" ? "Func." : "Cliente"}{p.matricula ? ` • ${p.matricula}` : ""})
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Tipo de uso</Label>
+                      <Select value={usageType} onValueChange={setUsageType}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="permanent">Permanente</SelectItem>
+                          <SelectItem value="temporary">Temporário</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <TabsContent value="now" className="space-y-3 mt-3">
+                    {usageType === "temporary" && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Duração rápida</Label>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {DURATION_PRESETS.map((p) => (
+                            <button
+                              key={p.hours}
+                              onClick={() => applyDurationPreset(p.hours, "now")}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Ou escolha data/hora</Label>
+                          <Input
+                            type="datetime-local"
+                            value={expiresAt}
+                            onChange={(e) => setExpiresAt(e.target.value)}
+                            min={new Date().toISOString().slice(0, 16)}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => setConfirmAction("reserve")}
+                      disabled={loading || !canReserve}
+                      className="w-full h-11 gradient-primary border-0 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90"
+                    >
+                      <Lock className="mr-2 h-4 w-4" />
+                      Reservar agora
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="schedule" className="space-y-3 mt-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Início do agendamento</Label>
+                      <Input
+                        type="datetime-local"
+                        value={schedStartsAt}
+                        onChange={(e) => setSchedStartsAt(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    {usageType === "temporary" && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Duração</Label>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {DURATION_PRESETS.map((p) => (
+                            <button
+                              key={p.hours}
+                              onClick={() => applyDurationPreset(p.hours, "schedule")}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                schedDurationPreset === p.hours
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Ou escolha fim</Label>
+                          <Input
+                            type="datetime-local"
+                            value={schedExpiresAt}
+                            onChange={(e) => { setSchedExpiresAt(e.target.value); setSchedDurationPreset(null); }}
+                            min={schedStartsAt || new Date().toISOString().slice(0, 16)}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => setConfirmAction("schedule")}
+                      disabled={loading || actionLoading || !canSchedule}
+                      className="w-full h-11 gradient-primary border-0 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90"
+                    >
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      Agendar reserva
+                    </Button>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+
+            {/* Actions for occupied/maintenance */}
+            <div className="space-y-2.5">
               {(isCurrentUser || isAdmin) && door.status === "occupied" && (
                 <Button
                   onClick={() => setConfirmAction("release")}
                   disabled={loading}
                   variant="outline"
-                  className="w-full h-12 rounded-xl font-semibold border-destructive/30 text-destructive hover:bg-destructive/10"
+                  className="w-full h-11 rounded-xl font-semibold border-destructive/30 text-destructive hover:bg-destructive/10"
                 >
                   <Unlock className="mr-2 h-4 w-4" />
                   Liberar armário
@@ -354,13 +626,13 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
             <AlertDialogDescription>{config?.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl" disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" disabled={loading || actionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={loading || actionLoading}
               className={`rounded-xl ${config?.variant === "destructive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "gradient-primary border-0 text-primary-foreground hover:opacity-90"}`}
             >
-              {loading ? "Processando..." : config?.actionLabel}
+              {loading || actionLoading ? "Processando..." : config?.actionLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
