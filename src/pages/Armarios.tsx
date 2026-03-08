@@ -48,6 +48,7 @@ export default function LockersPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // New locker form
   const [newName, setNewName] = useState("");
