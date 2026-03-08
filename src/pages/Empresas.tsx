@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw, Mail, Phone, MapPin, FileText, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
