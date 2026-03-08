@@ -14,7 +14,8 @@ type NotificationType =
   | "reservation_renewed"
   | "scheduled_activated"
   | "scheduled_cancelled"
-  | "welcome";
+  | "welcome"
+  | "waitlist_available";
 
 interface NotificationPayload {
   type: NotificationType;
