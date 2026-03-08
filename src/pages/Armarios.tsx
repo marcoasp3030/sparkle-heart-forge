@@ -737,5 +737,6 @@ export default function LockersPage() {
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
     </div>
+    </>
   );
 }
