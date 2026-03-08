@@ -380,6 +380,7 @@ export default function LockersPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           )}
         </div>
 
