@@ -425,6 +425,7 @@ export default function PessoasPage() {
                                 Sem acesso
                               </Badge>
                             )}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               {pessoa.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{pessoa.email}</span>}
