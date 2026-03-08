@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye, KeyRound } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye, KeyRound, MessageSquare, Send } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
