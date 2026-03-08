@@ -133,6 +133,47 @@ export type Database = {
           },
         ]
       }
+      company_notification_templates: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          footer: string | null
+          id: string
+          template_text: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          footer?: string | null
+          id?: string
+          template_text?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          footer?: string | null
+          id?: string
+          template_text?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_notification_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_permissions: {
         Row: {
           company_id: string
