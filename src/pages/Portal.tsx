@@ -82,6 +82,11 @@ export default function Portal() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [activeTab, setActiveTab] = useState("armarios");
+  const [renewalRequests, setRenewalRequests] = useState<RenewalRequest[]>([]);
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [renewalDoor, setRenewalDoor] = useState<DoorInfo | null>(null);
+  const [renewalHours, setRenewalHours] = useState("1");
+  const [renewalLoading, setRenewalLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
