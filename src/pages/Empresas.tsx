@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Users, Key, Settings2, UserPlus, Eye, EyeOff, Layers, Network, Lock, Search, Filter, RotateCcw, Mail, Phone, MapPin, FileText, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,13 @@ export default function CompaniesPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState<"employee" | "rental">("employee");
   const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // Fetch all companies including inactive
   const fetchAllCompanies = async () => {
@@ -119,9 +126,9 @@ export default function CompaniesPage() {
   }, [companies]);
 
   const resetForm = () => {
-    setName("");
-    setType("employee");
-    setDescription("");
+    setName(""); setType("employee"); setDescription("");
+    setEmail(""); setPhone(""); setCnpj(""); setContactName("");
+    setAddress(""); setCity(""); setState("");
     setEditCompany(null);
   };
 
@@ -179,6 +186,13 @@ export default function CompaniesPage() {
     setName(company.name);
     setType(company.type);
     setDescription(company.description || "");
+    setEmail(company.email || "");
+    setPhone(company.phone || "");
+    setCnpj(company.cnpj || "");
+    setContactName(company.contact_name || "");
+    setAddress(company.address || "");
+    setCity(company.city || "");
+    setState(company.state || "");
     setDialogOpen(true);
   };
 
@@ -225,7 +239,7 @@ export default function CompaniesPage() {
     if (editCompany) {
       const { error } = await supabase
         .from("companies")
-        .update({ name, type, description })
+        .update({ name, type, description, email, phone, cnpj, contact_name: contactName, address, city, state })
         .eq("id", editCompany.id);
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -235,7 +249,7 @@ export default function CompaniesPage() {
     } else {
       const { data: newCompany, error } = await supabase
         .from("companies")
-        .insert({ name, type, description })
+        .insert({ name, type, description, email, phone, cnpj, contact_name: contactName, address, city, state })
         .select()
         .single();
       if (error) {
@@ -311,28 +325,58 @@ export default function CompaniesPage() {
               Nova Empresa
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogContent className="sm:max-w-lg rounded-2xl">
             <DialogHeader>
               <DialogTitle>{editCompany ? "Editar Empresa" : "Criar Nova Empresa"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Nome da Empresa</Label>
-                <Input placeholder="Ex: Academia XYZ" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={type} onValueChange={(v) => setType(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Funcionários — armários para colaboradores</SelectItem>
-                    <SelectItem value="rental">Aluguel — armários para clientes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea placeholder="Descrição opcional..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label>Nome da Empresa</Label>
+                  <Input placeholder="Ex: Academia XYZ" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>CNPJ</Label>
+                  <Input placeholder="00.000.000/0000-00" value={cnpj} onChange={(e) => setCnpj(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={type} onValueChange={(v) => setType(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">Funcionários</SelectItem>
+                      <SelectItem value="rental">Aluguel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input type="email" placeholder="contato@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input placeholder="(11) 99999-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Responsável / Contato</Label>
+                  <Input placeholder="Nome do responsável" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Endereço</Label>
+                  <Input placeholder="Rua, número, bairro" value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cidade</Label>
+                  <Input placeholder="São Paulo" value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Input placeholder="SP" value={state} onChange={(e) => setState(e.target.value)} maxLength={2} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Descrição</Label>
+                  <Textarea placeholder="Descrição opcional..." value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -472,9 +516,44 @@ export default function CompaniesPage() {
                       )}
                     </div>
                   </div>
-                  {company.description && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{company.description}</p>
-                  )}
+                  {/* Company details */}
+                  <div className="mt-3 space-y-1.5">
+                    {company.email && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{company.email}</span>
+                      </div>
+                    )}
+                    {company.phone && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.phone}</span>
+                      </div>
+                    )}
+                    {company.cnpj && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.cnpj}</span>
+                      </div>
+                    )}
+                    {company.contact_name && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <User className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.contact_name}</span>
+                      </div>
+                    )}
+                    {(company.city || company.state || company.address) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {[company.address, company.city, company.state].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                    {company.description && (
+                      <p className="text-xs text-muted-foreground/70 line-clamp-2 mt-1">{company.description}</p>
+                    )}
+                  </div>
                   {/* Dynamic counters */}
                   <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-border/40">
                     {[

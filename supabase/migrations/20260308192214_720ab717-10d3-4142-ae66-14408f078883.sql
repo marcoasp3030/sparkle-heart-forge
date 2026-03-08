@@ -1,0 +1,9 @@
+
+ALTER TABLE public.companies
+  ADD COLUMN IF NOT EXISTS email text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS phone text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS cnpj text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS address text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS city text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS state text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS contact_name text DEFAULT '';

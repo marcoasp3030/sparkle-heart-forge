@@ -67,28 +67,49 @@ export type Database = {
       companies: {
         Row: {
           active: boolean
+          address: string | null
+          city: string | null
+          cnpj: string | null
+          contact_name: string | null
           created_at: string
           description: string | null
+          email: string | null
           id: string
           name: string
+          phone: string | null
+          state: string | null
           type: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          contact_name?: string | null
           created_at?: string
           description?: string | null
+          email?: string | null
           id?: string
           name: string
+          phone?: string | null
+          state?: string | null
           type?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          contact_name?: string | null
           created_at?: string
           description?: string | null
+          email?: string | null
           id?: string
           name?: string
+          phone?: string | null
+          state?: string | null
           type?: string
           updated_at?: string
         }
