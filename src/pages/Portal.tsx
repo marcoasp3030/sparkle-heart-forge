@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
   CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw,
-  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff
+  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send,
+  ClockArrowUp, Hourglass
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useTheme } from "next-themes";
