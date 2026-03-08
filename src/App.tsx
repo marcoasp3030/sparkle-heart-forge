@@ -23,6 +23,7 @@ import Pessoas from "./pages/Pessoas";
 import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
 import Configuracoes from "./pages/Configuracoes";
 import HistoricoPortas from "./pages/HistoricoPortas";
+import Portal from "./pages/Portal";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
