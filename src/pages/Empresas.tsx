@@ -73,6 +73,13 @@ export default function CompaniesPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState<"employee" | "rental">("employee");
   const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // Fetch all companies including inactive
   const fetchAllCompanies = async () => {
