@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
   CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw,
-  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff
+  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send,
+  ClockArrowUp, Hourglass
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useTheme } from "next-themes";
@@ -55,6 +57,14 @@ interface ReservationInfo {
   renewed_count: number;
 }
 
+interface RenewalRequest {
+  id: string;
+  door_id: string;
+  status: string;
+  requested_hours: number;
+  created_at: string;
+}
+
 export default function Portal() {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -72,6 +82,11 @@ export default function Portal() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [activeTab, setActiveTab] = useState("armarios");
+  const [renewalRequests, setRenewalRequests] = useState<RenewalRequest[]>([]);
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [renewalDoor, setRenewalDoor] = useState<DoorInfo | null>(null);
+  const [renewalHours, setRenewalHours] = useState("1");
+  const [renewalLoading, setRenewalLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,6 +150,14 @@ export default function Portal() {
         .order("starts_at", { ascending: false });
       if (resData) setReservations(resData as ReservationInfo[]);
 
+      // Load renewal requests
+      const { data: renewalData } = await supabase
+        .from("renewal_requests")
+        .select("id, door_id, status, requested_hours, created_at")
+        .eq("person_id", personData.id)
+        .order("created_at", { ascending: false });
+      if (renewalData) setRenewalRequests(renewalData as RenewalRequest[]);
+
       setLoading(false);
     };
     load();
@@ -160,6 +183,40 @@ export default function Portal() {
   const isExpired = (expiresAt: string | null) => {
     if (!expiresAt) return false;
     return new Date(expiresAt).getTime() < Date.now();
+  };
+
+  const getPendingRenewal = (doorId: string) => {
+    return renewalRequests.find(r => r.door_id === doorId && r.status === "pending");
+  };
+
+  const handleRequestRenewal = async () => {
+    if (!renewalDoor || !person) return;
+    setRenewalLoading(true);
+    try {
+      const { error } = await supabase.from("renewal_requests").insert({
+        door_id: renewalDoor.id,
+        person_id: person.id,
+        company_id: person.company_id,
+        requested_hours: parseInt(renewalHours),
+      });
+      if (error) throw error;
+
+      // Refresh requests
+      const { data } = await supabase
+        .from("renewal_requests")
+        .select("id, door_id, status, requested_hours, created_at")
+        .eq("person_id", person.id)
+        .order("created_at", { ascending: false });
+      if (data) setRenewalRequests(data as RenewalRequest[]);
+
+      toast.success("Solicitação de renovação enviada! O administrador será notificado.");
+      setShowRenewalDialog(false);
+      setRenewalDoor(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao solicitar renovação");
+    } finally {
+      setRenewalLoading(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -424,6 +481,30 @@ export default function Portal() {
                               </>
                             )}
                           </div>
+
+                          {/* Renewal request button */}
+                          {door.expires_at && (
+                            getPendingRenewal(door.id) ? (
+                              <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/20 gap-1">
+                                <Hourglass className="h-3 w-3" />
+                                Renovação solicitada
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs gap-1.5 h-7"
+                                onClick={() => {
+                                  setRenewalDoor(door);
+                                  setRenewalHours("1");
+                                  setShowRenewalDialog(true);
+                                }}
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                Solicitar Renovação
+                              </Button>
+                            )
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -471,6 +552,44 @@ export default function Portal() {
                             {res.renewed_count}x renovada
                           </Badge>
                         )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Renewal requests history */}
+            {renewalRequests.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <ClockArrowUp className="h-3.5 w-3.5" />
+                  Solicitações de Renovação
+                </h2>
+                <Card className="shadow-card border-border/50">
+                  <CardContent className="p-0 divide-y divide-border">
+                    {renewalRequests.slice(0, 5).map((req) => (
+                      <div key={req.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            +{req.requested_hours}h de renovação
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(req.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            req.status === "pending"
+                              ? "bg-accent/10 text-accent border-accent/20"
+                              : req.status === "approved"
+                              ? "bg-green-500/10 text-green-600 border-green-500/20"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
+                          }`}
+                        >
+                          {req.status === "pending" ? "Pendente" : req.status === "approved" ? "Aprovada" : "Recusada"}
+                        </Badge>
                       </div>
                     ))}
                   </CardContent>
@@ -755,6 +874,58 @@ export default function Portal() {
               disabled={changingPassword || newPassword.length < 6 || newPassword !== confirmPassword}
             >
               {changingPassword ? "Salvando..." : mustChangePassword ? "Definir nova senha" : "Salvar nova senha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Renewal Request Dialog */}
+      <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-primary" />
+              Solicitar Renovação
+            </DialogTitle>
+            <DialogDescription>
+              Solicite a renovação do prazo da porta <strong>{renewalDoor?.label || renewalDoor?.door_number}</strong> ({renewalDoor?.locker.name}). O administrador será notificado e avaliará sua solicitação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {renewalDoor?.expires_at && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p className="text-muted-foreground">Prazo atual:</p>
+                <p className="font-medium text-foreground">
+                  {format(new Date(renewalDoor.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Por quantas horas deseja renovar?</Label>
+              <Select value={renewalHours} onValueChange={setRenewalHours}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 hora</SelectItem>
+                  <SelectItem value="2">2 horas</SelectItem>
+                  <SelectItem value="4">4 horas</SelectItem>
+                  <SelectItem value="8">8 horas</SelectItem>
+                  <SelectItem value="12">12 horas</SelectItem>
+                  <SelectItem value="24">24 horas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRenewalDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRequestRenewal} disabled={renewalLoading}>
+              {renewalLoading ? "Enviando..." : "Enviar Solicitação"}
             </Button>
           </DialogFooter>
         </DialogContent>
