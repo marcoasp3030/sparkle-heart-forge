@@ -603,6 +603,11 @@ export default function Portal() {
             )}
           </TabsContent>
 
+          {/* === HISTÓRICO TAB === */}
+          <TabsContent value="historico" className="space-y-4 mt-4">
+            {person && <HistoricoPortal personId={person.id} />}
+          </TabsContent>
+
           {/* === PERFIL TAB === */}
           <TabsContent value="perfil" className="space-y-4 mt-4">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
