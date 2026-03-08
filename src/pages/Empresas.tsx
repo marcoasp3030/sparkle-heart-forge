@@ -516,9 +516,44 @@ export default function CompaniesPage() {
                       )}
                     </div>
                   </div>
-                  {company.description && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{company.description}</p>
-                  )}
+                  {/* Company details */}
+                  <div className="mt-3 space-y-1.5">
+                    {company.email && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{company.email}</span>
+                      </div>
+                    )}
+                    {company.phone && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.phone}</span>
+                      </div>
+                    )}
+                    {company.cnpj && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.cnpj}</span>
+                      </div>
+                    )}
+                    {company.contact_name && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <User className="h-3 w-3 flex-shrink-0" />
+                        <span>{company.contact_name}</span>
+                      </div>
+                    )}
+                    {(company.city || company.state || company.address) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {[company.address, company.city, company.state].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                    {company.description && (
+                      <p className="text-xs text-muted-foreground/70 line-clamp-2 mt-1">{company.description}</p>
+                    )}
+                  </div>
                   {/* Dynamic counters */}
                   <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-border/40">
                     {[
