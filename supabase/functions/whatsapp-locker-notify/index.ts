@@ -35,152 +35,140 @@ interface MessageResult {
   footer?: string;
 }
 
-function buildMessage(payload: NotificationPayload): MessageResult {
+function replaceVariables(template: string, vars: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(vars)) {
+    result = result.replaceAll(key, value);
+  }
+  return result;
+}
+
+function getDefaultButtons(type: NotificationType): Array<{ buttonId: string; buttonText: string }> {
+  switch (type) {
+    case "reservation_confirmed":
+    case "scheduled_activated":
+      return [
+        { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
+        { buttonId: "btn_extend", buttonText: "⏰ Estender prazo" },
+        { buttonId: "btn_release", buttonText: "🔓 Liberar porta" },
+      ];
+    case "reservation_released":
+      return [
+        { buttonId: "btn_new_reservation", buttonText: "📦 Nova reserva" },
+        { buttonId: "btn_history", buttonText: "📊 Meu histórico" },
+      ];
+    case "reservation_expiring":
+      return [
+        { buttonId: "btn_renew_1h", buttonText: "🔄 Renovar +1h" },
+        { buttonId: "btn_renew_2h", buttonText: "🔄 Renovar +2h" },
+        { buttonId: "btn_release_now", buttonText: "🔓 Liberar agora" },
+      ];
+    case "reservation_expired":
+    case "scheduled_cancelled":
+      return [
+        { buttonId: "btn_new_reservation", buttonText: "📦 Reservar novamente" },
+        { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+      ];
+    case "reservation_renewed":
+      return [{ buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" }];
+    case "welcome":
+      return [
+        { buttonId: "btn_see_lockers", buttonText: "📦 Ver armários" },
+        { buttonId: "btn_how_it_works", buttonText: "❓ Como funciona" },
+        { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+      ];
+    default:
+      return [];
+  }
+}
+
+function buildMessageFromTemplate(
+  template: string,
+  footer: string,
+  payload: NotificationPayload,
+  personName: string | null
+): MessageResult {
   const door = payload.doorLabel || `Porta #${payload.doorNumber}`;
-  const locker = payload.lockerName ? `${payload.lockerName}` : "seu armário";
-  const name = payload.personName ? payload.personName.split(" ")[0] : "";
+  const locker = payload.lockerName || "seu armário";
+  const name = personName ? personName.split(" ")[0] : "";
+
+  const expiresTime = payload.expiresAt
+    ? new Date(payload.expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })
+    : "";
+  const expiresDate = payload.expiresAt
+    ? new Date(payload.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" })
+    : "";
+
+  const vars: Record<string, string> = {
+    "{nome}": name,
+    "{porta}": door,
+    "{armario}": locker,
+    "{data_expiracao}": expiresDate,
+    "{hora_expiracao}": expiresTime,
+    "{minutos_restantes}": String(payload.minutesLeft || 0),
+    "{horas_renovadas}": String(payload.renewedHours || 0),
+  };
+
+  const text = replaceVariables(template, vars);
+  const buttons = getDefaultButtons(payload.type);
+
+  return { text, buttons, footer: replaceVariables(footer, vars) };
+}
+
+function buildDefaultMessage(payload: NotificationPayload, personName: string | null): MessageResult {
+  const door = payload.doorLabel || `Porta #${payload.doorNumber}`;
+  const locker = payload.lockerName || "seu armário";
+  const name = personName ? personName.split(" ")[0] : "";
   const greeting = name ? `Olá, *${name}*! 👋` : "Olá! 👋";
 
   const expiresTime = payload.expiresAt
-    ? new Date(payload.expiresAt).toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "America/Sao_Paulo",
-      })
+    ? new Date(payload.expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })
+    : "";
+  const expiresDate = payload.expiresAt
+    ? new Date(payload.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" })
     : "";
 
-  const expiresDate = payload.expiresAt
-    ? new Date(payload.expiresAt).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        timeZone: "America/Sao_Paulo",
-      })
-    : "";
+  const buttons = getDefaultButtons(payload.type);
+  const footer = "🔒 Sistema de Armários Inteligentes";
 
   switch (payload.type) {
     case "reservation_confirmed":
-      return {
-        text: `${greeting}\n\n✅ *Sua reserva foi confirmada!*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n` +
-          `📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\n` +
-          `Dirija-se ao local e utilize sua porta normalmente. Lembre-se de liberar ao finalizar o uso.`,
-        buttons: [
-          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
-          { buttonId: "btn_extend", buttonText: "⏰ Estender prazo" },
-          { buttonId: "btn_release", buttonText: "🔓 Liberar porta" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n✅ *Sua reserva foi confirmada!*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\nDirija-se ao local e utilize sua porta normalmente.`, buttons, footer };
     case "reservation_released":
-      return {
-        text: `${greeting}\n\n🔓 *Porta liberada com sucesso!*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n\n` +
-          `Sua porta foi liberada e já está disponível para outros usuários. Obrigado por utilizar nosso sistema! 🙏`,
-        buttons: [
-          { buttonId: "btn_new_reservation", buttonText: "📦 Nova reserva" },
-          { buttonId: "btn_history", buttonText: "📊 Meu histórico" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n🔓 *Porta liberada com sucesso!*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n\nSua porta foi liberada. Obrigado! 🙏`, buttons, footer };
     case "reservation_expiring":
-      return {
-        text: `${greeting}\n\n⚠️ *Atenção! Sua reserva está expirando.*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n` +
-          `⏳ *Tempo restante:* ${payload.minutesLeft} minuto(s)\n\n` +
-          `Sua reserva será encerrada automaticamente se não for renovada. Renove agora para continuar usando!`,
-        buttons: [
-          { buttonId: "btn_renew_1h", buttonText: "🔄 Renovar +1h" },
-          { buttonId: "btn_renew_2h", buttonText: "🔄 Renovar +2h" },
-          { buttonId: "btn_release_now", buttonText: "🔓 Liberar agora" },
-        ],
-        footer: "⏰ Ação necessária — Responda para renovar",
-      };
-
+      return { text: `${greeting}\n\n⚠️ *Sua reserva está expirando.*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n⏳ *Tempo restante:* ${payload.minutesLeft} minuto(s)\n\nRenove agora para continuar usando!`, buttons, footer: "⏰ Ação necessária" };
     case "reservation_expired":
-      return {
-        text: `${greeting}\n\n❌ *Sua reserva expirou.*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n\n` +
-          `O prazo da sua reserva terminou e a porta foi liberada automaticamente. ` +
-          `Caso ainda precise de um espaço, faça uma nova reserva! 📲`,
-        buttons: [
-          { buttonId: "btn_new_reservation", buttonText: "📦 Reservar novamente" },
-          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n❌ *Sua reserva expirou.*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n\nA porta foi liberada automaticamente. Faça uma nova reserva se precisar! 📲`, buttons, footer };
     case "reservation_renewed":
-      return {
-        text: `${greeting}\n\n🔄 *Reserva renovada com sucesso!*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n` +
-          `⏰ *Novo prazo:* ${expiresDate} às ${expiresTime}\n` +
-          `➕ *Estendida por:* ${payload.renewedHours}h\n\n` +
-          `Tudo certo! Continue utilizando sua porta tranquilamente. 😊`,
-        buttons: [
-          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n🔄 *Reserva renovada!*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n⏰ *Novo prazo:* ${expiresDate} às ${expiresTime}\n➕ *Estendida por:* ${payload.renewedHours}h`, buttons, footer };
     case "scheduled_activated":
-      return {
-        text: `${greeting}\n\n🟢 *Seu agendamento foi ativado!*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n` +
-          `📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\n` +
-          `Sua porta está pronta para uso! Dirija-se ao armário e aproveite. 🚀`,
-        buttons: [
-          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
-          { buttonId: "btn_extend", buttonText: "⏰ Estender prazo" },
-          { buttonId: "btn_release", buttonText: "🔓 Liberar porta" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n🟢 *Agendamento ativado!*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\nSua porta está pronta! 🚀`, buttons, footer };
     case "scheduled_cancelled":
-      return {
-        text: `${greeting}\n\n🚫 *Agendamento cancelado*\n\n` +
-          `📦 *Porta:* ${door}\n` +
-          `🏢 *Armário:* ${locker}\n\n` +
-          `Infelizmente, sua porta não estava disponível no horário programado e o agendamento foi cancelado. ` +
-          `Que tal tentar outra porta? Temos opções disponíveis! 💡`,
-        buttons: [
-          { buttonId: "btn_new_reservation", buttonText: "📦 Nova reserva" },
-          { buttonId: "btn_view_available", buttonText: "🔍 Ver disponíveis" },
-          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes",
-      };
-
+      return { text: `${greeting}\n\n🚫 *Agendamento cancelado*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n\nA porta não estava disponível. Tente outra! 💡`, buttons, footer };
     case "welcome":
-      return {
-        text: `${greeting}\n\n🎉 *Bem-vindo(a) ao nosso sistema!*\n\n` +
-          `É um prazer ter você conosco! A partir de agora, você pode utilizar nosso sistema de armários inteligentes para guardar seus pertences com praticidade e segurança. 🔐\n\n` +
-          `📦 *O que você pode fazer:*\n` +
-          `• Reservar portas disponíveis\n` +
-          `• Receber alertas de expiração\n` +
-          `• Renovar reservas pelo celular\n\n` +
-          `Caso tenha dúvidas, estamos à disposição! 😊`,
-        buttons: [
-          { buttonId: "btn_see_lockers", buttonText: "📦 Ver armários" },
-          { buttonId: "btn_how_it_works", buttonText: "❓ Como funciona" },
-          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
-        ],
-        footer: "🔒 Sistema de Armários Inteligentes — Boas-vindas",
-      };
-
+      return { text: `${greeting}\n\n🎉 *Bem-vindo(a)!*\n\nVocê pode reservar portas, receber alertas e renovar reservas pelo celular. 🔐\n\nDúvidas? Estamos à disposição! 😊`, buttons, footer: "🔒 Sistema de Armários — Boas-vindas" };
     default:
-      return {
-        text: `📦 Notificação sobre ${door} — ${locker}`,
-      };
+      return { text: `📦 Notificação sobre ${door} — ${locker}`, buttons: [], footer };
   }
+}
+
+function normalizePhone(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  // Ensure country code 55
+  if (!digits.startsWith("55")) {
+    digits = `55${digits}`;
+  }
+  // Fix 12-digit numbers that should be 13 (add 9 for mobile)
+  if (digits.length === 12) {
+    const areaCode = digits.slice(2, 4);
+    const number = digits.slice(4);
+    // If it's a mobile number (starts with area code and 7-8 digits), add 9
+    if (number.length === 8 && parseInt(number[0]) >= 6) {
+      digits = `55${areaCode}9${number}`;
+    }
+  }
+  return digits;
 }
 
 Deno.serve(async (req) => {
@@ -216,7 +204,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get person's phone number and name
+    // Get person's phone and name
     let phone: string | null = null;
     let personName: string | null = null;
 
@@ -226,28 +214,53 @@ Deno.serve(async (req) => {
         .select("telefone, nome")
         .eq("id", payload.personId)
         .single();
-
       phone = person?.telefone || null;
       personName = person?.nome || null;
     }
 
     if (!phone) {
-      console.log(`No phone number for person ${payload.personId}, skipping WhatsApp`);
+      console.log(`No phone number for person ${payload.personId}, skipping`);
       return new Response(JSON.stringify({ success: false, reason: "no_phone_number" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Clean phone number
-    const cleanPhone = phone.replace(/\D/g, "");
-    const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const formattedPhone = normalizePhone(phone);
 
-    // Validate Brazilian phone number (55 + 2-digit area code + 8-9 digit number = 12-13 digits)
     if (formattedPhone.length < 12 || formattedPhone.length > 13) {
-      console.log(`Invalid phone number format: ${formattedPhone} (length: ${formattedPhone.length}), skipping`);
+      console.log(`Invalid phone: ${formattedPhone} (len=${formattedPhone.length}), skipping`);
       return new Response(JSON.stringify({ success: false, reason: "invalid_phone_format", phone: formattedPhone }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Load custom template if available
+    const { data: customTemplate } = await supabase
+      .from("company_notification_templates")
+      .select("template_text, footer, active")
+      .eq("company_id", payload.companyId)
+      .eq("type", payload.type)
+      .single();
+
+    // Check if template is disabled
+    if (customTemplate && !customTemplate.active) {
+      console.log(`Template ${payload.type} disabled for company ${payload.companyId}, skipping`);
+      return new Response(JSON.stringify({ success: false, reason: "template_disabled" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Build message from custom template or default
+    let message: MessageResult;
+    if (customTemplate?.template_text) {
+      message = buildMessageFromTemplate(
+        customTemplate.template_text,
+        customTemplate.footer || "🔒 Sistema de Armários Inteligentes",
+        payload,
+        personName
+      );
+    } else {
+      message = buildDefaultMessage(payload, personName);
     }
 
     // Get UAZAPI server URL
@@ -266,11 +279,8 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = (serverUrl as string).replace(/\/$/, "");
-    const { text, buttons, footer } = buildMessage({ ...payload, personName: personName || undefined });
+    const { text, buttons, footer } = message;
     const token = String(companyWa.instance_token);
-
-    let response: Response;
-    let data: unknown;
 
     // Try sending with buttons first, fall back to plain text
     if (buttons && buttons.length > 0) {
@@ -278,48 +288,36 @@ Deno.serve(async (req) => {
         const btnResponse = await fetch(`${baseUrl}/send/buttons`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "token": token },
-          body: JSON.stringify({
-            number: formattedPhone,
-            title: "",
-            message: text,
-            footer: footer || "",
-            buttons: buttons,
-          }),
+          body: JSON.stringify({ number: formattedPhone, title: "", message: text, footer: footer || "", buttons }),
         });
-
         const btnData = await btnResponse.json();
-
         if (btnResponse.ok) {
           console.log(`WhatsApp buttons sent to ${formattedPhone} (${payload.type}): ${btnResponse.status}`);
           return new Response(JSON.stringify({ success: true, method: "buttons", data: btnData }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         console.log(`Buttons failed (${btnResponse.status}), falling back to text`);
       } catch (btnErr) {
         console.log("Buttons endpoint not available, falling back to text:", btnErr);
       }
     }
 
-    // Fallback: send as plain text (append button labels as numbered options)
+    // Fallback: plain text with button labels as numbered options
     let fallbackText = text;
     if (buttons && buttons.length > 0) {
       fallbackText += "\n\n━━━━━━━━━━━━━━━━━━\n";
       fallbackText += buttons.map((b, i) => `*${i + 1}.* ${b.buttonText}`).join("\n");
       fallbackText += "\n\n_Responda com o número da opção desejada._";
     }
-    if (footer) {
-      fallbackText += `\n\n_${footer}_`;
-    }
+    if (footer) fallbackText += `\n\n_${footer}_`;
 
-    response = await fetch(`${baseUrl}/send/text`, {
+    const response = await fetch(`${baseUrl}/send/text`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "token": token },
       body: JSON.stringify({ number: formattedPhone, text: fallbackText }),
     });
-
-    data = await response.json();
+    const data = await response.json();
     console.log(`WhatsApp text sent to ${formattedPhone} (${payload.type}): ${response.status}`);
 
     return new Response(JSON.stringify({ success: response.ok, method: "text", data }), {
