@@ -260,6 +260,8 @@ export default function PessoasPage() {
     setLoginPerson(pessoa);
     setLoginEmail(pessoa.email || "");
     setLoginPassword("");
+    setSendWhatsapp(!!pessoa.telefone);
+    setSendEmailNotif(true);
     setLoginDialogOpen(true);
   };
 
