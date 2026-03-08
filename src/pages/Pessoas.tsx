@@ -68,7 +68,12 @@ export default function PessoasPage() {
   const [setorId, setSetorId] = useState("");
 
   const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
+    let digits = value.replace(/\D/g, "");
+    // Remove country code 55 if user typed it
+    if (digits.startsWith("55") && digits.length > 11) {
+      digits = digits.slice(2);
+    }
+    digits = digits.slice(0, 11);
     if (digits.length <= 2) return digits;
     if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
