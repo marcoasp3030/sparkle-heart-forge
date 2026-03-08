@@ -24,6 +24,7 @@ import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
 import Configuracoes from "./pages/Configuracoes";
 import HistoricoPortas from "./pages/HistoricoPortas";
 import Renovacoes from "./pages/Renovacoes";
+import Auditoria from "./pages/Auditoria";
 import Portal from "./pages/Portal";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
