@@ -76,6 +76,18 @@ export default function Portal() {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // Check if password change is required
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("password_changed")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile && profile.password_changed === false) {
+        setMustChangePassword(true);
+        setShowPasswordDialog(true);
+      }
+
       const { data: personData } = await supabase
         .from("funcionarios_clientes")
         .select("id, nome, cargo, tipo, company_id, email, telefone, matricula")
