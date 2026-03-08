@@ -218,9 +218,6 @@ export default function Portal() {
       setRenewalLoading(false);
     }
   };
-    if (!expiresAt) return false;
-    return new Date(expiresAt).getTime() < Date.now();
-  };
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
