@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Settings, LogOut, Shield, LayoutDashboard, Archive, History,
-  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush, RefreshCw
+  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush, RefreshCw, ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
   { icon: History, label: "Histórico", path: "/historico" },
   { icon: RefreshCw, label: "Renovações", path: "/renovacoes" },
+  { icon: ShieldCheck, label: "Auditoria", path: "/auditoria" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
   { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },
