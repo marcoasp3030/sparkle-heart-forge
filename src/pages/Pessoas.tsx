@@ -63,6 +63,8 @@ export default function PessoasPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [sendWhatsapp, setSendWhatsapp] = useState(true);
+  const [sendEmailNotif, setSendEmailNotif] = useState(true);
 
   // Form
   const [nome, setNome] = useState("");
