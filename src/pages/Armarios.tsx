@@ -166,6 +166,7 @@ export default function LockersPage() {
       });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
       triggerFeedback("reserve");
+      playSound("reserve");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -193,6 +194,7 @@ export default function LockersPage() {
     } else {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
       triggerFeedback("release");
+      playSound("release");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -210,6 +212,7 @@ export default function LockersPage() {
     } else {
       toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
       triggerFeedback("maintenance");
+      playSound("maintenance");
       setSheetOpen(false);
       fetchLockers();
     }
