@@ -149,6 +149,17 @@ export default function LockersPage() {
     if (error) {
       toast({ title: "Erro ao reservar", description: error.message, variant: "destructive" });
     } else {
+      // Create reservation history record
+      const extDoor = door as LockerDoorDataExtended;
+      await supabase.from("locker_reservations").insert({
+        door_id: door.id,
+        locker_id: extDoor.locker_id || "",
+        person_id: personId || null,
+        reserved_by: user.id,
+        usage_type: usageType || "temporary",
+        status: "active",
+        expires_at: expiresAt || null,
+      });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
       setSheetOpen(false);
       fetchLockers();
@@ -160,8 +171,17 @@ export default function LockersPage() {
     setActionLoading(true);
     const { error } = await supabase
       .from("locker_doors")
-      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null })
+      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null, scheduled_reservation_id: null })
       .eq("id", door.id);
+
+    if (!error) {
+      // Close active reservation
+      await supabase
+        .from("locker_reservations")
+        .update({ status: "released", released_at: new Date().toISOString() })
+        .eq("door_id", door.id)
+        .eq("status", "active");
+    }
 
     if (error) {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
@@ -529,7 +549,7 @@ export default function LockersPage() {
               onEdit={openEditDialog}
               onDelete={(l) => setDeleteLocker(l)}
               onSelectDoor={(door) => {
-                setSelectedDoor(door as LockerDoorDataExtended);
+                setSelectedDoor({ ...door, locker_id: locker.id } as LockerDoorDataExtended);
                 setSheetOpen(true);
               }}
               onQuickReserve={handleReserve}
@@ -659,6 +679,7 @@ export default function LockersPage() {
         loading={actionLoading}
         isAdmin={isAdmin}
         onSetMaintenance={handleSetMaintenance}
+        onRefresh={fetchLockers}
       />
 
       {/* Edit Dialog */}
