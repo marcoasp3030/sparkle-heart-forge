@@ -105,29 +105,49 @@ Deno.serve(async (req) => {
       user_metadata: { full_name: person.nome },
     });
 
+    let userId: string;
+
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // If user already exists, try to find and link them
+      if (createError.message.includes("already been registered")) {
+        const { data: { users } } = await adminClient.auth.admin.listUsers();
+        const existing = users?.find((u: any) => u.email === email);
+        if (!existing) {
+          return new Response(JSON.stringify({ error: "Usuário existe mas não foi possível localizá-lo" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = existing.id;
+
+        // Update password for the existing user
+        await adminClient.auth.admin.updateUserById(userId, { password });
+      } else {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      userId = newUser.user.id;
     }
 
     // Update profile with company_id and role 'user'
     await adminClient
       .from("profiles")
       .update({ company_id: person.company_id, role: "user", full_name: person.nome })
-      .eq("user_id", newUser.user.id);
+      .eq("user_id", userId);
 
     // Link person record to auth user
     await adminClient
       .from("funcionarios_clientes")
-      .update({ user_id: newUser.user.id, email })
+      .update({ user_id: userId, email })
       .eq("id", person_id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        user_id: newUser.user.id,
+        user_id: userId,
         message: `Acesso criado para ${person.nome}`,
       }),
       {
