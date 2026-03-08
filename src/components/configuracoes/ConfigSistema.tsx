@@ -208,6 +208,35 @@ export default function ConfigSistema() {
         </CardContent>
       </Card>
 
+      {/* Waitlist toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Fila de Espera Inteligente
+          </CardTitle>
+          <CardDescription>
+            Quando ativada, permite que pessoas entrem na fila de espera quando não há portas disponíveis.
+            Elas serão notificadas automaticamente via WhatsApp e E-mail quando uma porta liberar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Ativar fila de espera</p>
+              <p className="text-xs text-muted-foreground">
+                Notificação automática por WhatsApp e E-mail ao liberar porta
+              </p>
+            </div>
+            {waitlistLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <Switch checked={waitlistEnabled} onCheckedChange={toggleWaitlist} />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Audit & export (superadmin) */}
       {isSuperAdmin && (
         <Card>
