@@ -19,6 +19,7 @@ interface NotificationPayload {
   type: NotificationType;
   companyId: string;
   personId?: string;
+  personName?: string;
   doorLabel?: string;
   doorNumber?: number;
   lockerName?: string;
@@ -27,37 +28,140 @@ interface NotificationPayload {
   renewedHours?: number;
 }
 
-function buildMessage(payload: NotificationPayload): string {
+interface MessageResult {
+  text: string;
+  buttons?: Array<{ buttonId: string; buttonText: string }>;
+  footer?: string;
+}
+
+function buildMessage(payload: NotificationPayload): MessageResult {
   const door = payload.doorLabel || `Porta #${payload.doorNumber}`;
-  const locker = payload.lockerName ? ` (${payload.lockerName})` : "";
+  const locker = payload.lockerName ? `${payload.lockerName}` : "seu armário";
+  const name = payload.personName ? payload.personName.split(" ")[0] : "";
+  const greeting = name ? `Olá, *${name}*! 👋` : "Olá! 👋";
+
   const expiresTime = payload.expiresAt
-    ? new Date(payload.expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })
+    ? new Date(payload.expiresAt).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      })
+    : "";
+
+  const expiresDate = payload.expiresAt
+    ? new Date(payload.expiresAt).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      })
     : "";
 
   switch (payload.type) {
     case "reservation_confirmed":
-      return `✅ *Reserva Confirmada*\n\n📦 ${door}${locker}\n⏰ Expira às ${expiresTime}\n\nSua porta foi reservada com sucesso!`;
+      return {
+        text: `${greeting}\n\n✅ *Sua reserva foi confirmada!*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n` +
+          `📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\n` +
+          `Dirija-se ao local e utilize sua porta normalmente. Lembre-se de liberar ao finalizar o uso.`,
+        buttons: [
+          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
+          { buttonId: "btn_extend", buttonText: "⏰ Estender prazo" },
+          { buttonId: "btn_release", buttonText: "🔓 Liberar porta" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     case "reservation_released":
-      return `🔓 *Porta Liberada*\n\n📦 ${door}${locker}\n\nSua porta foi liberada e está disponível.`;
+      return {
+        text: `${greeting}\n\n🔓 *Porta liberada com sucesso!*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n\n` +
+          `Sua porta foi liberada e já está disponível para outros usuários. Obrigado por utilizar nosso sistema! 🙏`,
+        buttons: [
+          { buttonId: "btn_new_reservation", buttonText: "📦 Nova reserva" },
+          { buttonId: "btn_history", buttonText: "📊 Meu histórico" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     case "reservation_expiring":
-      return `⚠️ *Reserva Expirando*\n\n📦 ${door}${locker}\n⏳ Expira em ${payload.minutesLeft} minuto(s)\n\nRenove ou libere sua porta para evitar expiração automática.`;
+      return {
+        text: `${greeting}\n\n⚠️ *Atenção! Sua reserva está expirando.*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n` +
+          `⏳ *Tempo restante:* ${payload.minutesLeft} minuto(s)\n\n` +
+          `Sua reserva será encerrada automaticamente se não for renovada. Renove agora para continuar usando!`,
+        buttons: [
+          { buttonId: "btn_renew_1h", buttonText: "🔄 Renovar +1h" },
+          { buttonId: "btn_renew_2h", buttonText: "🔄 Renovar +2h" },
+          { buttonId: "btn_release_now", buttonText: "🔓 Liberar agora" },
+        ],
+        footer: "⏰ Ação necessária — Responda para renovar",
+      };
 
     case "reservation_expired":
-      return `❌ *Reserva Expirada*\n\n📦 ${door}${locker}\n\nSua reserva temporária expirou e a porta foi liberada automaticamente.`;
+      return {
+        text: `${greeting}\n\n❌ *Sua reserva expirou.*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n\n` +
+          `O prazo da sua reserva terminou e a porta foi liberada automaticamente. ` +
+          `Caso ainda precise de um espaço, faça uma nova reserva! 📲`,
+        buttons: [
+          { buttonId: "btn_new_reservation", buttonText: "📦 Reservar novamente" },
+          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     case "reservation_renewed":
-      return `🔄 *Reserva Renovada*\n\n📦 ${door}${locker}\n⏰ Novo prazo até ${expiresTime}\n\nSua reserva foi estendida por mais ${payload.renewedHours}h.`;
+      return {
+        text: `${greeting}\n\n🔄 *Reserva renovada com sucesso!*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n` +
+          `⏰ *Novo prazo:* ${expiresDate} às ${expiresTime}\n` +
+          `➕ *Estendida por:* ${payload.renewedHours}h\n\n` +
+          `Tudo certo! Continue utilizando sua porta tranquilamente. 😊`,
+        buttons: [
+          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     case "scheduled_activated":
-      return `🟢 *Agendamento Ativado*\n\n📦 ${door}${locker}\n⏰ Expira às ${expiresTime}\n\nSeu agendamento foi ativado e a porta está reservada.`;
+      return {
+        text: `${greeting}\n\n🟢 *Seu agendamento foi ativado!*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n` +
+          `📅 *Válida até:* ${expiresDate} às ${expiresTime}\n\n` +
+          `Sua porta está pronta para uso! Dirija-se ao armário e aproveite. 🚀`,
+        buttons: [
+          { buttonId: "btn_view_details", buttonText: "📋 Ver detalhes" },
+          { buttonId: "btn_extend", buttonText: "⏰ Estender prazo" },
+          { buttonId: "btn_release", buttonText: "🔓 Liberar porta" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     case "scheduled_cancelled":
-      return `🚫 *Agendamento Cancelado*\n\n📦 ${door}${locker}\n\nSeu agendamento foi cancelado porque a porta não estava disponível no horário programado.`;
+      return {
+        text: `${greeting}\n\n🚫 *Agendamento cancelado*\n\n` +
+          `📦 *Porta:* ${door}\n` +
+          `🏢 *Armário:* ${locker}\n\n` +
+          `Infelizmente, sua porta não estava disponível no horário programado e o agendamento foi cancelado. ` +
+          `Que tal tentar outra porta? Temos opções disponíveis! 💡`,
+        buttons: [
+          { buttonId: "btn_new_reservation", buttonText: "📦 Nova reserva" },
+          { buttonId: "btn_view_available", buttonText: "🔍 Ver disponíveis" },
+          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes",
+      };
 
     default:
-      return `📦 Notificação sobre ${door}${locker}`;
+      return {
+        text: `📦 Notificação sobre ${door} — ${locker}`,
+      };
   }
 }
 
@@ -94,8 +198,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get person's phone number
+    // Get person's phone number and name
     let phone: string | null = null;
+    let personName: string | null = null;
 
     if (payload.personId) {
       const { data: person } = await supabase
@@ -105,6 +210,7 @@ Deno.serve(async (req) => {
         .single();
 
       phone = person?.telefone || null;
+      personName = person?.nome || null;
     }
 
     if (!phone) {
@@ -114,7 +220,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Clean phone number (keep only digits, add country code if needed)
+    // Clean phone number
     const cleanPhone = phone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
@@ -134,22 +240,63 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = (serverUrl as string).replace(/\/$/, "");
-    const message = buildMessage(payload);
+    const { text, buttons, footer } = buildMessage({ ...payload, personName: personName || undefined });
+    const token = String(companyWa.instance_token);
 
-    // Send via UAZAPI
-    const response = await fetch(`${baseUrl}/send/text`, {
+    let response: Response;
+    let data: unknown;
+
+    // Try sending with buttons first, fall back to plain text
+    if (buttons && buttons.length > 0) {
+      try {
+        const btnResponse = await fetch(`${baseUrl}/send/buttons`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "token": token },
+          body: JSON.stringify({
+            number: formattedPhone,
+            title: "",
+            message: text,
+            footer: footer || "",
+            buttons: buttons,
+          }),
+        });
+
+        const btnData = await btnResponse.json();
+
+        if (btnResponse.ok) {
+          console.log(`WhatsApp buttons sent to ${formattedPhone} (${payload.type}): ${btnResponse.status}`);
+          return new Response(JSON.stringify({ success: true, method: "buttons", data: btnData }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Buttons failed (${btnResponse.status}), falling back to text`);
+      } catch (btnErr) {
+        console.log("Buttons endpoint not available, falling back to text:", btnErr);
+      }
+    }
+
+    // Fallback: send as plain text (append button labels as numbered options)
+    let fallbackText = text;
+    if (buttons && buttons.length > 0) {
+      fallbackText += "\n\n━━━━━━━━━━━━━━━━━━\n";
+      fallbackText += buttons.map((b, i) => `*${i + 1}.* ${b.buttonText}`).join("\n");
+      fallbackText += "\n\n_Responda com o número da opção desejada._";
+    }
+    if (footer) {
+      fallbackText += `\n\n_${footer}_`;
+    }
+
+    response = await fetch(`${baseUrl}/send/text`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "token": String(companyWa.instance_token),
-      },
-      body: JSON.stringify({ number: formattedPhone, text: message }),
+      headers: { "Content-Type": "application/json", "token": token },
+      body: JSON.stringify({ number: formattedPhone, text: fallbackText }),
     });
 
-    const data = await response.json();
-    console.log(`WhatsApp sent to ${formattedPhone} (${payload.type}): ${response.status}`);
+    data = await response.json();
+    console.log(`WhatsApp text sent to ${formattedPhone} (${payload.type}): ${response.status}`);
 
-    return new Response(JSON.stringify({ success: response.ok, data }), {
+    return new Response(JSON.stringify({ success: response.ok, method: "text", data }), {
       status: response.ok ? 200 : 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
