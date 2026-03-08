@@ -126,10 +126,10 @@ Deno.serve(async (req) => {
       userId = newUser.user.id;
     }
 
-    // Update profile with company_id and role 'user'
+    // Update profile with company_id, role 'user', and password_changed = false
     await adminClient
       .from("profiles")
-      .update({ company_id: person.company_id, role: "user", full_name: person.nome })
+      .update({ company_id: person.company_id, role: "user", full_name: person.nome, password_changed: false })
       .eq("user_id", userId);
 
     // Link person record to auth user

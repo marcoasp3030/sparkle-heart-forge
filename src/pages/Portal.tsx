@@ -63,6 +63,7 @@ export default function Portal() {
   const [reservations, setReservations] = useState<ReservationInfo[]>([]);
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -75,6 +76,18 @@ export default function Portal() {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // Check if password change is required
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("password_changed")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile && profile.password_changed === false) {
+        setMustChangePassword(true);
+        setShowPasswordDialog(true);
+      }
+
       const { data: personData } = await supabase
         .from("funcionarios_clientes")
         .select("id, nome, cargo, tipo, company_id, email, telefone, matricula")
@@ -162,6 +175,14 @@ export default function Portal() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
+
+      // Mark password as changed in profile
+      await supabase
+        .from("profiles")
+        .update({ password_changed: true })
+        .eq("user_id", user!.id);
+
+      setMustChangePassword(false);
       toast.success("Senha alterada com sucesso!");
       setShowPasswordDialog(false);
       setCurrentPassword("");
@@ -648,17 +669,38 @@ export default function Portal() {
       </div>
 
       {/* Password Change Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog
+        open={showPasswordDialog}
+        onOpenChange={(open) => {
+          if (!open && mustChangePassword) return; // prevent closing if mandatory
+          setShowPasswordDialog(open);
+        }}
+      >
+        <DialogContent
+          className={`max-w-md ${mustChangePassword ? "[&>button]:hidden" : ""}`}
+          onPointerDownOutside={mustChangePassword ? (e) => e.preventDefault() : undefined}
+          onEscapeKeyDown={mustChangePassword ? (e) => e.preventDefault() : undefined}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
-              Alterar Senha
+              {mustChangePassword ? "Troca de Senha Obrigatória" : "Alterar Senha"}
             </DialogTitle>
             <DialogDescription>
-              Digite sua nova senha. Ela deve ter pelo menos 6 caracteres.
+              {mustChangePassword
+                ? "Por segurança, você precisa alterar sua senha provisória antes de continuar."
+                : "Digite sua nova senha. Ela deve ter pelo menos 6 caracteres."}
             </DialogDescription>
           </DialogHeader>
+
+          {mustChangePassword && (
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-accent">
+                Esta é sua primeira vez no sistema. Crie uma senha pessoal e segura para proteger sua conta.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -670,6 +712,7 @@ export default function Portal() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
+                  autoFocus
                 />
                 <Button
                   type="button"
@@ -702,14 +745,16 @@ export default function Portal() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-              Cancelar
-            </Button>
+            {!mustChangePassword && (
+              <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+                Cancelar
+              </Button>
+            )}
             <Button
               onClick={handleChangePassword}
               disabled={changingPassword || newPassword.length < 6 || newPassword !== confirmPassword}
             >
-              {changingPassword ? "Salvando..." : "Salvar nova senha"}
+              {changingPassword ? "Salvando..." : mustChangePassword ? "Definir nova senha" : "Salvar nova senha"}
             </Button>
           </DialogFooter>
         </DialogContent>
