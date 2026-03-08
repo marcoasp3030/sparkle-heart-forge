@@ -163,6 +163,7 @@ export default function LockersPage() {
         expires_at: expiresAt || null,
       });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
+      triggerFeedback("reserve");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -189,6 +190,7 @@ export default function LockersPage() {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
+      triggerFeedback("release");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -205,6 +207,7 @@ export default function LockersPage() {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
+      triggerFeedback("maintenance");
       setSheetOpen(false);
       fetchLockers();
     }
