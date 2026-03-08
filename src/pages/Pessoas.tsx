@@ -212,6 +212,35 @@ export default function PessoasPage() {
     return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground">Selecione uma empresa.</p></div>;
   }
 
+  const handleCreateLogin = async () => {
+    if (!loginPerson || !loginEmail || !loginPassword) return;
+    setLoginLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-person-login", {
+        body: { person_id: loginPerson.id, email: loginEmail, password: loginPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Acesso criado!", description: data.message });
+      setLoginDialogOpen(false);
+      setLoginPerson(null);
+      setLoginEmail("");
+      setLoginPassword("");
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const openLoginDialog = (pessoa: Pessoa) => {
+    setLoginPerson(pessoa);
+    setLoginEmail(pessoa.email || "");
+    setLoginPassword("");
+    setLoginDialogOpen(true);
+  };
+
   const ActionsMenu = ({ pessoa }: { pessoa: Pessoa }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -219,12 +248,22 @@ export default function PessoasPage() {
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => setDetailItem(pessoa)} className="gap-2 text-xs">
           <Eye className="h-3.5 w-3.5" /> Ver detalhes
         </DropdownMenuItem>
         {isAdmin && (
           <>
+            {!pessoa.user_id && pessoa.ativo && (
+              <DropdownMenuItem onClick={() => openLoginDialog(pessoa)} className="gap-2 text-xs text-primary">
+                <KeyRound className="h-3.5 w-3.5" /> Criar Acesso
+              </DropdownMenuItem>
+            )}
+            {pessoa.user_id && (
+              <DropdownMenuItem disabled className="gap-2 text-xs text-green-600">
+                <UserCheck className="h-3.5 w-3.5" /> Possui acesso
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => openEdit(pessoa)} className="gap-2 text-xs">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </DropdownMenuItem>
