@@ -239,7 +239,7 @@ export default function CompaniesPage() {
     if (editCompany) {
       const { error } = await supabase
         .from("companies")
-        .update({ name, type, description })
+        .update({ name, type, description, email, phone, cnpj, contact_name: contactName, address, city, state })
         .eq("id", editCompany.id);
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
