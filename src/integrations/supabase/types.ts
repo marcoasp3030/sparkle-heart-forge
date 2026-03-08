@@ -294,6 +294,7 @@ export type Database = {
       funcionarios_clientes: {
         Row: {
           ativo: boolean
+          avatar_url: string | null
           cargo: string | null
           company_id: string
           created_at: string
@@ -302,6 +303,10 @@ export type Database = {
           id: string
           matricula: string | null
           nome: string
+          notification_email: boolean
+          notification_expiry: boolean
+          notification_renewal: boolean
+          notification_whatsapp: boolean
           setor_id: string | null
           telefone: string | null
           tipo: string
@@ -310,6 +315,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          avatar_url?: string | null
           cargo?: string | null
           company_id: string
           created_at?: string
@@ -318,6 +324,10 @@ export type Database = {
           id?: string
           matricula?: string | null
           nome: string
+          notification_email?: boolean
+          notification_expiry?: boolean
+          notification_renewal?: boolean
+          notification_whatsapp?: boolean
           setor_id?: string | null
           telefone?: string | null
           tipo?: string
@@ -326,6 +336,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          avatar_url?: string | null
           cargo?: string | null
           company_id?: string
           created_at?: string
@@ -334,6 +345,10 @@ export type Database = {
           id?: string
           matricula?: string | null
           nome?: string
+          notification_email?: boolean
+          notification_expiry?: boolean
+          notification_renewal?: boolean
+          notification_whatsapp?: boolean
           setor_id?: string | null
           telefone?: string | null
           tipo?: string
