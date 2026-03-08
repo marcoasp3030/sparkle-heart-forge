@@ -142,15 +142,19 @@ export default function PessoasPage() {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Registro criado!" });
-        // Send WhatsApp welcome message (non-blocking)
-        if (telefone && inserted?.id) {
-          supabase.functions.invoke("whatsapp-locker-notify", {
-            body: {
-              type: "welcome",
-              companyId: selectedCompany.id,
-              personId: inserted.id,
-            },
-          }).catch(() => {});
+        // Send welcome notifications (non-blocking)
+        if (inserted?.id) {
+          const notifyBody = {
+            type: "welcome",
+            companyId: selectedCompany.id,
+            personId: inserted.id,
+          };
+          if (telefone) {
+            supabase.functions.invoke("whatsapp-locker-notify", { body: notifyBody }).catch(() => {});
+          }
+          if (email) {
+            supabase.functions.invoke("email-locker-notify", { body: notifyBody }).catch(() => {});
+          }
         }
       }
     }
