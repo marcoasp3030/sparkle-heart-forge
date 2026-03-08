@@ -290,6 +290,11 @@ export default function LockersPage() {
             <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
+                <FileBarChart className="h-4 w-4" />
+                <span className="hidden sm:inline">Relatório</span>
+              </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs md:text-sm">
