@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Settings, LogOut, Shield, LayoutDashboard, Archive, History,
-  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush
+  Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush, RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
