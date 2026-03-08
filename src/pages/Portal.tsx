@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import HistoricoPortal from "@/components/portal/HistoricoPortal";
+import PerfilPortal from "@/components/portal/PerfilPortal";
 
 interface PersonInfo {
   id: string;
