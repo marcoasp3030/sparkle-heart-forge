@@ -563,6 +563,54 @@ export default function PessoasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Login Dialog */}
+      <Dialog open={loginDialogOpen} onOpenChange={(open) => { if (!open) { setLoginDialogOpen(false); setLoginPerson(null); } }}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Criar Acesso ao Portal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Criando acesso para <strong>{loginPerson?.nome}</strong>. O {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} poderá fazer login e visualizar seu armário atribuído.
+            </p>
+            <div className="space-y-2">
+              <Label>E-mail de acesso</Label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha provisória</Label>
+              <Input
+                type="text"
+                placeholder="Mínimo 6 caracteres"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Informe esta senha ao {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} para o primeiro acesso.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" className="rounded-xl">Cancelar</Button></DialogClose>
+            <Button
+              onClick={handleCreateLogin}
+              disabled={loginLoading || !loginEmail || loginPassword.length < 6}
+              className="gradient-primary border-0 rounded-xl hover:opacity-90"
+            >
+              {loginLoading ? "Criando..." : "Criar Acesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
