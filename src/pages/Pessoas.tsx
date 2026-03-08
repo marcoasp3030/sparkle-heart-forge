@@ -393,6 +393,7 @@ export default function PessoasPage() {
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Cargo</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Departamento</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Status</TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider font-semibold">Acesso</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold">Contato</TableHead>
                         <TableHead className="text-xs uppercase tracking-wider font-semibold w-12">Ações</TableHead>
                       </TableRow>
