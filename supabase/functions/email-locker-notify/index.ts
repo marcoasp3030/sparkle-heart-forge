@@ -68,6 +68,7 @@ function getDefaultSubject(type: NotificationType): string {
     case "reservation_expired": return "❌ Reserva Expirada";
     case "reservation_renewed": return "🔄 Reserva Renovada";
     case "welcome": return "🎉 Bem-vindo(a) ao Sistema de Armários";
+    case "waitlist_available": return "🎉 Porta Disponível — Fila de Espera";
     default: return "Notificação - Sistema de Armários";
   }
 }
