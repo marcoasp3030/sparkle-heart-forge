@@ -615,6 +615,11 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
                 </Button>
               )}
             </div>
+
+            {/* Waitlist section */}
+            {isAdmin && door.locker_id && (
+              <FilaEspera lockerId={door.locker_id} lockerName={`Armário`} onRefresh={onRefresh} />
+            )}
           </div>
         </SheetContent>
       </Sheet>
