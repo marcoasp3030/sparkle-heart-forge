@@ -26,6 +26,7 @@ import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
+import { useFeedbackSonoro } from "@/hooks/useFeedbackSonoro";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -51,6 +52,7 @@ export default function LockersPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
+  const { play: playSound } = useFeedbackSonoro();
 
   // New locker form
   const [newName, setNewName] = useState("");
@@ -164,6 +166,7 @@ export default function LockersPage() {
       });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
       triggerFeedback("reserve");
+      playSound("reserve");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -191,6 +194,7 @@ export default function LockersPage() {
     } else {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
       triggerFeedback("release");
+      playSound("release");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -208,6 +212,7 @@ export default function LockersPage() {
     } else {
       toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
       triggerFeedback("maintenance");
+      playSound("maintenance");
       setSheetOpen(false);
       fetchLockers();
     }
