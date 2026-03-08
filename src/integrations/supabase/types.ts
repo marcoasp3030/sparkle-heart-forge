@@ -17,6 +17,8 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          category: string
+          company_id: string | null
           created_at: string
           details: Json | null
           id: string
@@ -28,6 +30,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          category?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           id?: string
@@ -39,6 +43,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          category?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           id?: string
@@ -48,7 +54,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
