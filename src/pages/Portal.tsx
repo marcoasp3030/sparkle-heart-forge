@@ -840,6 +840,58 @@ export default function Portal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Renewal Request Dialog */}
+      <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-primary" />
+              Solicitar Renovação
+            </DialogTitle>
+            <DialogDescription>
+              Solicite a renovação do prazo da porta <strong>{renewalDoor?.label || renewalDoor?.door_number}</strong> ({renewalDoor?.locker.name}). O administrador será notificado e avaliará sua solicitação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {renewalDoor?.expires_at && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p className="text-muted-foreground">Prazo atual:</p>
+                <p className="font-medium text-foreground">
+                  {format(new Date(renewalDoor.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Por quantas horas deseja renovar?</Label>
+              <Select value={renewalHours} onValueChange={setRenewalHours}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 hora</SelectItem>
+                  <SelectItem value="2">2 horas</SelectItem>
+                  <SelectItem value="4">4 horas</SelectItem>
+                  <SelectItem value="8">8 horas</SelectItem>
+                  <SelectItem value="12">12 horas</SelectItem>
+                  <SelectItem value="24">24 horas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRenewalDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRequestRenewal} disabled={renewalLoading}>
+              {renewalLoading ? "Enviando..." : "Enviar Solicitação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
