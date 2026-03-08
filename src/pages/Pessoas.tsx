@@ -416,6 +416,16 @@ export default function PessoasPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
+                            {pessoa.user_id ? (
+                              <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1">
+                                <KeyRound className="h-2.5 w-2.5" /> Portal
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border gap-1">
+                                Sem acesso
+                              </Badge>
+                            )}
+                          <TableCell>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               {pessoa.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{pessoa.email}</span>}
                               {pessoa.telefone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{pessoa.telefone}</span>}
