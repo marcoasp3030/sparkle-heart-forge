@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Mail, Phone, MoreHorizontal, UserCheck, UserX, Eye, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ interface Pessoa {
   tipo: "funcionario" | "cliente";
   ativo: boolean;
   created_at: string;
+  user_id: string | null;
 }
 
 interface Ref { id: string; nome: string; }
@@ -56,6 +57,11 @@ export default function PessoasPage() {
   const [deleteItem, setDeleteItem] = useState<Pessoa | null>(null);
   const [toggleItem, setToggleItem] = useState<Pessoa | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginPerson, setLoginPerson] = useState<Pessoa | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // Form
   const [nome, setNome] = useState("");
@@ -206,6 +212,35 @@ export default function PessoasPage() {
     return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground">Selecione uma empresa.</p></div>;
   }
 
+  const handleCreateLogin = async () => {
+    if (!loginPerson || !loginEmail || !loginPassword) return;
+    setLoginLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-person-login", {
+        body: { person_id: loginPerson.id, email: loginEmail, password: loginPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Acesso criado!", description: data.message });
+      setLoginDialogOpen(false);
+      setLoginPerson(null);
+      setLoginEmail("");
+      setLoginPassword("");
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const openLoginDialog = (pessoa: Pessoa) => {
+    setLoginPerson(pessoa);
+    setLoginEmail(pessoa.email || "");
+    setLoginPassword("");
+    setLoginDialogOpen(true);
+  };
+
   const ActionsMenu = ({ pessoa }: { pessoa: Pessoa }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -213,12 +248,22 @@ export default function PessoasPage() {
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => setDetailItem(pessoa)} className="gap-2 text-xs">
           <Eye className="h-3.5 w-3.5" /> Ver detalhes
         </DropdownMenuItem>
         {isAdmin && (
           <>
+            {!pessoa.user_id && pessoa.ativo && (
+              <DropdownMenuItem onClick={() => openLoginDialog(pessoa)} className="gap-2 text-xs text-primary">
+                <KeyRound className="h-3.5 w-3.5" /> Criar Acesso
+              </DropdownMenuItem>
+            )}
+            {pessoa.user_id && (
+              <DropdownMenuItem disabled className="gap-2 text-xs text-green-600">
+                <UserCheck className="h-3.5 w-3.5" /> Possui acesso
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => openEdit(pessoa)} className="gap-2 text-xs">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </DropdownMenuItem>
@@ -518,6 +563,54 @@ export default function PessoasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Login Dialog */}
+      <Dialog open={loginDialogOpen} onOpenChange={(open) => { if (!open) { setLoginDialogOpen(false); setLoginPerson(null); } }}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Criar Acesso ao Portal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Criando acesso para <strong>{loginPerson?.nome}</strong>. O {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} poderá fazer login e visualizar seu armário atribuído.
+            </p>
+            <div className="space-y-2">
+              <Label>E-mail de acesso</Label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha provisória</Label>
+              <Input
+                type="text"
+                placeholder="Mínimo 6 caracteres"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Informe esta senha ao {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} para o primeiro acesso.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" className="rounded-xl">Cancelar</Button></DialogClose>
+            <Button
+              onClick={handleCreateLogin}
+              disabled={loginLoading || !loginEmail || loginPassword.length < 6}
+              className="gradient-primary border-0 rounded-xl hover:opacity-90"
+            >
+              {loginLoading ? "Criando..." : "Criar Acesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -151,7 +151,18 @@ const Auth = () => {
           resource_type: "auth",
           details: { email },
         });
-        navigate("/");
+        // Check role to redirect appropriately
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
+          .single();
+        
+        if (profile?.role === "user") {
+          navigate("/portal");
+        } else {
+          navigate("/");
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,

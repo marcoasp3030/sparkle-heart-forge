@@ -23,6 +23,7 @@ import Pessoas from "./pages/Pessoas";
 import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
 import Configuracoes from "./pages/Configuracoes";
 import HistoricoPortas from "./pages/HistoricoPortas";
+import Portal from "./pages/Portal";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ function RotasAnimadas() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/auth" element={<TransicaoPagina><Autenticacao /></TransicaoPagina>} />
+        <Route path="/portal" element={<RotaProtegida><TransicaoPagina><Portal /></TransicaoPagina></RotaProtegida>} />
         <Route path="/" element={protectedRoute(<PainelDeControle />)} />
         <Route path="/armarios" element={protectedRoute(<Armarios />)} />
         <Route path="/historico" element={protectedRoute(<HistoricoPortas />)} />
