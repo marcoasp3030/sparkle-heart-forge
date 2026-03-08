@@ -67,6 +67,17 @@ export default function PessoasPage() {
   const [departamentoId, setDepartamentoId] = useState("");
   const [setorId, setSetorId] = useState("");
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTelefone(formatPhone(e.target.value));
+  };
+
   const isAdmin = userRole === "admin" || userRole === "superadmin";
   const companyType = selectedCompany?.type;
 
@@ -97,7 +108,7 @@ export default function PessoasPage() {
     setEditItem(item);
     setNome(item.nome);
     setEmail(item.email || "");
-    setTelefone(item.telefone || "");
+    setTelefone(formatPhone(item.telefone || ""));
     setCargo(item.cargo || "");
     setMatricula(item.matricula || "");
     setTipo(item.tipo);
@@ -429,7 +440,7 @@ export default function PessoasPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>E-mail</Label><Input type="email" placeholder="email@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Telefone</Label><Input placeholder="(00) 00000-0000" value={telefone} onChange={(e) => setTelefone(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input placeholder="(00) 00000-0000" value={telefone} onChange={handlePhoneChange} maxLength={15} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Cargo</Label><Input placeholder="Ex: Analista" value={cargo} onChange={(e) => setCargo(e.target.value)} /></div>
