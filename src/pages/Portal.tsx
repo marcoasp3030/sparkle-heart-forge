@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import HistoricoPortal from "@/components/portal/HistoricoPortal";
+import PerfilPortal from "@/components/portal/PerfilPortal";
 
 interface PersonInfo {
   id: string;
@@ -32,6 +33,11 @@ interface PersonInfo {
   email: string | null;
   telefone: string | null;
   matricula: string | null;
+  avatar_url?: string | null;
+  notification_email?: boolean;
+  notification_whatsapp?: boolean;
+  notification_expiry?: boolean;
+  notification_renewal?: boolean;
 }
 
 interface DoorInfo {
@@ -106,7 +112,7 @@ export default function Portal() {
 
       const { data: personData } = await supabase
         .from("funcionarios_clientes")
-        .select("id, nome, cargo, tipo, company_id, email, telefone, matricula")
+        .select("id, nome, cargo, tipo, company_id, email, telefone, matricula, avatar_url, notification_email, notification_whatsapp, notification_expiry, notification_renewal")
         .eq("user_id", user.id)
         .single();
 
@@ -610,107 +616,15 @@ export default function Portal() {
 
           {/* === PERFIL TAB === */}
           <TabsContent value="perfil" className="space-y-4 mt-4">
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              {/* Avatar card */}
-              <Card className="shadow-card border-border/50 overflow-hidden mb-4">
-                <CardContent className="p-0">
-                  <div className="gradient-primary p-6 flex flex-col items-center">
-                    <div className="h-20 w-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-primary-foreground text-2xl font-bold shadow-lg">
-                      {initials}
-                    </div>
-                    <h2 className="text-primary-foreground font-bold text-lg mt-3">{person?.nome}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className="bg-white/20 text-primary-foreground border-0 text-xs">
-                        {person?.tipo === "funcionario" ? "Funcionário" : "Cliente"}
-                      </Badge>
-                      {person?.cargo && (
-                        <Badge className="bg-white/10 text-primary-foreground/80 border-0 text-xs">
-                          {person.cargo}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Info card */}
-              <Card className="shadow-card border-border/50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BadgeCheck className="h-4 w-4 text-primary" />
-                    Informações Pessoais
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Nome Completo</p>
-                        <p className="text-sm font-medium text-foreground truncate">{person?.nome}</p>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0">
-                        <Mail className="h-4 w-4 text-secondary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">E-mail</p>
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {person?.email || user?.email || "Não informado"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <Phone className="h-4 w-4 text-accent" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Telefone</p>
-                        <p className="text-sm font-medium text-foreground">
-                          {person?.telefone || "Não informado"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {person?.matricula && (
-                      <>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                            <KeyRound className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Matrícula</p>
-                            <p className="text-sm font-medium text-foreground">{person.matricula}</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <Separator />
-
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Empresa</p>
-                        <p className="text-sm font-medium text-foreground">{companyName}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            {person && (
+              <PerfilPortal
+                person={person}
+                userEmail={user?.email || null}
+                companyName={companyName}
+                initials={initials}
+                onPersonUpdate={(updated) => setPerson(updated)}
+              />
+            )}
           </TabsContent>
 
           {/* === SEGURANÇA TAB === */}
