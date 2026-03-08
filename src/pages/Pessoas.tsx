@@ -57,6 +57,11 @@ export default function PessoasPage() {
   const [deleteItem, setDeleteItem] = useState<Pessoa | null>(null);
   const [toggleItem, setToggleItem] = useState<Pessoa | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginPerson, setLoginPerson] = useState<Pessoa | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // Form
   const [nome, setNome] = useState("");
