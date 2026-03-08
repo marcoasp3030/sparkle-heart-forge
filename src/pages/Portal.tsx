@@ -335,10 +335,14 @@ export default function Portal() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="armarios" className="text-xs sm:text-sm">
               <Archive className="h-4 w-4 mr-1.5" />
               Armários
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="text-xs sm:text-sm">
+              <Clock className="h-4 w-4 mr-1.5" />
+              Histórico
             </TabsTrigger>
             <TabsTrigger value="perfil" className="text-xs sm:text-sm">
               <User className="h-4 w-4 mr-1.5" />
