@@ -13,7 +13,8 @@ type NotificationType =
   | "reservation_expired"
   | "reservation_renewed"
   | "scheduled_activated"
-  | "scheduled_cancelled";
+  | "scheduled_cancelled"
+  | "welcome";
 
 interface NotificationPayload {
   type: NotificationType;
