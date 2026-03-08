@@ -107,7 +107,7 @@ export default function Portal() {
 
       const { data: personData } = await supabase
         .from("funcionarios_clientes")
-        .select("id, nome, cargo, tipo, company_id, email, telefone, matricula")
+        .select("id, nome, cargo, tipo, company_id, email, telefone, matricula, avatar_url, notification_email, notification_whatsapp, notification_expiry, notification_renewal")
         .eq("user_id", user.id)
         .single();
 
