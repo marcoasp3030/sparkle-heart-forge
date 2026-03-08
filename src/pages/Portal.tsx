@@ -150,6 +150,14 @@ export default function Portal() {
         .order("starts_at", { ascending: false });
       if (resData) setReservations(resData as ReservationInfo[]);
 
+      // Load renewal requests
+      const { data: renewalData } = await supabase
+        .from("renewal_requests")
+        .select("id, door_id, status, requested_hours, created_at")
+        .eq("person_id", personData.id)
+        .order("created_at", { ascending: false });
+      if (renewalData) setRenewalRequests(renewalData as RenewalRequest[]);
+
       setLoading(false);
     };
     load();
