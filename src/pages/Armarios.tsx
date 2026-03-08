@@ -25,6 +25,7 @@ import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario"
 import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
+import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -49,6 +50,7 @@ export default function LockersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
 
   // New locker form
   const [newName, setNewName] = useState("");
