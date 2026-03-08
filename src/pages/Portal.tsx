@@ -33,6 +33,11 @@ interface PersonInfo {
   email: string | null;
   telefone: string | null;
   matricula: string | null;
+  avatar_url?: string | null;
+  notification_email?: boolean;
+  notification_whatsapp?: boolean;
+  notification_expiry?: boolean;
+  notification_renewal?: boolean;
 }
 
 interface DoorInfo {
