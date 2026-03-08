@@ -25,6 +25,7 @@ import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario"
 import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
+import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -49,6 +50,7 @@ export default function LockersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
 
   // New locker form
   const [newName, setNewName] = useState("");
@@ -161,6 +163,7 @@ export default function LockersPage() {
         expires_at: expiresAt || null,
       });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
+      triggerFeedback("reserve");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -187,6 +190,7 @@ export default function LockersPage() {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
+      triggerFeedback("release");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -203,6 +207,7 @@ export default function LockersPage() {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Manutenção", description: `Porta ${door.label || '#' + door.door_number} em manutenção.` });
+      triggerFeedback("maintenance");
       setSheetOpen(false);
       fetchLockers();
     }
@@ -301,6 +306,8 @@ export default function LockersPage() {
   ];
 
   return (
+    <>
+    <FeedbackSucessoOverlay active={feedbackActive} />
     <div className="space-y-5 md:space-y-8">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
@@ -730,5 +737,6 @@ export default function LockersPage() {
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
     </div>
+    </>
   );
 }
