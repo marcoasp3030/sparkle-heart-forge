@@ -1,13 +1,29 @@
-import { useState } from "react";
-import { Lock, Unlock, Wrench, User, Hash, Maximize2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { LockerDoorData } from "./PortaArmario";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/ContextoEmpresa";
+
+export interface LockerDoorDataExtended {
+  id: string;
+  door_number: number;
+  label: string | null;
+  size: "small" | "medium" | "large";
+  status: "available" | "occupied" | "maintenance" | "reserved";
+  occupied_by: string | null;
+  occupied_by_person: string | null;
+  usage_type: string;
+  expires_at: string | null;
+}
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
   available: { label: "Disponível", color: "text-emerald-600", bg: "bg-emerald-500" },
@@ -18,16 +34,23 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
 
 const sizeLabels: Record<string, string> = { small: "Pequeno", medium: "Médio", large: "Grande" };
 
+interface Pessoa {
+  id: string;
+  nome: string;
+  tipo: string;
+  matricula: string | null;
+}
+
 interface DoorDetailSheetProps {
-  door: LockerDoorData | null;
+  door: LockerDoorDataExtended | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReserve?: (door: LockerDoorData) => void;
-  onRelease?: (door: LockerDoorData) => void;
+  onReserve?: (door: LockerDoorDataExtended, personId: string, usageType: string, expiresAt: string | null) => void;
+  onRelease?: (door: LockerDoorDataExtended) => void;
   isCurrentUser?: boolean;
   loading?: boolean;
   isAdmin?: boolean;
-  onSetMaintenance?: (door: LockerDoorData) => void;
+  onSetMaintenance?: (door: LockerDoorDataExtended) => void;
 }
 
 type ConfirmAction = "reserve" | "release" | "maintenance" | "unmaintenance" | null;
@@ -35,7 +58,7 @@ type ConfirmAction = "reserve" | "release" | "maintenance" | "unmaintenance" | n
 const confirmConfig: Record<string, { title: string; description: string; actionLabel: string; variant: "default" | "destructive" }> = {
   reserve: {
     title: "Confirmar reserva",
-    description: "Tem certeza que deseja reservar esta porta? Ela ficará vinculada ao seu usuário.",
+    description: "Tem certeza que deseja reservar esta porta para a pessoa selecionada?",
     actionLabel: "Reservar",
     variant: "default",
   },
@@ -60,7 +83,52 @@ const confirmConfig: Record<string, { title: string; description: string; action
 };
 
 export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve, onRelease, isCurrentUser, loading, isAdmin, onSetMaintenance }: DoorDetailSheetProps) {
+  const { selectedCompany } = useCompany();
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  const [selectedPersonId, setSelectedPersonId] = useState<string>("");
+  const [usageType, setUsageType] = useState<string>("temporary");
+  const [expiresAt, setExpiresAt] = useState<string>("");
+  const [personName, setPersonName] = useState<string | null>(null);
+
+  // Fetch people for selection
+  useEffect(() => {
+    if (!open || !selectedCompany) return;
+    const fetchPessoas = async () => {
+      const { data } = await supabase
+        .from("funcionarios_clientes")
+        .select("id, nome, tipo, matricula")
+        .eq("company_id", selectedCompany.id)
+        .eq("ativo", true)
+        .order("nome");
+      if (data) setPessoas(data);
+    };
+    fetchPessoas();
+  }, [open, selectedCompany]);
+
+  // Load person name for occupied doors
+  useEffect(() => {
+    if (!door?.occupied_by_person) {
+      setPersonName(null);
+      return;
+    }
+    const fetchName = async () => {
+      const { data } = await supabase
+        .from("funcionarios_clientes")
+        .select("nome")
+        .eq("id", door.occupied_by_person!)
+        .single();
+      setPersonName(data?.nome || null);
+    };
+    fetchName();
+  }, [door?.occupied_by_person]);
+
+  // Reset form when door changes
+  useEffect(() => {
+    setSelectedPersonId("");
+    setUsageType("temporary");
+    setExpiresAt("");
+  }, [door?.id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
   const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : User;
@@ -70,13 +138,15 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   const handleConfirm = () => {
     if (!door) return;
     switch (confirmAction) {
-      case "reserve": onReserve?.(door); break;
+      case "reserve": onReserve?.(door, selectedPersonId, usageType, usageType === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null); break;
       case "release": onRelease?.(door); break;
       case "maintenance": onSetMaintenance?.(door); break;
       case "unmaintenance": onRelease?.(door); break;
     }
     setConfirmAction(null);
   };
+
+  const canReserve = selectedPersonId && (usageType === "permanent" || (usageType === "temporary" && expiresAt));
 
   const config = confirmAction ? confirmConfig[confirmAction] : null;
 
@@ -121,7 +191,7 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
             </div>
           </div>
 
-          <div className="px-6 pt-6 pb-8 space-y-6">
+          <div className="px-6 pt-6 pb-8 space-y-6 overflow-y-auto max-h-[calc(100vh-280px)]">
             <SheetHeader className="p-0">
               <SheetTitle className="text-xl font-extrabold">
                 {door.label || `Porta #${door.door_number}`}
@@ -146,19 +216,97 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             </div>
 
+            {/* Occupied info */}
+            {door.status === "occupied" && (personName || door.usage_type || door.expires_at) && (
+              <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-2">
+                {personName && (
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{personName}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {door.usage_type === "permanent" ? "Uso permanente" : "Uso temporário"}
+                  </span>
+                </div>
+                {door.expires_at && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      Expira em: {new Date(door.expires_at).toLocaleDateString("pt-BR")} às {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reservation form */}
+            {door.status === "available" && isAdmin && (
+              <div className="space-y-4 p-4 rounded-xl bg-muted/30 border border-border/40">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vincular pessoa</p>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Pessoa</Label>
+                  <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Selecione uma pessoa..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pessoas.map((p) => (
+                        <SelectItem key={p.id} value={p.id} className="text-sm">
+                          <span>{p.nome}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">
+                            ({p.tipo === "funcionario" ? "Funcionário" : "Cliente"}{p.matricula ? ` • ${p.matricula}` : ""})
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo de uso</Label>
+                  <Select value={usageType} onValueChange={setUsageType}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="permanent">Permanente</SelectItem>
+                      <SelectItem value="temporary">Temporário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {usageType === "temporary" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Data de expiração</Label>
+                    <Input
+                      type="datetime-local"
+                      value={expiresAt}
+                      onChange={(e) => setExpiresAt(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3">
-              {door.status === "available" && (
+              {door.status === "available" && isAdmin && (
                 <Button
                   onClick={() => setConfirmAction("reserve")}
-                  disabled={loading}
+                  disabled={loading || !canReserve}
                   className="w-full h-12 gradient-primary border-0 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity"
                 >
                   <Lock className="mr-2 h-4 w-4" />
-                  Reservar este armário
+                  Reservar para pessoa selecionada
                 </Button>
               )}
 
-              {isCurrentUser && door.status === "occupied" && (
+              {(isCurrentUser || isAdmin) && door.status === "occupied" && (
                 <Button
                   onClick={() => setConfirmAction("release")}
                   disabled={loading}

@@ -23,7 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/hooks/use-toast";
 import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario";
 import { LockerDoorData } from "@/components/armario/PortaArmario";
-import DetalhePortaPainel from "@/components/armario/DetalhePortaPainel";
+import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -43,7 +43,7 @@ export default function LockersPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
-  const [selectedDoor, setSelectedDoor] = useState<LockerDoorData | null>(null);
+  const [selectedDoor, setSelectedDoor] = useState<LockerDoorDataExtended | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -128,12 +128,20 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const handleReserve = async (door: LockerDoorData) => {
+  const handleReserve = async (door: LockerDoorData | LockerDoorDataExtended, personId?: string, usageType?: string, expiresAt?: string | null) => {
     if (!user) return;
     setActionLoading(true);
+    const updateData: any = {
+      status: "occupied",
+      occupied_by: user.id,
+      occupied_at: new Date().toISOString(),
+      occupied_by_person: personId || null,
+      usage_type: usageType || "temporary",
+      expires_at: expiresAt || null,
+    };
     const { error } = await supabase
       .from("locker_doors")
-      .update({ status: "occupied", occupied_by: user.id, occupied_at: new Date().toISOString() })
+      .update(updateData)
       .eq("id", door.id);
 
     if (error) {
@@ -146,11 +154,11 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const handleRelease = async (door: LockerDoorData) => {
+  const handleRelease = async (door: LockerDoorData | LockerDoorDataExtended) => {
     setActionLoading(true);
     const { error } = await supabase
       .from("locker_doors")
-      .update({ status: "available", occupied_by: null, occupied_at: null })
+      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null })
       .eq("id", door.id);
 
     if (error) {
@@ -163,11 +171,11 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const handleSetMaintenance = async (door: LockerDoorData) => {
+  const handleSetMaintenance = async (door: LockerDoorData | LockerDoorDataExtended) => {
     setActionLoading(true);
     const { error } = await supabase
       .from("locker_doors")
-      .update({ status: "maintenance", occupied_by: null, occupied_at: null })
+      .update({ status: "maintenance", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null })
       .eq("id", door.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -513,7 +521,7 @@ export default function LockersPage() {
               onEdit={openEditDialog}
               onDelete={(l) => setDeleteLocker(l)}
               onSelectDoor={(door) => {
-                setSelectedDoor(door);
+                setSelectedDoor(door as LockerDoorDataExtended);
                 setSheetOpen(true);
               }}
               onQuickReserve={handleReserve}
@@ -637,7 +645,7 @@ export default function LockersPage() {
         door={selectedDoor}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onReserve={handleReserve}
+        onReserve={(door, personId, usageType, expiresAt) => handleReserve(door, personId, usageType, expiresAt)}
         onRelease={handleRelease}
         isCurrentUser={selectedDoor?.occupied_by === user?.id}
         loading={actionLoading}
