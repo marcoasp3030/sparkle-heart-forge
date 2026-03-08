@@ -771,6 +771,70 @@ export type Database = {
           },
         ]
       }
+      renewal_requests: {
+        Row: {
+          admin_notes: string | null
+          company_id: string
+          created_at: string
+          door_id: string
+          id: string
+          person_id: string
+          requested_hours: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company_id: string
+          created_at?: string
+          door_id: string
+          id?: string
+          person_id: string
+          requested_hours?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company_id?: string
+          created_at?: string
+          door_id?: string
+          id?: string
+          person_id?: string
+          requested_hours?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_requests_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "locker_doors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_requests_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       setores: {
         Row: {
           ativo: boolean
