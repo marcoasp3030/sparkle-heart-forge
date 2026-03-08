@@ -171,8 +171,17 @@ export default function LockersPage() {
     setActionLoading(true);
     const { error } = await supabase
       .from("locker_doors")
-      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null })
+      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null, scheduled_reservation_id: null })
       .eq("id", door.id);
+
+    if (!error) {
+      // Close active reservation
+      await supabase
+        .from("locker_reservations")
+        .update({ status: "released", released_at: new Date().toISOString() })
+        .eq("door_id", door.id)
+        .eq("status", "active");
+    }
 
     if (error) {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
