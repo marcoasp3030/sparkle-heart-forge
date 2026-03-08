@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/ContextoEmpresa";
+import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
 
 const statusConfig = {
   occupied: { label: "Ocupado", className: "bg-primary/10 text-primary border-primary/20" },
@@ -324,6 +325,9 @@ const PainelDeControle = () => {
           </Card>
         </motion.div>
       )}
+
+      {/* Charts & Metrics */}
+      <GraficosDashboard />
 
       {/* Door List */}
       <motion.div

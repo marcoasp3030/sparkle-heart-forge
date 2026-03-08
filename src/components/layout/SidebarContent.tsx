@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import {
-  Settings, LogOut, Shield, LayoutDashboard, Archive,
+  Settings, LogOut, Shield, LayoutDashboard, Archive, History,
   Building, Layers, Users, ChevronDown, Building2, ChevronsUpDown, Palette, Brush
 } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
@@ -22,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
+  { icon: History, label: "Histórico", path: "/historico" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
   { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },
