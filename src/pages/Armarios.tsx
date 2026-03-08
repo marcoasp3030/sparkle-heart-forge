@@ -181,7 +181,7 @@ export default function LockersPage() {
         const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
         sendWhatsAppNotify({
           type: "reservation_confirmed",
-          companyId: selectedCompany,
+          companyId: selectedCompany?.id,
           personId,
           doorLabel: door.label,
           doorNumber: door.door_number,
@@ -225,7 +225,7 @@ export default function LockersPage() {
         const extDoor = door as LockerDoorDataExtended;
         sendWhatsAppNotify({
           type: "reservation_released",
-          companyId: selectedCompany,
+          companyId: selectedCompany?.id,
           personId: extDoor.occupied_by_person || undefined,
           doorLabel: door.label,
           doorNumber: door.door_number,
