@@ -618,9 +618,40 @@ export default function PessoasPage() {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
-                Informe esta senha ao {loginPerson?.tipo === "cliente" ? "cliente" : "funcionário"} para o primeiro acesso.
+            </div>
+
+            {/* Notification options */}
+            <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/30">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Send className="h-3.5 w-3.5" />
+                Enviar credenciais automaticamente
               </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="send-whatsapp"
+                  checked={sendWhatsapp}
+                  onCheckedChange={(v) => setSendWhatsapp(!!v)}
+                  disabled={!loginPerson?.telefone}
+                />
+                <label htmlFor="send-whatsapp" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  <MessageSquare className="h-3.5 w-3.5 text-green-600" />
+                  WhatsApp
+                  {!loginPerson?.telefone && (
+                    <span className="text-[10px] text-muted-foreground">(sem telefone)</span>
+                  )}
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="send-email"
+                  checked={sendEmailNotif}
+                  onCheckedChange={(v) => setSendEmailNotif(!!v)}
+                />
+                <label htmlFor="send-email" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  <Mail className="h-3.5 w-3.5 text-primary" />
+                  E-mail
+                </label>
+              </div>
             </div>
           </div>
           <DialogFooter>
