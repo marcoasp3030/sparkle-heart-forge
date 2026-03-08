@@ -558,6 +558,44 @@ export default function Portal() {
                 </Card>
               </motion.div>
             )}
+
+            {/* Renewal requests history */}
+            {renewalRequests.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <ClockArrowUp className="h-3.5 w-3.5" />
+                  Solicitações de Renovação
+                </h2>
+                <Card className="shadow-card border-border/50">
+                  <CardContent className="p-0 divide-y divide-border">
+                    {renewalRequests.slice(0, 5).map((req) => (
+                      <div key={req.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            +{req.requested_hours}h de renovação
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(req.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            req.status === "pending"
+                              ? "bg-accent/10 text-accent border-accent/20"
+                              : req.status === "approved"
+                              ? "bg-green-500/10 text-green-600 border-green-500/20"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
+                          }`}
+                        >
+                          {req.status === "pending" ? "Pendente" : req.status === "approved" ? "Aprovada" : "Recusada"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* === PERFIL TAB === */}
