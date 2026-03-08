@@ -135,6 +135,16 @@ function getDefaultHtmlTemplate(type: NotificationType): string {
 </ul>
 <p>Caso tenha dúvidas, estamos à disposição!</p>`;
 
+    case "waitlist_available":
+      return `<h2>Olá, {nome}! 🎉</h2>
+<p><strong>Uma porta ficou disponível!</strong></p>
+<table style="margin:16px 0;border-collapse:collapse;">
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Porta:</td><td>{porta}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Armário:</td><td>{armario}</td></tr>
+</table>
+<p>Você estava na fila de espera e uma porta acabou de liberar! Reserve agora antes que alguém ocupe.</p>
+<p style="margin-top:16px;"><a href="#" style="background:#3b82f6;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Reservar Agora</a></p>`;
+
     default:
       return `<p>Notificação sobre {porta} — {armario}</p>`;
   }
