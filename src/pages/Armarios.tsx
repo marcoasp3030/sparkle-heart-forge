@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import UnidadeArmario, { LockerData } from "@/components/armario/UnidadeArmario";
 import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
+import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -47,6 +48,7 @@ export default function LockersPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // New locker form
   const [newName, setNewName] = useState("");
@@ -288,6 +290,11 @@ export default function LockersPage() {
             <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
+                <FileBarChart className="h-4 w-4" />
+                <span className="hidden sm:inline">Relatório</span>
+              </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1.5 gradient-primary border-0 text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 text-xs md:text-sm">
@@ -373,6 +380,7 @@ export default function LockersPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           )}
         </div>
 
@@ -697,6 +705,9 @@ export default function LockersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Occupation Report */}
+      <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }
