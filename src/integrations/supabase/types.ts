@@ -517,6 +517,67 @@ export type Database = {
           },
         ]
       }
+      locker_waitlist: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          locker_id: string
+          notified_at: string | null
+          person_id: string
+          preferred_size: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          locker_id: string
+          notified_at?: string | null
+          person_id: string
+          preferred_size?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          locker_id?: string
+          notified_at?: string | null
+          person_id?: string
+          preferred_size?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locker_waitlist_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_waitlist_locker_id_fkey"
+            columns: ["locker_id"]
+            isOneToOne: false
+            referencedRelation: "lockers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_waitlist_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lockers: {
         Row: {
           columns: number
