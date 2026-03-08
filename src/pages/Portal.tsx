@@ -57,6 +57,14 @@ interface ReservationInfo {
   renewed_count: number;
 }
 
+interface RenewalRequest {
+  id: string;
+  door_id: string;
+  status: string;
+  requested_hours: number;
+  created_at: string;
+}
+
 export default function Portal() {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
