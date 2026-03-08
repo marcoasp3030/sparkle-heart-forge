@@ -134,6 +134,15 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  // Helper to send WhatsApp notification (non-blocking)
+  const sendWhatsAppNotify = useCallback(async (payload: Record<string, unknown>) => {
+    try {
+      await supabase.functions.invoke("whatsapp-locker-notify", { body: payload });
+    } catch {
+      // Non-blocking, don't show errors to user
+    }
+  }, []);
+
   const handleReserve = async (door: LockerDoorData | LockerDoorDataExtended, personId?: string, usageType?: string, expiresAt?: string | null) => {
     if (!user) return;
     setActionLoading(true);
@@ -153,7 +162,6 @@ export default function LockersPage() {
     if (error) {
       toast({ title: "Erro ao reservar", description: error.message, variant: "destructive" });
     } else {
-      // Create reservation history record
       const extDoor = door as LockerDoorDataExtended;
       await supabase.from("locker_reservations").insert({
         door_id: door.id,
@@ -167,6 +175,21 @@ export default function LockersPage() {
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
       triggerFeedback("reserve");
       playSound("reserve");
+
+      // WhatsApp notification (non-blocking)
+      if (personId && selectedCompany) {
+        const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
+        sendWhatsAppNotify({
+          type: "reservation_confirmed",
+          companyId: selectedCompany,
+          personId,
+          doorLabel: door.label,
+          doorNumber: door.door_number,
+          lockerName: locker?.name,
+          expiresAt,
+        });
+      }
+
       setSheetOpen(false);
       fetchLockers();
     }
@@ -195,6 +218,21 @@ export default function LockersPage() {
       toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
       triggerFeedback("release");
       playSound("release");
+
+      // WhatsApp notification (non-blocking)
+      if (door.occupied_by && selectedCompany) {
+        const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
+        const extDoor = door as LockerDoorDataExtended;
+        sendWhatsAppNotify({
+          type: "reservation_released",
+          companyId: selectedCompany,
+          personId: extDoor.occupied_by_person || undefined,
+          doorLabel: door.label,
+          doorNumber: door.door_number,
+          lockerName: locker?.name,
+        });
+      }
+
       setSheetOpen(false);
       fetchLockers();
     }
