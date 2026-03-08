@@ -242,6 +242,14 @@ Deno.serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
+    // Validate Brazilian phone number (55 + 2-digit area code + 8-9 digit number = 12-13 digits)
+    if (formattedPhone.length < 12 || formattedPhone.length > 13) {
+      console.log(`Invalid phone number format: ${formattedPhone} (length: ${formattedPhone.length}), skipping`);
+      return new Response(JSON.stringify({ success: false, reason: "invalid_phone_format", phone: formattedPhone }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get UAZAPI server URL
     const { data: serverUrlSetting } = await supabase
       .from("platform_settings")
