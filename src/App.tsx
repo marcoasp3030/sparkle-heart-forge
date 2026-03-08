@@ -22,6 +22,7 @@ import Setores from "./pages/Setores";
 import Pessoas from "./pages/Pessoas";
 import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
 import Configuracoes from "./pages/Configuracoes";
+import HistoricoPortas from "./pages/HistoricoPortas";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
