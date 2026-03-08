@@ -450,9 +450,18 @@ export default function PessoasPage() {
                           <p className="text-xs text-muted-foreground">{pessoa.cargo || "Sem cargo"}{pessoa.matricula ? ` · ${pessoa.matricula}` : ""}</p>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Badge variant="outline" className={`text-[10px] ${pessoa.ativo ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-muted text-muted-foreground border-border"}`}>
+                           <Badge variant="outline" className={`text-[10px] ${pessoa.ativo ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-muted text-muted-foreground border-border"}`}>
                             {pessoa.ativo ? "Ativo" : "Inativo"}
                           </Badge>
+                          {pessoa.user_id ? (
+                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1">
+                              <KeyRound className="h-2.5 w-2.5" /> Portal
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                              Sem acesso
+                            </Badge>
+                          )}
                           <ActionsMenu pessoa={pessoa} />
                         </div>
                       </div>
