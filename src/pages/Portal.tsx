@@ -669,17 +669,39 @@ export default function Portal() {
       </div>
 
       {/* Password Change Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog
+        open={showPasswordDialog}
+        onOpenChange={(open) => {
+          if (!open && mustChangePassword) return; // prevent closing if mandatory
+          setShowPasswordDialog(open);
+        }}
+      >
+        <DialogContent
+          className="max-w-md"
+          onPointerDownOutside={mustChangePassword ? (e) => e.preventDefault() : undefined}
+          onEscapeKeyDown={mustChangePassword ? (e) => e.preventDefault() : undefined}
+          hideCloseButton={mustChangePassword}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
-              Alterar Senha
+              {mustChangePassword ? "Troca de Senha Obrigatória" : "Alterar Senha"}
             </DialogTitle>
             <DialogDescription>
-              Digite sua nova senha. Ela deve ter pelo menos 6 caracteres.
+              {mustChangePassword
+                ? "Por segurança, você precisa alterar sua senha provisória antes de continuar."
+                : "Digite sua nova senha. Ela deve ter pelo menos 6 caracteres."}
             </DialogDescription>
           </DialogHeader>
+
+          {mustChangePassword && (
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-accent">
+                Esta é sua primeira vez no sistema. Crie uma senha pessoal e segura para proteger sua conta.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -691,6 +713,7 @@ export default function Portal() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
+                  autoFocus
                 />
                 <Button
                   type="button"
@@ -723,14 +746,16 @@ export default function Portal() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-              Cancelar
-            </Button>
+            {!mustChangePassword && (
+              <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+                Cancelar
+              </Button>
+            )}
             <Button
               onClick={handleChangePassword}
               disabled={changingPassword || newPassword.length < 6 || newPassword !== confirmPassword}
             >
-              {changingPassword ? "Salvando..." : "Salvar nova senha"}
+              {changingPassword ? "Salvando..." : mustChangePassword ? "Definir nova senha" : "Salvar nova senha"}
             </Button>
           </DialogFooter>
         </DialogContent>
