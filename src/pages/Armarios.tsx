@@ -26,6 +26,7 @@ import { LockerDoorData } from "@/components/armario/PortaArmario";
 import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario/DetalhePortaPainel";
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
+import { useFeedbackSonoro } from "@/hooks/useFeedbackSonoro";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
