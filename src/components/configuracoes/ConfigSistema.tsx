@@ -49,6 +49,47 @@ export default function ConfigSistema() {
     loadStats();
   }, []);
 
+  // Load waitlist setting
+  useEffect(() => {
+    const loadWaitlistSetting = async () => {
+      if (!selectedCompany) return;
+      const { data } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", selectedCompany.id)
+        .eq("permission", "waitlist_enabled")
+        .maybeSingle();
+      setWaitlistEnabled(data?.enabled ?? false);
+      setWaitlistLoading(false);
+    };
+    loadWaitlistSetting();
+  }, [selectedCompany]);
+
+  const toggleWaitlist = async (enabled: boolean) => {
+    if (!selectedCompany) return;
+    setWaitlistEnabled(enabled);
+
+    const { data: existing } = await supabase
+      .from("company_permissions")
+      .select("id")
+      .eq("company_id", selectedCompany.id)
+      .eq("permission", "waitlist_enabled")
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("company_permissions")
+        .update({ enabled })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("company_permissions")
+        .insert({ company_id: selectedCompany.id, permission: "waitlist_enabled", enabled });
+    }
+
+    toast({ title: enabled ? "Fila de espera ativada" : "Fila de espera desativada" });
+  };
+
   const handleExportLogs = async () => {
     try {
       const { data, error } = await supabase
