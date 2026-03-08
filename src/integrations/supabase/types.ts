@@ -321,38 +321,47 @@ export type Database = {
         Row: {
           created_at: string
           door_number: number
+          expires_at: string | null
           id: string
           label: string | null
           locker_id: string
           occupied_at: string | null
           occupied_by: string | null
+          occupied_by_person: string | null
           size: string
           status: string
           updated_at: string
+          usage_type: string
         }
         Insert: {
           created_at?: string
           door_number: number
+          expires_at?: string | null
           id?: string
           label?: string | null
           locker_id: string
           occupied_at?: string | null
           occupied_by?: string | null
+          occupied_by_person?: string | null
           size?: string
           status?: string
           updated_at?: string
+          usage_type?: string
         }
         Update: {
           created_at?: string
           door_number?: number
+          expires_at?: string | null
           id?: string
           label?: string | null
           locker_id?: string
           occupied_at?: string | null
           occupied_by?: string | null
+          occupied_by_person?: string | null
           size?: string
           status?: string
           updated_at?: string
+          usage_type?: string
         }
         Relationships: [
           {
@@ -368,6 +377,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "locker_doors_occupied_by_person_fkey"
+            columns: ["occupied_by_person"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_clientes"
+            referencedColumns: ["id"]
           },
         ]
       }
