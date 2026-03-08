@@ -13,7 +13,8 @@ type NotificationType =
   | "reservation_expiring"
   | "reservation_expired"
   | "reservation_renewed"
-  | "welcome";
+  | "welcome"
+  | "waitlist_available";
 
 interface NotificationPayload {
   type: NotificationType;
