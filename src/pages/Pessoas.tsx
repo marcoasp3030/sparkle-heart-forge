@@ -220,11 +220,30 @@ export default function PessoasPage() {
     setLoginLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-person-login", {
-        body: { person_id: loginPerson.id, email: loginEmail, password: loginPassword },
+        body: {
+          person_id: loginPerson.id,
+          email: loginEmail,
+          password: loginPassword,
+          send_whatsapp: sendWhatsapp,
+          send_email: sendEmailNotif,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Acesso criado!", description: data.message });
+
+      // Build notification feedback
+      const notifications = data.notifications || [];
+      const waSent = notifications.find((n: any) => n.channel === "whatsapp");
+      const emailSent = notifications.find((n: any) => n.channel === "email");
+      let notifDesc = data.message;
+      const parts: string[] = [];
+      if (waSent?.success) parts.push("WhatsApp ✓");
+      else if (sendWhatsapp && waSent) parts.push(`WhatsApp ✗ (${waSent.reason || "falha"})`);
+      if (emailSent?.success) parts.push("E-mail ✓");
+      else if (sendEmailNotif && emailSent) parts.push(`E-mail ✗ (${emailSent.reason || "falha"})`);
+      if (parts.length > 0) notifDesc += ` | Envio: ${parts.join(", ")}`;
+
+      toast({ title: "Acesso criado!", description: notifDesc });
       setLoginDialogOpen(false);
       setLoginPerson(null);
       setLoginEmail("");
