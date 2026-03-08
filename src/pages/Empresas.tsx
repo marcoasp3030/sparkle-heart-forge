@@ -186,6 +186,13 @@ export default function CompaniesPage() {
     setName(company.name);
     setType(company.type);
     setDescription(company.description || "");
+    setEmail(company.email || "");
+    setPhone(company.phone || "");
+    setCnpj(company.cnpj || "");
+    setContactName(company.contact_name || "");
+    setAddress(company.address || "");
+    setCity(company.city || "");
+    setState(company.state || "");
     setDialogOpen(true);
   };
 
