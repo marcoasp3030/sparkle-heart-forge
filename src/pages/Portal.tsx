@@ -175,6 +175,14 @@ export default function Portal() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
+
+      // Mark password as changed in profile
+      await supabase
+        .from("profiles")
+        .update({ password_changed: true })
+        .eq("user_id", user!.id);
+
+      setMustChangePassword(false);
       toast.success("Senha alterada com sucesso!");
       setShowPasswordDialog(false);
       setCurrentPassword("");
