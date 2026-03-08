@@ -185,6 +185,43 @@ export default function Portal() {
     return new Date(expiresAt).getTime() < Date.now();
   };
 
+  const getPendingRenewal = (doorId: string) => {
+    return renewalRequests.find(r => r.door_id === doorId && r.status === "pending");
+  };
+
+  const handleRequestRenewal = async () => {
+    if (!renewalDoor || !person) return;
+    setRenewalLoading(true);
+    try {
+      const { error } = await supabase.from("renewal_requests").insert({
+        door_id: renewalDoor.id,
+        person_id: person.id,
+        company_id: person.company_id,
+        requested_hours: parseInt(renewalHours),
+      });
+      if (error) throw error;
+
+      // Refresh requests
+      const { data } = await supabase
+        .from("renewal_requests")
+        .select("id, door_id, status, requested_hours, created_at")
+        .eq("person_id", person.id)
+        .order("created_at", { ascending: false });
+      if (data) setRenewalRequests(data as RenewalRequest[]);
+
+      toast.success("Solicitação de renovação enviada! O administrador será notificado.");
+      setShowRenewalDialog(false);
+      setRenewalDoor(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao solicitar renovação");
+    } finally {
+      setRenewalLoading(false);
+    }
+  };
+    if (!expiresAt) return false;
+    return new Date(expiresAt).getTime() < Date.now();
+  };
+
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
       toast.error("A nova senha deve ter pelo menos 6 caracteres");
