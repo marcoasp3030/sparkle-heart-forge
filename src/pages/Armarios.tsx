@@ -306,6 +306,8 @@ export default function LockersPage() {
   ];
 
   return (
+    <>
+    <FeedbackSucessoOverlay active={feedbackActive} />
     <div className="space-y-5 md:space-y-8">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
