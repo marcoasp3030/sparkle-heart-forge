@@ -328,6 +328,7 @@ export type Database = {
           occupied_at: string | null
           occupied_by: string | null
           occupied_by_person: string | null
+          scheduled_reservation_id: string | null
           size: string
           status: string
           updated_at: string
@@ -343,6 +344,7 @@ export type Database = {
           occupied_at?: string | null
           occupied_by?: string | null
           occupied_by_person?: string | null
+          scheduled_reservation_id?: string | null
           size?: string
           status?: string
           updated_at?: string
@@ -358,6 +360,7 @@ export type Database = {
           occupied_at?: string | null
           occupied_by?: string | null
           occupied_by_person?: string | null
+          scheduled_reservation_id?: string | null
           size?: string
           status?: string
           updated_at?: string
@@ -381,6 +384,89 @@ export type Database = {
           {
             foreignKeyName: "locker_doors_occupied_by_person_fkey"
             columns: ["occupied_by_person"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_doors_scheduled_reservation_id_fkey"
+            columns: ["scheduled_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "locker_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locker_reservations: {
+        Row: {
+          created_at: string
+          door_id: string
+          expires_at: string | null
+          expiry_notified: boolean
+          id: string
+          locker_id: string
+          notes: string | null
+          person_id: string | null
+          released_at: string | null
+          renewed_count: number
+          reserved_by: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          usage_type: string
+        }
+        Insert: {
+          created_at?: string
+          door_id: string
+          expires_at?: string | null
+          expiry_notified?: boolean
+          id?: string
+          locker_id: string
+          notes?: string | null
+          person_id?: string | null
+          released_at?: string | null
+          renewed_count?: number
+          reserved_by?: string | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          usage_type?: string
+        }
+        Update: {
+          created_at?: string
+          door_id?: string
+          expires_at?: string | null
+          expiry_notified?: boolean
+          id?: string
+          locker_id?: string
+          notes?: string | null
+          person_id?: string | null
+          released_at?: string | null
+          renewed_count?: number
+          reserved_by?: string | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locker_reservations_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "locker_doors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_reservations_locker_id_fkey"
+            columns: ["locker_id"]
+            isOneToOne: false
+            referencedRelation: "lockers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locker_reservations_person_id_fkey"
+            columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "funcionarios_clientes"
             referencedColumns: ["id"]
