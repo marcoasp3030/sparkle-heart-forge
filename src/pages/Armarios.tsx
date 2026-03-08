@@ -149,6 +149,17 @@ export default function LockersPage() {
     if (error) {
       toast({ title: "Erro ao reservar", description: error.message, variant: "destructive" });
     } else {
+      // Create reservation history record
+      const extDoor = door as LockerDoorDataExtended;
+      await supabase.from("locker_reservations").insert({
+        door_id: door.id,
+        locker_id: extDoor.locker_id || "",
+        person_id: personId || null,
+        reserved_by: user.id,
+        usage_type: usageType || "temporary",
+        status: "active",
+        expires_at: expiresAt || null,
+      });
       toast({ title: "Reservado!", description: `Porta ${door.label || '#' + door.door_number} reservada com sucesso.` });
       setSheetOpen(false);
       fetchLockers();
