@@ -86,7 +86,7 @@ export default function Configuracoes() {
         )}
         {isAdmin && (
           <TabsContent value="templates">
-            <ConfigTemplatesWhatsApp />
+            <ConfigTemplatesNotificacoes />
           </TabsContent>
         )}
         {isAdmin && (
