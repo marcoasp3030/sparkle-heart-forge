@@ -64,6 +64,12 @@ const TEMPLATE_TYPES = [
     description: "Enviada quando uma nova pessoa é cadastrada",
     variables: ["{nome}"],
   },
+  {
+    type: "waitlist_available",
+    label: "Fila de Espera — Vaga Disponível",
+    description: "Enviada quando uma porta libera e há alguém na fila de espera",
+    variables: ["{nome}", "{porta}", "{armario}"],
+  },
 ];
 
 const WHATSAPP_DEFAULTS: Record<string, { text: string; footer: string }> = {
@@ -91,6 +97,10 @@ const WHATSAPP_DEFAULTS: Record<string, { text: string; footer: string }> = {
     text: `Olá, *{nome}*! 👋\n\n🎉 *Bem-vindo(a) ao nosso sistema!*\n\nÉ um prazer ter você conosco! A partir de agora, você pode utilizar nosso sistema de armários inteligentes para guardar seus pertences com praticidade e segurança. 🔐\n\n📦 *O que você pode fazer:*\n• Reservar portas disponíveis\n• Receber alertas de expiração\n• Renovar reservas pelo celular\n\nCaso tenha dúvidas, estamos à disposição! 😊`,
     footer: "🔒 Sistema de Armários Inteligentes — Boas-vindas",
   },
+  waitlist_available: {
+    text: `Olá, *{nome}*! 👋\n\n🎉 *Uma porta ficou disponível!*\n\n📦 *Porta:* {porta}\n🏢 *Armário:* {armario}\n\nVocê estava na fila de espera e uma porta acabou de liberar! Reserve agora antes que alguém ocupe. ⚡`,
+    footer: "🔒 Fila de Espera — Vaga disponível",
+  },
 };
 
 const EMAIL_DEFAULTS: Record<string, { text: string; footer: string }> = {
@@ -117,6 +127,10 @@ const EMAIL_DEFAULTS: Record<string, { text: string; footer: string }> = {
   welcome: {
     text: `<h2>Olá, {nome}! 🎉</h2>\n<p><strong>Bem-vindo(a) ao nosso sistema de armários inteligentes!</strong></p>\n<p>É um prazer ter você conosco! A partir de agora, você pode:</p>\n<ul>\n  <li>Reservar portas disponíveis</li>\n  <li>Receber alertas de expiração</li>\n  <li>Renovar reservas pelo celular</li>\n</ul>\n<p>Caso tenha dúvidas, estamos à disposição!</p>`,
     footer: "Sistema de Armários Inteligentes — Boas-vindas",
+  },
+  waitlist_available: {
+    text: `<h2>Olá, {nome}! 🎉</h2>\n<p><strong>Uma porta ficou disponível!</strong></p>\n<table style="margin:16px 0;border-collapse:collapse;">\n  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Porta:</td><td>{porta}</td></tr>\n  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Armário:</td><td>{armario}</td></tr>\n</table>\n<p>Você estava na fila de espera e uma porta acabou de liberar! Reserve agora antes que alguém ocupe.</p>`,
+    footer: "Sistema de Armários Inteligentes — Fila de Espera",
   },
 };
 
