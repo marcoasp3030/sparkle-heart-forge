@@ -8,7 +8,8 @@ import ConfigNotificacoes from "@/components/configuracoes/ConfigNotificacoes";
 import ConfigSistema from "@/components/configuracoes/ConfigSistema";
 import ConfigEmail from "@/components/configuracoes/ConfigEmail";
 import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
-import { User, Shield, Bell, Monitor, Mail, MessageSquare } from "lucide-react";
+import ConfigTemplatesWhatsApp from "@/components/configuracoes/ConfigTemplatesWhatsApp";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
@@ -45,15 +46,15 @@ export default function Configuracoes() {
             </TabsTrigger>
           )}
           {isAdmin && (
-            <TabsTrigger value="email" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
-              <Mail className="h-4 w-4" />
-              E-mail
-            </TabsTrigger>
-          )}
-          {isAdmin && (
             <TabsTrigger value="whatsapp" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <MessageSquare className="h-4 w-4" />
               WhatsApp
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="templates" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <FileText className="h-4 w-4" />
+              Templates
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -79,13 +80,13 @@ export default function Configuracoes() {
           </TabsContent>
         )}
         {isAdmin && (
-          <TabsContent value="email">
-            <ConfigEmail />
+          <TabsContent value="whatsapp">
+            <ConfigUazapi />
           </TabsContent>
         )}
         {isAdmin && (
-          <TabsContent value="whatsapp">
-            <ConfigUazapi />
+          <TabsContent value="templates">
+            <ConfigTemplatesWhatsApp />
           </TabsContent>
         )}
         {isAdmin && (
