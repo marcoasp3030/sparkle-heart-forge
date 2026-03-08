@@ -36,10 +36,24 @@ const soundPatterns: Record<SoundType, { notes: number[]; durations: number[]; t
   },
 };
 
+export function getSoundEnabled(): boolean {
+  try {
+    const saved = localStorage.getItem("sound_feedback_enabled");
+    return saved === null ? true : JSON.parse(saved);
+  } catch {
+    return true;
+  }
+}
+
+export function setSoundEnabled(enabled: boolean) {
+  localStorage.setItem("sound_feedback_enabled", JSON.stringify(enabled));
+}
+
 export function useFeedbackSonoro() {
   const ctxRef = useRef<AudioContext | null>(null);
 
   const play = useCallback((type: SoundType) => {
+    if (!getSoundEnabled()) return;
     try {
       if (!ctxRef.current) {
         ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -64,7 +78,7 @@ export function useFeedbackSonoro() {
 
         osc.start(time);
         osc.stop(time + pattern.durations[i] + 0.01);
-        time += pattern.durations[i] * 0.7; // slight overlap for smoothness
+        time += pattern.durations[i] * 0.7;
       });
     } catch {
       // Audio not supported, silently ignore
