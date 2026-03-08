@@ -121,9 +121,22 @@ export default function PessoasPage() {
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else toast({ title: "Registro atualizado!" });
     } else {
-      const { error } = await supabase.from("funcionarios_clientes").insert(payload);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Registro criado!" });
+      const { error, data: inserted } = await supabase.from("funcionarios_clientes").insert(payload).select("id").single();
+      if (error) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Registro criado!" });
+        // Send WhatsApp welcome message (non-blocking)
+        if (telefone && inserted?.id) {
+          supabase.functions.invoke("whatsapp-locker-notify", {
+            body: {
+              type: "welcome",
+              companyId: selectedCompany.id,
+              personId: inserted.id,
+            },
+          }).catch(() => {});
+        }
+      }
     }
     setDialogOpen(false);
     resetForm();
