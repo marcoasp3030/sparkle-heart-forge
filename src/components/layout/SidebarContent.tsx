@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
   { icon: History, label: "Histórico", path: "/historico" },
   { icon: RefreshCw, label: "Renovações", path: "/renovacoes" },
+  { icon: ShieldCheck, label: "Auditoria", path: "/auditoria" },
   { icon: Building, label: "Departamentos", path: "/departamentos" },
   { icon: Layers, label: "Setores", path: "/setores" },
   { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },

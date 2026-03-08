@@ -50,6 +50,7 @@ function RotasAnimadas() {
         <Route path="/armarios" element={protectedRoute(<Armarios />)} />
         <Route path="/historico" element={protectedRoute(<HistoricoPortas />)} />
         <Route path="/renovacoes" element={protectedRoute(<Renovacoes />)} />
+        <Route path="/auditoria" element={protectedRoute(<Auditoria />)} />
         <Route path="/empresas" element={protectedRoute(<Empresas />)} />
         <Route path="/departamentos" element={protectedRoute(<Departamentos />)} />
         <Route path="/setores" element={protectedRoute(<Setores />)} />
