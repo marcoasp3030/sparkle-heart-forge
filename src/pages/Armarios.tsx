@@ -549,7 +549,7 @@ export default function LockersPage() {
               onEdit={openEditDialog}
               onDelete={(l) => setDeleteLocker(l)}
               onSelectDoor={(door) => {
-                setSelectedDoor(door as LockerDoorDataExtended);
+                setSelectedDoor({ ...door, locker_id: locker.id } as LockerDoorDataExtended);
                 setSheetOpen(true);
               }}
               onQuickReserve={handleReserve}
