@@ -143,6 +143,17 @@ export default function LockersPage() {
     }
   }, []);
 
+  // Helper to notify waitlist when a door is released (non-blocking)
+  const notifyWaitlist = useCallback(async (lockerId: string, companyId: string, doorLabel: string | null, doorNumber: number, lockerName: string) => {
+    try {
+      await supabase.functions.invoke("waitlist-notify", {
+        body: { lockerId, companyId, doorLabel, doorNumber, lockerName },
+      });
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
   const handleReserve = async (door: LockerDoorData | LockerDoorDataExtended, personId?: string, usageType?: string, expiresAt?: string | null) => {
     if (!user) return;
     setActionLoading(true);
@@ -231,6 +242,11 @@ export default function LockersPage() {
           doorNumber: door.door_number,
           lockerName: locker?.name,
         });
+
+        // Notify waitlist (non-blocking)
+        if (locker) {
+          notifyWaitlist(locker.id, selectedCompany.id, door.label, door.door_number, locker.name);
+        }
       }
 
       setSheetOpen(false);

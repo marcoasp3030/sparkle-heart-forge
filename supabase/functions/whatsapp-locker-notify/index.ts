@@ -14,7 +14,8 @@ type NotificationType =
   | "reservation_renewed"
   | "scheduled_activated"
   | "scheduled_cancelled"
-  | "welcome";
+  | "welcome"
+  | "waitlist_available";
 
 interface NotificationPayload {
   type: NotificationType;
@@ -76,6 +77,11 @@ function getDefaultButtons(type: NotificationType): Array<{ buttonId: string; bu
         { buttonId: "btn_see_lockers", buttonText: "📦 Ver armários" },
         { buttonId: "btn_how_it_works", buttonText: "❓ Como funciona" },
         { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+      ];
+    case "waitlist_available":
+      return [
+        { buttonId: "btn_reserve_now", buttonText: "📦 Reservar agora" },
+        { buttonId: "btn_leave_queue", buttonText: "❌ Sair da fila" },
       ];
     default:
       return [];
@@ -148,6 +154,8 @@ function buildDefaultMessage(payload: NotificationPayload, personName: string | 
       return { text: `${greeting}\n\n🚫 *Agendamento cancelado*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n\nA porta não estava disponível. Tente outra! 💡`, buttons, footer };
     case "welcome":
       return { text: `${greeting}\n\n🎉 *Bem-vindo(a)!*\n\nVocê pode reservar portas, receber alertas e renovar reservas pelo celular. 🔐\n\nDúvidas? Estamos à disposição! 😊`, buttons, footer: "🔒 Sistema de Armários — Boas-vindas" };
+    case "waitlist_available":
+      return { text: `${greeting}\n\n🎉 *Uma porta ficou disponível!*\n\n📦 *Porta:* ${door}\n🏢 *Armário:* ${locker}\n\nVocê estava na fila de espera e uma porta acabou de liberar! Reserve agora antes que alguém ocupe. ⚡`, buttons, footer: "🔒 Fila de Espera — Vaga disponível" };
     default:
       return { text: `📦 Notificação sobre ${door} — ${locker}`, buttons: [], footer };
   }

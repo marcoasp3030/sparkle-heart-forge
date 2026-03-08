@@ -10,17 +10,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Database, Clock, Activity, Download, Loader2, Shield } from "lucide-react";
+import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users } from "lucide-react";
 
 export default function ConfigSistema() {
   const { user } = useAuth();
-  const { isSuperAdmin, userRole } = useCompany();
+  const { isSuperAdmin, userRole, selectedCompany } = useCompany();
   const { toast } = useToast();
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [stats, setStats] = useState({ users: 0, companies: 0, lockers: 0, doors: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [waitlistEnabled, setWaitlistEnabled] = useState(false);
+  const [waitlistLoading, setWaitlistLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -46,6 +48,47 @@ export default function ConfigSistema() {
     };
     loadStats();
   }, []);
+
+  // Load waitlist setting
+  useEffect(() => {
+    const loadWaitlistSetting = async () => {
+      if (!selectedCompany) return;
+      const { data } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", selectedCompany.id)
+        .eq("permission", "waitlist_enabled")
+        .maybeSingle();
+      setWaitlistEnabled(data?.enabled ?? false);
+      setWaitlistLoading(false);
+    };
+    loadWaitlistSetting();
+  }, [selectedCompany]);
+
+  const toggleWaitlist = async (enabled: boolean) => {
+    if (!selectedCompany) return;
+    setWaitlistEnabled(enabled);
+
+    const { data: existing } = await supabase
+      .from("company_permissions")
+      .select("id")
+      .eq("company_id", selectedCompany.id)
+      .eq("permission", "waitlist_enabled")
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("company_permissions")
+        .update({ enabled })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("company_permissions")
+        .insert({ company_id: selectedCompany.id, permission: "waitlist_enabled", enabled });
+    }
+
+    toast({ title: enabled ? "Fila de espera ativada" : "Fila de espera desativada" });
+  };
 
   const handleExportLogs = async () => {
     try {
@@ -161,6 +204,35 @@ export default function ConfigSistema() {
                 <SelectItem value="120">2 horas</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Waitlist toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Fila de Espera Inteligente
+          </CardTitle>
+          <CardDescription>
+            Quando ativada, permite que pessoas entrem na fila de espera quando não há portas disponíveis.
+            Elas serão notificadas automaticamente via WhatsApp e E-mail quando uma porta liberar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Ativar fila de espera</p>
+              <p className="text-xs text-muted-foreground">
+                Notificação automática por WhatsApp e E-mail ao liberar porta
+              </p>
+            </div>
+            {waitlistLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <Switch checked={waitlistEnabled} onCheckedChange={toggleWaitlist} />
+            )}
           </div>
         </CardContent>
       </Card>

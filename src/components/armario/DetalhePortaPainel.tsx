@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock } from "lucide-react";
+import FilaEspera from "@/components/armario/FilaEspera";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -614,6 +615,11 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
                 </Button>
               )}
             </div>
+
+            {/* Waitlist section */}
+            {isAdmin && door.locker_id && (
+              <FilaEspera lockerId={door.locker_id} lockerName={`Armário`} onRefresh={onRefresh} />
+            )}
           </div>
         </SheetContent>
       </Sheet>
