@@ -126,9 +126,9 @@ export default function CompaniesPage() {
   }, [companies]);
 
   const resetForm = () => {
-    setName("");
-    setType("employee");
-    setDescription("");
+    setName(""); setType("employee"); setDescription("");
+    setEmail(""); setPhone(""); setCnpj(""); setContactName("");
+    setAddress(""); setCity(""); setState("");
     setEditCompany(null);
   };
 
