@@ -97,6 +97,10 @@ const WHATSAPP_DEFAULTS: Record<string, { text: string; footer: string }> = {
     text: `Olá, *{nome}*! 👋\n\n🎉 *Bem-vindo(a) ao nosso sistema!*\n\nÉ um prazer ter você conosco! A partir de agora, você pode utilizar nosso sistema de armários inteligentes para guardar seus pertences com praticidade e segurança. 🔐\n\n📦 *O que você pode fazer:*\n• Reservar portas disponíveis\n• Receber alertas de expiração\n• Renovar reservas pelo celular\n\nCaso tenha dúvidas, estamos à disposição! 😊`,
     footer: "🔒 Sistema de Armários Inteligentes — Boas-vindas",
   },
+  waitlist_available: {
+    text: `Olá, *{nome}*! 👋\n\n🎉 *Uma porta ficou disponível!*\n\n📦 *Porta:* {porta}\n🏢 *Armário:* {armario}\n\nVocê estava na fila de espera e uma porta acabou de liberar! Reserve agora antes que alguém ocupe. ⚡`,
+    footer: "🔒 Fila de Espera — Vaga disponível",
+  },
 };
 
 const EMAIL_DEFAULTS: Record<string, { text: string; footer: string }> = {
