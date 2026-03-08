@@ -13,7 +13,8 @@ type NotificationType =
   | "reservation_expired"
   | "reservation_renewed"
   | "scheduled_activated"
-  | "scheduled_cancelled";
+  | "scheduled_cancelled"
+  | "welcome";
 
 interface NotificationPayload {
   type: NotificationType;
@@ -156,6 +157,23 @@ function buildMessage(payload: NotificationPayload): MessageResult {
           { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
         ],
         footer: "🔒 Sistema de Armários Inteligentes",
+      };
+
+    case "welcome":
+      return {
+        text: `${greeting}\n\n🎉 *Bem-vindo(a) ao nosso sistema!*\n\n` +
+          `É um prazer ter você conosco! A partir de agora, você pode utilizar nosso sistema de armários inteligentes para guardar seus pertences com praticidade e segurança. 🔐\n\n` +
+          `📦 *O que você pode fazer:*\n` +
+          `• Reservar portas disponíveis\n` +
+          `• Receber alertas de expiração\n` +
+          `• Renovar reservas pelo celular\n\n` +
+          `Caso tenha dúvidas, estamos à disposição! 😊`,
+        buttons: [
+          { buttonId: "btn_see_lockers", buttonText: "📦 Ver armários" },
+          { buttonId: "btn_how_it_works", buttonText: "❓ Como funciona" },
+          { buttonId: "btn_contact_support", buttonText: "💬 Falar com suporte" },
+        ],
+        footer: "🔒 Sistema de Armários Inteligentes — Boas-vindas",
       };
 
     default:
