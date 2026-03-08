@@ -10,17 +10,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Database, Clock, Activity, Download, Loader2, Shield } from "lucide-react";
+import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users } from "lucide-react";
 
 export default function ConfigSistema() {
   const { user } = useAuth();
-  const { isSuperAdmin, userRole } = useCompany();
+  const { isSuperAdmin, userRole, selectedCompany } = useCompany();
   const { toast } = useToast();
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [stats, setStats] = useState({ users: 0, companies: 0, lockers: 0, doors: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [waitlistEnabled, setWaitlistEnabled] = useState(false);
+  const [waitlistLoading, setWaitlistLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
