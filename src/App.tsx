@@ -59,6 +59,7 @@ function RotasAnimadas() {
         <Route path="/admin" element={protectedRoute(<Administracao />)} />
         <Route path="/personalizacao" element={protectedRoute(<Personalizacao />)} />
         <Route path="/white-label" element={protectedRoute(<PersonalizacaoEmpresa />)} />
+        <Route path="/status" element={protectedRoute(<StatusConexao />)} />
         <Route path="/configuracoes" element={protectedRoute(<Configuracoes />)} />
         <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
