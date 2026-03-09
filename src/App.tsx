@@ -26,6 +26,7 @@ import HistoricoPortas from "./pages/HistoricoPortas";
 import Renovacoes from "./pages/Renovacoes";
 import Auditoria from "./pages/Auditoria";
 import Portal from "./pages/Portal";
+import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ function RotasAnimadas() {
         <Route path="/admin" element={protectedRoute(<Administracao />)} />
         <Route path="/personalizacao" element={protectedRoute(<Personalizacao />)} />
         <Route path="/white-label" element={protectedRoute(<PersonalizacaoEmpresa />)} />
+        <Route path="/status" element={protectedRoute(<StatusConexao />)} />
         <Route path="/configuracoes" element={protectedRoute(<Configuracoes />)} />
         <Route path="*" element={<TransicaoPagina><NaoEncontrada /></TransicaoPagina>} />
       </Routes>
