@@ -204,7 +204,7 @@ export default function StatusConexao() {
   const runAllChecks = useCallback(async () => {
     setRefreshing(true);
     const [dbResult, authResult] = await Promise.all([checkDbHealth(), checkAuthHealth()]);
-    recordUptimePoint(dbResult.latency, authResult.latency, dbResult.status, authResult.status);
+    recordUptimePoint(dbResult.latency, authResult.latency, dbResult.status as HealthCheck["status"], authResult.status as HealthCheck["status"]);
     setRefreshing(false);
   }, [checkDbHealth, checkAuthHealth, recordUptimePoint]);
 
