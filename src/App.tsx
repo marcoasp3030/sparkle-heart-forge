@@ -26,6 +26,7 @@ import HistoricoPortas from "./pages/HistoricoPortas";
 import Renovacoes from "./pages/Renovacoes";
 import Auditoria from "./pages/Auditoria";
 import Portal from "./pages/Portal";
+import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
 
 const queryClient = new QueryClient();
