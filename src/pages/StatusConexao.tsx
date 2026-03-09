@@ -9,8 +9,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import {
   User,
   Building2,
@@ -26,6 +35,7 @@ import {
   Bell,
   Settings2,
   TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 interface HealthCheck {
@@ -42,7 +52,18 @@ interface LatencyAlert {
   threshold: number;
 }
 
+interface UptimeDataPoint {
+  time: string;
+  timestamp: number;
+  dbLatency: number | null;
+  authLatency: number | null;
+  dbStatus: "healthy" | "degraded" | "down";
+  authStatus: "healthy" | "degraded" | "down";
+}
+
 const STORAGE_KEY = "status_latency_config";
+const UPTIME_STORAGE_KEY = "status_uptime_history";
+const MAX_UPTIME_POINTS = 288; // 24h * 60min / 5min = 288 points (every 5 minutes for 24h)
 
 function loadConfig() {
   try {
@@ -52,6 +73,25 @@ function loadConfig() {
   return { enabled: true, dbThreshold: 500, authThreshold: 500, soundEnabled: false };
 }
 
+function loadUptimeHistory(): UptimeDataPoint[] {
+  try {
+    const raw = localStorage.getItem(UPTIME_STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      // Filter to last 24 hours
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      return data.filter((p: UptimeDataPoint) => p.timestamp > cutoff);
+    }
+  } catch {}
+  return [];
+}
+
+function saveUptimeHistory(data: UptimeDataPoint[]) {
+  try {
+    localStorage.setItem(UPTIME_STORAGE_KEY, JSON.stringify(data.slice(-MAX_UPTIME_POINTS)));
+  } catch {}
+}
+
 export default function StatusConexao() {
   const { user, session } = useAuth();
   const { selectedCompany, companies, isSuperAdmin, userRole } = useCompany();
@@ -59,6 +99,7 @@ export default function StatusConexao() {
   const [authHealth, setAuthHealth] = useState<HealthCheck>({ status: "checking", latencyMs: null, lastChecked: null });
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [uptimeHistory, setUptimeHistory] = useState<UptimeDataPoint[]>(loadUptimeHistory);
 
   // Latency alert config
   const savedConfig = loadConfig();
@@ -69,6 +110,7 @@ export default function StatusConexao() {
   const [alertHistory, setAlertHistory] = useState<LatencyAlert[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const lastAlertRef = useRef<Record<string, number>>({});
+  const lastUptimeRecordRef = useRef<number>(0);
 
   // Persist config
   useEffect(() => {
@@ -76,7 +118,6 @@ export default function StatusConexao() {
   }, [alertsEnabled, dbThreshold, authThreshold, soundEnabled]);
 
   const triggerAlert = useCallback((service: string, latencyMs: number, threshold: number) => {
-    // Throttle: max 1 alert per service per 60s
     const now = Date.now();
     if (lastAlertRef.current[service] && now - lastAlertRef.current[service] < 60000) return;
     lastAlertRef.current[service] = now;
@@ -95,22 +136,47 @@ export default function StatusConexao() {
     }
   }, [soundEnabled]);
 
+  const recordUptimePoint = useCallback((dbLat: number | null, authLat: number | null, dbStat: HealthCheck["status"], authStat: HealthCheck["status"]) => {
+    const now = Date.now();
+    // Only record every 5 minutes minimum
+    if (now - lastUptimeRecordRef.current < 5 * 60 * 1000) return;
+    lastUptimeRecordRef.current = now;
+
+    const point: UptimeDataPoint = {
+      time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      timestamp: now,
+      dbLatency: dbLat,
+      authLatency: authLat,
+      dbStatus: dbStat === "checking" ? "healthy" : dbStat,
+      authStatus: authStat === "checking" ? "healthy" : authStat,
+    };
+
+    setUptimeHistory((prev) => {
+      const updated = [...prev, point].slice(-MAX_UPTIME_POINTS);
+      saveUptimeHistory(updated);
+      return updated;
+    });
+  }, []);
+
   const checkDbHealth = useCallback(async () => {
     const start = performance.now();
     try {
       const { error } = await supabase.from("platform_settings").select("key").limit(1);
       const latency = Math.round(performance.now() - start);
       const isHighLatency = alertsEnabled && latency > dbThreshold;
+      const status = error ? "degraded" : isHighLatency ? "degraded" : "healthy";
       setDbHealth({
-        status: error ? "degraded" : isHighLatency ? "degraded" : "healthy",
+        status,
         latencyMs: latency,
         lastChecked: new Date(),
         error: error?.message,
       });
       if (!error) setLastSync(new Date());
       if (isHighLatency && !error) triggerAlert("Banco de Dados", latency, dbThreshold);
+      return { latency, status };
     } catch (e: any) {
       setDbHealth({ status: "down", latencyMs: null, lastChecked: new Date(), error: e.message });
+      return { latency: null, status: "down" as const };
     }
   }, [alertsEnabled, dbThreshold, triggerAlert]);
 
@@ -120,29 +186,49 @@ export default function StatusConexao() {
       const { error } = await supabase.auth.getSession();
       const latency = Math.round(performance.now() - start);
       const isHighLatency = alertsEnabled && latency > authThreshold;
+      const status = error ? "degraded" : isHighLatency ? "degraded" : "healthy";
       setAuthHealth({
-        status: error ? "degraded" : isHighLatency ? "degraded" : "healthy",
+        status,
         latencyMs: latency,
         lastChecked: new Date(),
         error: error?.message,
       });
       if (isHighLatency && !error) triggerAlert("Autenticação", latency, authThreshold);
+      return { latency, status };
     } catch (e: any) {
       setAuthHealth({ status: "down", latencyMs: null, lastChecked: new Date(), error: e.message });
+      return { latency: null, status: "down" as const };
     }
   }, [alertsEnabled, authThreshold, triggerAlert]);
 
   const runAllChecks = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([checkDbHealth(), checkAuthHealth()]);
+    const [dbResult, authResult] = await Promise.all([checkDbHealth(), checkAuthHealth()]);
+    recordUptimePoint(dbResult.latency, authResult.latency, dbResult.status as HealthCheck["status"], authResult.status as HealthCheck["status"]);
     setRefreshing(false);
-  }, [checkDbHealth, checkAuthHealth]);
+  }, [checkDbHealth, checkAuthHealth, recordUptimePoint]);
 
   useEffect(() => {
     runAllChecks();
     const interval = setInterval(runAllChecks, 30000);
     return () => clearInterval(interval);
   }, [runAllChecks]);
+
+  // Calculate uptime percentages
+  const uptimeStats = {
+    db: uptimeHistory.length > 0
+      ? Math.round((uptimeHistory.filter(p => p.dbStatus === "healthy").length / uptimeHistory.length) * 100)
+      : 100,
+    auth: uptimeHistory.length > 0
+      ? Math.round((uptimeHistory.filter(p => p.authStatus === "healthy").length / uptimeHistory.length) * 100)
+      : 100,
+    avgDbLatency: uptimeHistory.length > 0
+      ? Math.round(uptimeHistory.filter(p => p.dbLatency !== null).reduce((sum, p) => sum + (p.dbLatency || 0), 0) / Math.max(1, uptimeHistory.filter(p => p.dbLatency !== null).length))
+      : 0,
+    avgAuthLatency: uptimeHistory.length > 0
+      ? Math.round(uptimeHistory.filter(p => p.authLatency !== null).reduce((sum, p) => sum + (p.authLatency || 0), 0) / Math.max(1, uptimeHistory.filter(p => p.authLatency !== null).length))
+      : 0,
+  };
 
   const statusConfig = {
     healthy: { label: "Saudável", color: "bg-emerald-500", textColor: "text-emerald-600", icon: CheckCircle2 },
@@ -172,6 +258,12 @@ export default function StatusConexao() {
     return "text-foreground";
   };
 
+  const getUptimeColor = (pct: number) => {
+    if (pct >= 99) return "text-emerald-600";
+    if (pct >= 95) return "text-amber-600";
+    return "text-destructive";
+  };
+
   const HealthCard = ({ title, icon: Icon, health, threshold }: { title: string; icon: any; health: HealthCheck; threshold: number }) => {
     const cfg = statusConfig[health.status];
     const StatusIcon = cfg.icon;
@@ -199,9 +291,7 @@ export default function StatusConexao() {
                 Latência: <span className={`font-mono ${getLatencyColor(health.latencyMs, threshold)}`}>{health.latencyMs}ms</span>
               </p>
               {alertsEnabled && (
-                <span className="text-[10px] text-muted-foreground">
-                  Limite: {threshold}ms
-                </span>
+                <span className="text-[10px] text-muted-foreground">Limite: {threshold}ms</span>
               )}
             </div>
           )}
@@ -221,6 +311,13 @@ export default function StatusConexao() {
       </Card>
     );
   };
+
+  // Prepare chart data - show last 50 points for better visualization
+  const chartData = uptimeHistory.slice(-50).map((p) => ({
+    ...p,
+    dbLatency: p.dbLatency || 0,
+    authLatency: p.authLatency || 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -259,12 +356,9 @@ export default function StatusConexao() {
               </div>
               <Switch checked={alertsEnabled} onCheckedChange={setAlertsEnabled} />
             </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="db-threshold" className="text-xs">
-                  Limite Banco de Dados (ms)
-                </Label>
+                <Label htmlFor="db-threshold" className="text-xs">Limite Banco de Dados (ms)</Label>
                 <Input
                   id="db-threshold"
                   type="number"
@@ -279,9 +373,7 @@ export default function StatusConexao() {
                 <p className="text-[10px] text-muted-foreground">Recomendado: 300–800ms</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="auth-threshold" className="text-xs">
-                  Limite Autenticação (ms)
-                </Label>
+                <Label htmlFor="auth-threshold" className="text-xs">Limite Autenticação (ms)</Label>
                 <Input
                   id="auth-threshold"
                   type="number"
@@ -296,7 +388,6 @@ export default function StatusConexao() {
                 <p className="text-[10px] text-muted-foreground">Recomendado: 300–800ms</p>
               </div>
             </div>
-
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm font-medium">Som de alerta</Label>
@@ -332,6 +423,109 @@ export default function StatusConexao() {
         <HealthCard title="Banco de Dados" icon={Database} health={dbHealth} threshold={dbThreshold} />
         <HealthCard title="Autenticação" icon={Activity} health={authHealth} threshold={authThreshold} />
       </div>
+
+      {/* Uptime History Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Histórico de Uptime (Últimas 24h)
+            </CardTitle>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">DB:</span>
+                <span className={`font-bold ${getUptimeColor(uptimeStats.db)}`}>{uptimeStats.db}%</span>
+                <span className="text-muted-foreground">({uptimeStats.avgDbLatency}ms avg)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Auth:</span>
+                <span className={`font-bold ${getUptimeColor(uptimeStats.auth)}`}>{uptimeStats.auth}%</span>
+                <span className="text-muted-foreground">({uptimeStats.avgAuthLatency}ms avg)</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {chartData.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorDb" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorAuth" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    className="fill-muted-foreground"
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    className="fill-muted-foreground"
+                    label={{ value: "ms", angle: -90, position: "insideLeft", fontSize: 10, className: "fill-muted-foreground" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value}ms`,
+                      name === "dbLatency" ? "Banco de Dados" : "Autenticação",
+                    ]}
+                  />
+                  <Legend
+                    formatter={(value) => (value === "dbLatency" ? "Banco de Dados" : "Autenticação")}
+                    wrapperStyle={{ fontSize: "12px" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="dbLatency"
+                    stroke="hsl(var(--primary))"
+                    fillOpacity={1}
+                    fill="url(#colorDb)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="authLatency"
+                    stroke="hsl(142, 76%, 36%)"
+                    fillOpacity={1}
+                    fill="url(#colorAuth)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+              <div className="text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Aguardando coleta de dados...</p>
+                <p className="text-xs mt-1">Os dados são registrados a cada 5 minutos</p>
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">
+            Dados coletados a cada 5 minutos. Histórico armazenado localmente por até 24 horas.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* User & Company info */}
       <div className="grid gap-4 sm:grid-cols-2">
