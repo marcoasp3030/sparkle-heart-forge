@@ -1051,8 +1051,8 @@ curl -vI https://seudominio.com 2>&1 | grep "subject:"
 - [ ] Arquivos estáticos copiados para o diretório do Nginx
 
 ### Infraestrutura
-- [ ] Nginx configurado (proxy + estáticos + uploads)
-- [ ] SSL/HTTPS ativo (Certbot)
+- [ ] Traefik configurado (proxy reverso + rotas dinâmicas)
+- [ ] SSL/HTTPS ativo (Let's Encrypt via Traefik)
 - [ ] PM2 com auto-start configurado
 - [ ] Firewall liberando portas 80 e 443
 - [ ] Backup automático do PostgreSQL configurado
