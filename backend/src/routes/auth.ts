@@ -1,12 +1,15 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import crypto from "crypto";
 import { validate } from "../middleware/validate";
 import { pool } from "../config/database";
 import {
   authenticateUser,
   createUser,
   changePassword,
+  resetPassword,
 } from "../services/auth.service";
+import { sendEmail } from "../services/email.service";
 import rateLimit from "express-rate-limit";
 
 const router = Router();
@@ -177,6 +180,201 @@ router.post("/change-password", validate(changePasswordSchema), async (req: Requ
     res.json({ message: "Senha alterada com sucesso" });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ============================================
+// POST /api/auth/forgot-password
+// ============================================
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email().max(255),
+});
+
+router.post("/forgot-password", loginLimiter, validate(forgotPasswordSchema), async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  try {
+    // Always return success to prevent email enumeration
+    const { rows: userRows } = await pool.query(
+      `SELECT u.id, u.email FROM users u WHERE u.email = $1`,
+      [email.toLowerCase().trim()]
+    );
+
+    if (!userRows[0]) {
+      // Don't reveal that the email doesn't exist
+      return res.json({ message: "Se o e-mail existir, enviaremos um link de redefinição." });
+    }
+
+    const user = userRows[0];
+
+    // Invalidate any previous tokens for this user
+    await pool.query(
+      `UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false`,
+      [user.id]
+    );
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+      [user.id, token, expiresAt.toISOString()]
+    );
+
+    // Build reset URL
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+    // Load custom email template from platform_settings
+    const { rows: templateRows } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'recovery_email_template' LIMIT 1`
+    );
+    const tmpl = (templateRows[0]?.value as Record<string, any>) || {};
+
+    const primaryColor = tmpl.primary_color || "#2563eb";
+    const heading = tmpl.heading || "Redefinir sua senha";
+    const body = tmpl.body || "Você solicitou a redefinição de sua senha. Clique no botão abaixo para criar uma nova senha.";
+    const buttonText = tmpl.button_text || "Redefinir Senha";
+    const footer = tmpl.footer || "Este link expira em 1 hora. Se você não solicitou esta redefinição, ignore este e-mail.";
+    const logoUrl = tmpl.logo_url || "";
+
+    // Load SMTP config from platform_settings or env
+    const { rows: smtpRows } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'smtp_config' LIMIT 1`
+    );
+    const smtpConfig = smtpRows[0]?.value as Record<string, any> | null;
+    const fromName = smtpConfig?.from_name || "Sistema";
+
+    const html = `
+      <div style="max-width:520px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+        <div style="background:${primaryColor};padding:32px 24px;text-align:center;">
+          ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height:40px;margin-bottom:16px;" />` : ""}
+          <h1 style="color:#ffffff;font-size:22px;margin:0;font-weight:700;">${heading}</h1>
+        </div>
+        <div style="padding:32px 24px;">
+          <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px;">${body}</p>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${resetUrl}" style="display:inline-block;background:${primaryColor};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">${buttonText}</a>
+          </div>
+          <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:24px 0 0;text-align:center;">${footer}</p>
+        </div>
+        <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="color:#9ca3af;font-size:12px;margin:0;">© ${new Date().getFullYear()} ${fromName}</p>
+        </div>
+      </div>
+    `;
+
+    // Try custom SMTP first, then env SMTP
+    let emailSent = false;
+
+    if (smtpConfig?.enabled && smtpConfig?.host) {
+      try {
+        const nodemailer = require("nodemailer");
+        const portNum = parseInt(smtpConfig.port, 10);
+        const useTls = smtpConfig.encryption === "tls" || smtpConfig.encryption === "ssl";
+
+        const transporter = nodemailer.createTransport({
+          host: smtpConfig.host,
+          port: portNum,
+          secure: useTls && portNum === 465,
+          auth: smtpConfig.user && smtpConfig.password
+            ? { user: smtpConfig.user, pass: smtpConfig.password }
+            : undefined,
+          tls: useTls ? { rejectUnauthorized: false } : undefined,
+        });
+
+        await transporter.sendMail({
+          from: `${fromName} <${smtpConfig.from_email || smtpConfig.user}>`,
+          to: email,
+          subject: tmpl.subject || "Recuperação de Senha",
+          html,
+        });
+        emailSent = true;
+      } catch (e) {
+        console.error("Custom SMTP failed, trying env SMTP:", e);
+      }
+    }
+
+    if (!emailSent) {
+      // Fallback to env-based SMTP
+      emailSent = await sendEmail({
+        to: email,
+        subject: tmpl.subject || "Recuperação de Senha",
+        html,
+      });
+    }
+
+    if (!emailSent) {
+      console.error("Failed to send password reset email to:", email);
+    }
+
+    // Audit log
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, action, resource_type, category, details)
+       VALUES ($1, 'password_reset_requested', 'auth', 'auth', $2)`,
+      [user.id, JSON.stringify({ email })]
+    );
+
+    res.json({ message: "Se o e-mail existir, enviaremos um link de redefinição." });
+  } catch (err: any) {
+    console.error("forgot-password error:", err);
+    res.status(500).json({ error: "Erro interno ao processar solicitação" });
+  }
+});
+
+// ============================================
+// POST /api/auth/reset-password
+// ============================================
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6).max(128),
+});
+
+router.post("/reset-password", validate(resetPasswordSchema), async (req: Request, res: Response) => {
+  const { token, password } = req.body;
+
+  try {
+    // Find valid token
+    const { rows: tokenRows } = await pool.query(
+      `SELECT * FROM password_reset_tokens 
+       WHERE token = $1 AND used = false AND expires_at > NOW()
+       LIMIT 1`,
+      [token]
+    );
+
+    if (!tokenRows[0]) {
+      return res.status(400).json({ error: "Token inválido ou expirado. Solicite um novo link de redefinição." });
+    }
+
+    const resetToken = tokenRows[0];
+
+    // Update password
+    await resetPassword(resetToken.user_id, password);
+
+    // Mark token as used
+    await pool.query(
+      `UPDATE password_reset_tokens SET used = true WHERE id = $1`,
+      [resetToken.id]
+    );
+
+    // Mark password as changed in profiles
+    await pool.query(
+      `UPDATE profiles SET password_changed = true WHERE user_id = $1`,
+      [resetToken.user_id]
+    );
+
+    // Audit log
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, action, resource_type, category)
+       VALUES ($1, 'password_reset_completed', 'auth', 'auth')`,
+      [resetToken.user_id]
+    );
+
+    res.json({ message: "Senha redefinida com sucesso! Faça login com sua nova senha." });
+  } catch (err: any) {
+    console.error("reset-password error:", err);
+    res.status(500).json({ error: "Erro ao redefinir senha" });
   }
 });
 
