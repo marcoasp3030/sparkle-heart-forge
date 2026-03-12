@@ -123,9 +123,9 @@ export default function RelatorioOcupacao({ open, onOpenChange }: RelatorioOcupa
     const personsMap = new Map((personsRes.data || []).map((p: any) => [p.id, p]));
 
     setHistory(reservations.map(r => {
-      const locker = lockersMap.get(r.locker_id);
-      const door = doorsMap.get(r.door_id);
-      const person = r.person_id ? personsMap.get(r.person_id) : null;
+      const locker: any = lockersMap.get(r.locker_id);
+      const door: any = doorsMap.get(r.door_id);
+      const person: any = r.person_id ? personsMap.get(r.person_id) : null;
       return {
         id: r.id, door_number: door?.door_number || 0, locker_name: locker?.name || "—",
         person_name: person?.nome || null, person_type: person?.tipo || null,
