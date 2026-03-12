@@ -1,0 +1,103 @@
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import path from "path";
+import { testConnection } from "./config/database";
+import { authMiddleware } from "./middleware/auth";
+import { startExpireDoorsJob } from "./cron/expire-doors";
+
+// Routes
+import { authRouter } from "./routes/auth";
+import { healthRouter } from "./routes/health";
+import { companiesRouter } from "./routes/companies";
+import { lockersRouter } from "./routes/lockers";
+import { peopleRouter } from "./routes/people";
+import { departmentsRouter } from "./routes/departments";
+import { sectorsRouter } from "./routes/sectors";
+import { notificationsRouter } from "./routes/notifications";
+import { renewalsRouter } from "./routes/renewals";
+import { waitlistRouter } from "./routes/waitlist";
+import { auditRouter } from "./routes/audit";
+import { settingsRouter } from "./routes/settings";
+import { adminRouter } from "./routes/admin";
+import { uploadRouter } from "./routes/upload";
+import { reservationsRouter } from "./routes/reservations";
+import { emailRouter } from "./routes/email";
+import { whatsappRouter } from "./routes/whatsapp";
+
+const app = express();
+const PORT = parseInt(process.env.PORT || "3001");
+
+// ============================================
+// Global Middleware
+// ============================================
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json({ limit: "10mb" }));
+
+// Static files (uploads)
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+app.use("/uploads", express.static(path.resolve(UPLOAD_DIR)));
+
+// ============================================
+// Public Routes (no auth required)
+// ============================================
+app.use("/api/auth", authRouter);
+app.use("/api/health", healthRouter);
+
+// Webhook routes (validated by their own mechanism)
+app.post("/api/webhooks/whatsapp", express.json(), (req, res) => {
+  console.log("[Webhook WhatsApp]", req.body);
+  res.json({ ok: true });
+});
+
+// ============================================
+// Protected Routes
+// ============================================
+app.use("/api/companies", authMiddleware, companiesRouter);
+app.use("/api/lockers", authMiddleware, lockersRouter);
+app.use("/api/people", authMiddleware, peopleRouter);
+app.use("/api/departments", authMiddleware, departmentsRouter);
+app.use("/api/sectors", authMiddleware, sectorsRouter);
+app.use("/api/notifications", authMiddleware, notificationsRouter);
+app.use("/api/renewals", authMiddleware, renewalsRouter);
+app.use("/api/waitlist", authMiddleware, waitlistRouter);
+app.use("/api/reservations", authMiddleware, reservationsRouter);
+app.use("/api/audit", authMiddleware, auditRouter);
+app.use("/api/settings", authMiddleware, settingsRouter);
+app.use("/api/admin", authMiddleware, adminRouter);
+app.use("/api/upload", authMiddleware, uploadRouter);
+app.use("/api/email", authMiddleware, emailRouter);
+app.use("/api/whatsapp", authMiddleware, whatsappRouter);
+
+// ============================================
+// Error handler
+// ============================================
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Erro interno do servidor" });
+});
+
+// ============================================
+// Start
+// ============================================
+async function start() {
+  const dbOk = await testConnection();
+  if (!dbOk) {
+    console.error("❌ Não foi possível conectar ao banco. Verifique DATABASE_URL.");
+    process.exit(1);
+  }
+
+  // Start cron jobs
+  startExpireDoorsJob();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Locker System API rodando na porta ${PORT}`);
+    console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+  });
+}
+
+start();
