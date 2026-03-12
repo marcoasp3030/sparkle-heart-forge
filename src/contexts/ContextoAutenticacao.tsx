@@ -9,6 +9,10 @@ interface User {
   full_name: string | null;
   avatar_url: string | null;
   password_changed: boolean;
+  created_at?: string;
+  last_sign_in_at?: string;
+  /** Compatibilidade com código que usa user.user_metadata.full_name */
+  user_metadata?: { full_name?: string };
 }
 
 interface Session {
