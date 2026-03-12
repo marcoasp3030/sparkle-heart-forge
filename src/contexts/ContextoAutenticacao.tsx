@@ -74,7 +74,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
 
+      const u = enrichUser(data.user);
       localStorage.setItem("auth_token", data.token);
+      setSession({ token: data.token, user: u });
       setSession({ token: data.token, user: data.user });
       return {};
     } catch (err: any) {
