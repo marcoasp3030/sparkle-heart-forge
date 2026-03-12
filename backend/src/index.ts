@@ -27,6 +27,12 @@ import { whatsappRouter } from "./routes/whatsapp";
 import { compatRouter } from "./routes/compat";
 import { rpcRouter } from "./routes/rpc";
 import { functionsRouter } from "./routes/functions";
+import { smtpRouter } from "./routes/smtp";
+import { emailNotifyRouter } from "./routes/email-notify";
+import { whatsappNotifyRouter } from "./routes/whatsapp-notify";
+import { whatsappWebhookRouter } from "./routes/whatsapp-webhook";
+import { uazapiProxyRouter } from "./routes/uazapi-proxy";
+import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3001");
