@@ -10,6 +10,7 @@ import api from "@/lib/api";
 interface QueryResult<T = any> {
   data: T | null;
   error: { message: string } | null;
+  count?: number | null;
 }
 
 class QueryBuilder {
@@ -25,7 +26,7 @@ class QueryBuilder {
     this.table = table;
   }
 
-  select(fields: string = "*") {
+  select(fields: string = "*", _options?: { count?: string; head?: boolean }) {
     this.method = "GET";
     this.selectFields = fields;
     return this;
@@ -204,15 +205,52 @@ class CompatFunctions {
 class CompatAuth {
   async getSession() {
     const token = localStorage.getItem("auth_token");
-    if (!token) return { data: { session: null } };
+    if (!token) return { data: { session: null }, error: null };
     return {
       data: {
         session: {
           access_token: token,
-          user: null, // Will be loaded via /auth/me
+          user: null,
         },
       },
+      error: null as any,
     };
+  }
+
+  async signInWithPassword(credentials: { email: string; password: string }) {
+    try {
+      const { data } = await api.post("/auth/login", credentials);
+      if (data.token) {
+        localStorage.setItem("auth_token", data.token);
+      }
+      return { data: { user: data.user, session: { access_token: data.token } }, error: null };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || "Login failed";
+      return { data: { user: null, session: null }, error: { message: msg } };
+    }
+  }
+
+  async signUp(params: { email: string; password: string; options?: { data?: any; emailRedirectTo?: string } }) {
+    try {
+      const { data } = await api.post("/auth/register", {
+        email: params.email,
+        password: params.password,
+        full_name: params.options?.data?.full_name,
+      });
+      return { data: { user: data.user, session: null }, error: null };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || "Signup failed";
+      return { data: { user: null, session: null }, error: { message: msg } };
+    }
+  }
+
+  async resetPasswordForEmail(email: string, _options?: { redirectTo?: string }) {
+    try {
+      await api.post("/auth/forgot-password", { email });
+      return { data: {}, error: null };
+    } catch (err: any) {
+      return { data: null, error: { message: err.response?.data?.error || err.message } };
+    }
   }
 
   async getUser() {
@@ -251,7 +289,7 @@ class CompatAuth {
 class CompatStorage {
   from(bucket: string) {
     return {
-      upload: async (path: string, file: File) => {
+      upload: async (path: string, file: File, _options?: { upsert?: boolean }) => {
         try {
           const formData = new FormData();
           formData.append("file", file);
@@ -299,15 +337,12 @@ class SupabaseCompat {
   }
 
   channel(_name: string) {
-    // No-op in Express mode - realtime not supported without additional setup
-    return {
-      on: () => ({
-        subscribe: () => ({
-          unsubscribe: () => {},
-        }),
-      }),
-      subscribe: () => ({}),
+    const self = {
+      on: (..._args: any[]) => self,
+      subscribe: () => self,
+      unsubscribe: () => {},
     };
+    return self;
   }
 
   removeChannel(_channel: any) {

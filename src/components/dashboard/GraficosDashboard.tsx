@@ -62,7 +62,7 @@ export default function GraficosDashboard() {
     setReservations(resRes.data || []);
     const dm = new Map<string, { door_number: number; label: string | null; locker_name: string }>();
     (doorsRes.data || []).forEach(d => {
-      dm.set(d.id, { door_number: d.door_number, label: d.label, locker_name: lockerMap.get(d.locker_id)?.name || "" });
+      dm.set(d.id, { door_number: d.door_number, label: d.label, locker_name: (lockerMap as Map<string, any>).get(d.locker_id)?.name || "" });
     });
     setDoorMap(dm);
     setLoading(false);

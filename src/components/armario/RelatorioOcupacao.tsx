@@ -84,12 +84,12 @@ export default function RelatorioOcupacao({ open, onOpenChange }: RelatorioOcupa
       personIds.length > 0 ? supabase.from("funcionarios_clientes").select("id, nome, tipo, matricula").in("id", personIds) : { data: [] },
     ]);
 
-    const lockersMap = new Map((lockersRes.data || []).map(l => [l.id, l]));
-    const personsMap = new Map((personsRes.data || []).map(p => [p.id, p]));
+    const lockersMap = new Map((lockersRes.data || []).map((l: any) => [l.id, l]));
+    const personsMap = new Map((personsRes.data || []).map((p: any) => [p.id, p]));
 
     setData(doors.map(d => {
-      const locker = lockersMap.get(d.locker_id);
-      const person = d.occupied_by_person ? personsMap.get(d.occupied_by_person) : null;
+      const locker: any = lockersMap.get(d.locker_id);
+      const person: any = d.occupied_by_person ? personsMap.get(d.occupied_by_person) : null;
       return {
         id: d.id, door_number: d.door_number, label: d.label, size: d.size,
         usage_type: d.usage_type || "temporary", expires_at: d.expires_at, occupied_at: d.occupied_at,
@@ -118,14 +118,14 @@ export default function RelatorioOcupacao({ open, onOpenChange }: RelatorioOcupa
       personIds.length > 0 ? supabase.from("funcionarios_clientes").select("id, nome, tipo").in("id", personIds) : { data: [] },
     ]);
 
-    const lockersMap = new Map((lockersRes.data || []).map(l => [l.id, l]));
-    const doorsMap = new Map((doorsRes.data || []).map(d => [d.id, d]));
-    const personsMap = new Map((personsRes.data || []).map(p => [p.id, p]));
+    const lockersMap = new Map((lockersRes.data || []).map((l: any) => [l.id, l]));
+    const doorsMap = new Map((doorsRes.data || []).map((d: any) => [d.id, d]));
+    const personsMap = new Map((personsRes.data || []).map((p: any) => [p.id, p]));
 
     setHistory(reservations.map(r => {
-      const locker = lockersMap.get(r.locker_id);
-      const door = doorsMap.get(r.door_id);
-      const person = r.person_id ? personsMap.get(r.person_id) : null;
+      const locker: any = lockersMap.get(r.locker_id);
+      const door: any = doorsMap.get(r.door_id);
+      const person: any = r.person_id ? personsMap.get(r.person_id) : null;
       return {
         id: r.id, door_number: door?.door_number || 0, locker_name: locker?.name || "—",
         person_name: person?.nome || null, person_type: person?.tipo || null,

@@ -29,16 +29,16 @@ export default function ConfigSistema() {
       setLoadingStats(true);
       try {
         const [usersRes, companiesRes, lockersRes, doorsRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("companies").select("id", { count: "exact", head: true }),
-          supabase.from("lockers").select("id", { count: "exact", head: true }),
-          supabase.from("locker_doors").select("id", { count: "exact", head: true }),
+          supabase.from("profiles").select("id"),
+          supabase.from("companies").select("id"),
+          supabase.from("lockers").select("id"),
+          supabase.from("locker_doors").select("id"),
         ]);
         setStats({
-          users: usersRes.count ?? 0,
-          companies: companiesRes.count ?? 0,
-          lockers: lockersRes.count ?? 0,
-          doors: doorsRes.count ?? 0,
+          users: Array.isArray(usersRes.data) ? usersRes.data.length : 0,
+          companies: Array.isArray(companiesRes.data) ? companiesRes.data.length : 0,
+          lockers: Array.isArray(lockersRes.data) ? lockersRes.data.length : 0,
+          doors: Array.isArray(doorsRes.data) ? doorsRes.data.length : 0,
         });
       } catch {
         // silent

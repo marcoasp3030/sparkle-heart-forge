@@ -107,9 +107,9 @@ export default function HistoricoPortas() {
     const personMap = new Map((personsRes.data || []).map(p => [p.id, p]));
 
     const mapped: UsageRecord[] = reservations.map(r => {
-      const locker = lockerMap.get(r.locker_id);
-      const door = doorMap.get(r.door_id);
-      const person = r.person_id ? personMap.get(r.person_id) : null;
+      const locker: any = lockerMap.get(r.locker_id);
+      const door: any = doorMap.get(r.door_id);
+      const person: any = r.person_id ? personMap.get(r.person_id) : null;
 
       const endTime = r.released_at || r.expires_at;
       let durationMinutes: number | null = null;

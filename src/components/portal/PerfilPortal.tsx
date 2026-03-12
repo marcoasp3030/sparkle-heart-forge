@@ -76,7 +76,7 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true });
+        .upload(path, file);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
