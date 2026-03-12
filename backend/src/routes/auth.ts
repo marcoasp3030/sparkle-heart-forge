@@ -7,7 +7,9 @@ import {
   authenticateUser,
   createUser,
   changePassword,
+  resetPassword,
 } from "../services/auth.service";
+import { sendEmail } from "../services/email.service";
 import rateLimit from "express-rate-limit";
 
 const router = Router();
