@@ -45,21 +45,11 @@ const PainelDeControle = () => {
     }
     fetchData();
 
-    // Subscribe to realtime changes on locker_doors
-    const channel = supabase
-      .channel("dashboard-doors")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "locker_doors" },
-        () => {
-          // Re-fetch all data on any door change
-          fetchData();
-        }
-      )
-      .subscribe();
+    // Polling interval replaces realtime subscription in VPS mode
+    const interval = setInterval(() => fetchData(false), 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [selectedCompany]);
 
