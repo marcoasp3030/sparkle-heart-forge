@@ -56,14 +56,11 @@ sudo apt-get install -y nodejs
 # PostgreSQL 15+
 sudo apt-get install -y postgresql postgresql-contrib
 
-# Nginx (proxy reverso)
-sudo apt-get install -y nginx
+# Traefik (proxy reverso + SSL automático)
+# Ver seção 7 para instalação detalhada
 
 # PM2 (gerenciador de processos)
 npm install -g pm2
-
-# Certbot (SSL gratuito)
-sudo apt-get install -y certbot python3-certbot-nginx
 
 # Git
 sudo apt-get install -y git
@@ -73,7 +70,7 @@ sudo apt-get install -y git
 
 ```
 /opt/locker-system/
-├── frontend/dist/       # Build do React (Nginx serve estáticos)
+├── dist/                # Build do React (Traefik roteia para servidor estático)
 ├── backend/
 │   ├── src/
 │   │   ├── config/      # database.ts, migrate.ts
@@ -659,52 +656,288 @@ MAX_FILE_SIZE=5242880
 
 ---
 
-## 7. Configuração do Nginx
+## 7. Configuração do Traefik (Proxy Reverso + SSL Automático)
 
-```nginx
-# /etc/nginx/sites-available/locker-system
-server {
-    listen 80;
-    server_name seudominio.com;
+Traefik gerencia proxy reverso, load balancing e certificados SSL automaticamente via Let's Encrypt.
 
-    # Frontend (arquivos estáticos)
-    location / {
-        root /opt/locker-system/dist;
-        try_files $uri $uri/ /index.html;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
+### 7.1 Instalar Traefik
 
-    # API Backend (proxy reverso)
-    location /api/ {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 120s;
-        client_max_body_size 10m;
-    }
+```bash
+# Criar diretórios
+sudo mkdir -p /opt/traefik
+sudo mkdir -p /opt/traefik/config
+sudo touch /opt/traefik/acme.json
+sudo chmod 600 /opt/traefik/acme.json
+
+# Baixar binário (ou usar Docker)
+wget https://github.com/traefik/traefik/releases/latest/download/traefik_linux-amd64.tar.gz
+tar xzf traefik_linux-amd64.tar.gz
+sudo mv traefik /usr/local/bin/
+```
+
+### 7.2 Arquivo de configuração estática
+
+```yaml
+# /opt/traefik/traefik.yml
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: seu@email.com
+      storage: /opt/traefik/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  file:
+    filename: /opt/traefik/config/dynamic.yml
+    watch: true
+
+log:
+  level: INFO
+
+accessLog: {}
+```
+
+### 7.3 Configuração dinâmica (rotas)
+
+```yaml
+# /opt/traefik/config/dynamic.yml
+http:
+  routers:
+    # Frontend (arquivos estáticos servidos pelo próprio Express ou servidor de arquivos)
+    locker-frontend:
+      rule: "Host(`seudominio.com`) && !PathPrefix(`/api`) && !PathPrefix(`/uploads`)"
+      service: locker-frontend
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+    # API Backend
+    locker-api:
+      rule: "Host(`seudominio.com`) && PathPrefix(`/api`)"
+      service: locker-api
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - api-ratelimit
+        - api-headers
 
     # Uploads (storage local)
-    location /uploads/ {
-        alias /opt/locker-system/backend/uploads/;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
+    locker-uploads:
+      rule: "Host(`seudominio.com`) && PathPrefix(`/uploads`)"
+      service: locker-uploads
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - uploads-cache
+
+  services:
+    locker-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3002"  # Servidor de arquivos estáticos (ver 7.5)
+
+    locker-api:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3001"
+
+    locker-uploads:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3001"
+
+  middlewares:
+    api-ratelimit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    api-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        accessControlAllowOriginList:
+          - "https://seudominio.com"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+
+    uploads-cache:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=2592000, immutable"
+```
+
+### 7.4 Systemd service para Traefik
+
+```ini
+# /etc/systemd/system/traefik.service
+[Unit]
+Description=Traefik Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/traefik --configFile=/opt/traefik/traefik.yml
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable traefik
+sudo systemctl start traefik
+```
+
+### 7.5 Servir frontend estático
+
+**Opção A: Servir via Express (mais simples)**
+
+Adicione ao `backend/src/index.ts` antes do error handler:
+
+```typescript
+// Servir frontend em produção
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.resolve(__dirname, '../../dist');
+  app.use(express.static(frontendPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
+```
+
+Nesse caso, aponte o `locker-frontend` service para `http://127.0.0.1:3001` também.
+
+**Opção B: Servidor estático separado (serve/http-server)**
+
+```bash
+npm install -g serve
+pm2 start "serve -s /opt/locker-system/dist -l 3002" --name locker-frontend
+```
+
+### 7.6 Alternativa: Traefik com Docker Compose
+
+Se preferir usar Docker para tudo:
+
+```yaml
+# /opt/locker-system/docker-compose.yml
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3.2
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=seu@email.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme.json:/acme.json
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://locker_user:senha@db:5432/locker_system
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=https://seudominio.com
+      - PORT=3001
+    volumes:
+      - ./backend/uploads:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`seudominio.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=3001"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx-spa.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`seudominio.com`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: locker_system
+      POSTGRES_USER: locker_user
+      POSTGRES_PASSWORD: senha_forte
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+```
+
+```nginx
+# nginx-spa.conf (para o container frontend)
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 }
 ```
 
-Ativar o site:
-
 ```bash
-sudo ln -s /etc/nginx/sites-available/locker-system /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+# Deploy com Docker Compose
+touch acme.json && chmod 600 acme.json
+docker compose up -d
 ```
 
 ---
@@ -731,12 +964,14 @@ pm2 monit                  # Monitor interativo
 
 ## 9. SSL/HTTPS
 
-```bash
-sudo certbot --nginx -d seudominio.com
-sudo systemctl reload nginx
+O Traefik gerencia SSL automaticamente via Let's Encrypt. Os certificados são armazenados em `/opt/traefik/acme.json` e renovados automaticamente.
 
-# Renovação automática
-sudo certbot renew --dry-run
+Para verificar o status:
+
+```bash
+sudo systemctl status traefik
+# Verificar se o certificado foi emitido
+curl -vI https://seudominio.com 2>&1 | grep "subject:"
 ```
 
 ---
@@ -816,8 +1051,8 @@ sudo certbot renew --dry-run
 - [ ] Arquivos estáticos copiados para o diretório do Nginx
 
 ### Infraestrutura
-- [ ] Nginx configurado (proxy + estáticos + uploads)
-- [ ] SSL/HTTPS ativo (Certbot)
+- [ ] Traefik configurado (proxy reverso + rotas dinâmicas)
+- [ ] SSL/HTTPS ativo (Let's Encrypt via Traefik)
 - [ ] PM2 com auto-start configurado
 - [ ] Firewall liberando portas 80 e 443
 - [ ] Backup automático do PostgreSQL configurado
