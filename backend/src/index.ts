@@ -27,6 +27,12 @@ import { whatsappRouter } from "./routes/whatsapp";
 import { compatRouter } from "./routes/compat";
 import { rpcRouter } from "./routes/rpc";
 import { functionsRouter } from "./routes/functions";
+import { smtpRouter } from "./routes/smtp";
+import { emailNotifyRouter } from "./routes/email-notify";
+import { whatsappNotifyRouter } from "./routes/whatsapp-notify";
+import { whatsappWebhookRouter } from "./routes/whatsapp-webhook";
+import { uazapiProxyRouter } from "./routes/uazapi-proxy";
+import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3001");
@@ -51,11 +57,8 @@ app.use("/uploads", express.static(path.resolve(UPLOAD_DIR)));
 app.use("/api/auth", authRouter);
 app.use("/api/health", healthRouter);
 
-// Webhook routes (validated by their own mechanism)
-app.post("/api/webhooks/whatsapp", express.json(), (req, res) => {
-  console.log("[Webhook WhatsApp]", req.body);
-  res.json({ ok: true });
-});
+// Webhook routes (no auth - validated by their own mechanism)
+app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
 // ============================================
 // Protected Routes
@@ -78,6 +81,11 @@ app.use("/api/whatsapp", authMiddleware, whatsappRouter);
 app.use("/api/compat", authMiddleware, compatRouter);
 app.use("/api/rpc", authMiddleware, rpcRouter);
 app.use("/api/functions", authMiddleware, functionsRouter);
+app.use("/api/smtp", authMiddleware, smtpRouter);
+app.use("/api/email-notify", authMiddleware, emailNotifyRouter);
+app.use("/api/whatsapp-notify", authMiddleware, whatsappNotifyRouter);
+app.use("/api/uazapi-proxy", authMiddleware, uazapiProxyRouter);
+app.use("/api/waitlist-notify", authMiddleware, waitlistNotifyRouter);
 
 // ============================================
 // Error handler
