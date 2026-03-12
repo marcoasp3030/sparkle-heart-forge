@@ -75,6 +75,9 @@ app.use("/api/admin", authMiddleware, adminRouter);
 app.use("/api/upload", authMiddleware, uploadRouter);
 app.use("/api/email", authMiddleware, emailRouter);
 app.use("/api/whatsapp", authMiddleware, whatsappRouter);
+app.use("/api/compat", authMiddleware, compatRouter);
+app.use("/api/rpc", authMiddleware, rpcRouter);
+app.use("/api/functions", authMiddleware, functionsRouter);
 
 // ============================================
 // Error handler
