@@ -1,9 +1,11 @@
 /**
  * Functions route - proxies calls that previously went to Edge Functions.
+ * Now delegates to dedicated route handlers.
  */
 import { Router, Request, Response } from "express";
 import { pool } from "../config/database";
 import bcrypt from "bcryptjs";
+import axios from "axios";
 
 const router = Router();
 
