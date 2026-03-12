@@ -81,6 +81,11 @@ app.use("/api/whatsapp", authMiddleware, whatsappRouter);
 app.use("/api/compat", authMiddleware, compatRouter);
 app.use("/api/rpc", authMiddleware, rpcRouter);
 app.use("/api/functions", authMiddleware, functionsRouter);
+app.use("/api/smtp", authMiddleware, smtpRouter);
+app.use("/api/email-notify", authMiddleware, emailNotifyRouter);
+app.use("/api/whatsapp-notify", authMiddleware, whatsappNotifyRouter);
+app.use("/api/uazapi-proxy", authMiddleware, uazapiProxyRouter);
+app.use("/api/waitlist-notify", authMiddleware, waitlistNotifyRouter);
 
 // ============================================
 // Error handler
