@@ -47,6 +47,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /** Adiciona user_metadata para compatibilidade com código existente */
+  const enrichUser = (u: User): User => ({
+    ...u,
+    user_metadata: { full_name: u.full_name || "" },
+  });
+
   // Ao iniciar, verifica se há token salvo e busca dados do usuário
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
