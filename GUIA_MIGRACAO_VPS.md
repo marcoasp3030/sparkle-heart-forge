@@ -56,14 +56,11 @@ sudo apt-get install -y nodejs
 # PostgreSQL 15+
 sudo apt-get install -y postgresql postgresql-contrib
 
-# Nginx (proxy reverso)
-sudo apt-get install -y nginx
+# Traefik (proxy reverso + SSL automático)
+# Ver seção 7 para instalação detalhada
 
 # PM2 (gerenciador de processos)
 npm install -g pm2
-
-# Certbot (SSL gratuito)
-sudo apt-get install -y certbot python3-certbot-nginx
 
 # Git
 sudo apt-get install -y git
