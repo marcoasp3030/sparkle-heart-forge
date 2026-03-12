@@ -102,19 +102,31 @@ router.post("/create-person-login", async (req: Request, res: Response) => {
   }
 });
 
-// Catch-all for other functions
+// Proxy to dedicated routes for migrated Edge Functions
 router.post("/:functionName", async (req: Request, res: Response) => {
   const { functionName } = req.params;
-  console.log(`[Functions] Called: ${functionName}`, req.body);
+  const apiBase = `http://localhost:${process.env.PORT || 3001}/api`;
   
-  // Non-critical notifications - return success silently
-  const silentFunctions = [
-    "whatsapp-locker-notify", "email-locker-notify", "waitlist-notify",
-    "send-smtp-email", "test-smtp",
-  ];
-  
-  if (silentFunctions.includes(functionName)) {
-    return res.json({ success: true, message: `${functionName} acknowledged` });
+  const routeMap: Record<string, string> = {
+    "send-smtp-email": "/smtp/send",
+    "test-smtp": "/smtp/test",
+    "email-locker-notify": "/email-notify",
+    "whatsapp-locker-notify": "/whatsapp-notify",
+    "uazapi-proxy": "/uazapi-proxy",
+    "waitlist-notify": "/waitlist-notify",
+  };
+
+  const targetPath = routeMap[functionName];
+  if (targetPath) {
+    try {
+      const { data } = await axios.post(`${apiBase}${targetPath}`, req.body, {
+        headers: { Authorization: req.headers.authorization || "" },
+      });
+      return res.json(data);
+    } catch (err: any) {
+      const status = err.response?.status || 500;
+      return res.status(status).json(err.response?.data || { error: err.message });
+    }
   }
 
   res.status(404).json({ error: `Function ${functionName} not implemented` });
