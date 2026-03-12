@@ -18,6 +18,7 @@ interface User {
 interface Session {
   token: string;
   user: User;
+  expires_at?: number;
 }
 
 interface AuthContextType {
