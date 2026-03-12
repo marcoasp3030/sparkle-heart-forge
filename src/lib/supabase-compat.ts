@@ -10,6 +10,7 @@ import api from "@/lib/api";
 interface QueryResult<T = any> {
   data: T | null;
   error: { message: string } | null;
+  count?: number | null;
 }
 
 class QueryBuilder {
