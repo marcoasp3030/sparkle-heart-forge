@@ -964,12 +964,14 @@ pm2 monit                  # Monitor interativo
 
 ## 9. SSL/HTTPS
 
-```bash
-sudo certbot --nginx -d seudominio.com
-sudo systemctl reload nginx
+O Traefik gerencia SSL automaticamente via Let's Encrypt. Os certificados são armazenados em `/opt/traefik/acme.json` e renovados automaticamente.
 
-# Renovação automática
-sudo certbot renew --dry-run
+Para verificar o status:
+
+```bash
+sudo systemctl status traefik
+# Verificar se o certificado foi emitido
+curl -vI https://seudominio.com 2>&1 | grep "subject:"
 ```
 
 ---
