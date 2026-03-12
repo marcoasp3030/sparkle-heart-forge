@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, UserCheck, Calendar, Lock, Search, Download, History, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle

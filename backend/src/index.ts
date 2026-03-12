@@ -24,6 +24,9 @@ import { uploadRouter } from "./routes/upload";
 import { reservationsRouter } from "./routes/reservations";
 import { emailRouter } from "./routes/email";
 import { whatsappRouter } from "./routes/whatsapp";
+import { compatRouter } from "./routes/compat";
+import { rpcRouter } from "./routes/rpc";
+import { functionsRouter } from "./routes/functions";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3001");
@@ -72,6 +75,9 @@ app.use("/api/admin", authMiddleware, adminRouter);
 app.use("/api/upload", authMiddleware, uploadRouter);
 app.use("/api/email", authMiddleware, emailRouter);
 app.use("/api/whatsapp", authMiddleware, whatsappRouter);
+app.use("/api/compat", authMiddleware, compatRouter);
+app.use("/api/rpc", authMiddleware, rpcRouter);
+app.use("/api/functions", authMiddleware, functionsRouter);
 
 // ============================================
 // Error handler

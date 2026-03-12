@@ -5,7 +5,7 @@ import {
   Camera, Pencil, Save, X, Bell, BellOff, MessageSquare,
   Clock, RefreshCw, Loader2
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Layers, Plus, Pencil, Trash2, Search, Users, Building, MoreHorizontal, LayoutGrid, List, UserCheck, UserX } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

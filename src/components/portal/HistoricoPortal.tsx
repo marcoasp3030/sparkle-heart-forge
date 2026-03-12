@@ -5,7 +5,7 @@ import {
   ChevronDown, CalendarDays, ArrowUpRight, ArrowDownRight,
   CheckCircle2, AlertCircle, Ban
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

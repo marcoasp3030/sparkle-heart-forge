@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { lovable } from "@/integrations/lovable/index";
 import { usePlatform } from "@/contexts/ContextoPlataforma";
 import lockerLogo from "@/assets/locker-logo.png";

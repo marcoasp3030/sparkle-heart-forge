@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
 
@@ -45,21 +45,11 @@ const PainelDeControle = () => {
     }
     fetchData();
 
-    // Subscribe to realtime changes on locker_doors
-    const channel = supabase
-      .channel("dashboard-doors")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "locker_doors" },
-        () => {
-          // Re-fetch all data on any door change
-          fetchData();
-        }
-      )
-      .subscribe();
+    // Polling interval replaces realtime subscription in VPS mode
+    const interval = setInterval(() => fetchData(false), 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [selectedCompany]);
 
