@@ -28,6 +28,7 @@ import Auditoria from "./pages/Auditoria";
 import Portal from "./pages/Portal";
 import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
+import RedefinirSenha from "./pages/RedefinirSenha";
 
 const queryClient = new QueryClient();
 
