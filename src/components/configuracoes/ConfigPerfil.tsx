@@ -52,7 +52,7 @@ export default function ConfigPerfil() {
 
       const { error: uploadError } = await supabase.storage
         .from("platform-assets")
-        .upload(path, file, { upsert: true });
+        .upload(path, file);
 
       if (uploadError) throw uploadError;
 

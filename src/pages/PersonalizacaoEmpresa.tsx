@@ -150,7 +150,7 @@ export default function PersonalizacaoEmpresa() {
     const ext = file.name.split(".").pop();
     const path = `company-branding/${companyId}/${field}/${Date.now()}.${ext}`;
 
-    const { error } = await supabase.storage.from("platform-assets").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("platform-assets").upload(path, file);
     if (error) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       setUploading(null);

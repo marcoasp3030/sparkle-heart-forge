@@ -337,15 +337,12 @@ class SupabaseCompat {
   }
 
   channel(_name: string) {
-    // No-op in Express mode - realtime not supported without additional setup
-    return {
-      on: () => ({
-        subscribe: () => ({
-          unsubscribe: () => {},
-        }),
-      }),
-      subscribe: () => ({}),
+    const self = {
+      on: (..._args: any[]) => self,
+      subscribe: () => self,
+      unsubscribe: () => {},
     };
+    return self;
   }
 
   removeChannel(_channel: any) {

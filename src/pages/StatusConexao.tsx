@@ -183,7 +183,8 @@ export default function StatusConexao() {
   const checkAuthHealth = useCallback(async () => {
     const start = performance.now();
     try {
-      const { error } = await supabase.auth.getSession();
+      const result = await supabase.auth.getSession();
+      const error = (result as any).error;
       const latency = Math.round(performance.now() - start);
       const isHighLatency = alertsEnabled && latency > authThreshold;
       const status = error ? "degraded" : isHighLatency ? "degraded" : "healthy";

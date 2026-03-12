@@ -118,9 +118,9 @@ export default function RelatorioOcupacao({ open, onOpenChange }: RelatorioOcupa
       personIds.length > 0 ? supabase.from("funcionarios_clientes").select("id, nome, tipo").in("id", personIds) : { data: [] },
     ]);
 
-    const lockersMap = new Map((lockersRes.data || []).map(l => [l.id, l]));
-    const doorsMap = new Map((doorsRes.data || []).map(d => [d.id, d]));
-    const personsMap = new Map((personsRes.data || []).map(p => [p.id, p]));
+    const lockersMap = new Map((lockersRes.data || []).map((l: any) => [l.id, l]));
+    const doorsMap = new Map((doorsRes.data || []).map((d: any) => [d.id, d]));
+    const personsMap = new Map((personsRes.data || []).map((p: any) => [p.id, p]));
 
     setHistory(reservations.map(r => {
       const locker = lockersMap.get(r.locker_id);

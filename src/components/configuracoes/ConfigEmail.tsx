@@ -188,9 +188,7 @@ export default function ConfigEmail() {
         toast({ title: "E-mail de teste enviado via SMTP!", description: `Verifique a caixa de entrada de ${testEmail}` });
       } else {
         // Fallback to built-in
-        const { error } = await supabase.auth.resetPasswordForEmail(testEmail, {
-          redirectTo: `${window.location.origin}/auth`,
-        });
+        const { error } = await supabase.auth.resetPasswordForEmail(testEmail);
         if (error) throw error;
         toast({ title: "E-mail de teste enviado!", description: `Verifique a caixa de entrada de ${testEmail} (via sistema padrão)` });
       }

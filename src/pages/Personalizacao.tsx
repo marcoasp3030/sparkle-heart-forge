@@ -154,7 +154,7 @@ export default function Personalizacao() {
     const ext = file.name.split(".").pop();
     const path = `${field}/${Date.now()}.${ext}`;
 
-    const { error } = await supabase.storage.from("platform-assets").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("platform-assets").upload(path, file);
     if (error) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       setUploading(null);
