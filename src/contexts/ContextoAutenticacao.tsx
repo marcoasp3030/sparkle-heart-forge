@@ -57,7 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     get<{ user: User }>("/auth/me")
       .then((data) => {
-        setSession({ token, user: data.user });
+        const u = enrichUser(data.user);
+        setSession({ token, user: u });
       })
       .catch(() => {
         localStorage.removeItem("auth_token");
