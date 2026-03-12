@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Shield, Users, Save } from "lucide-react";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

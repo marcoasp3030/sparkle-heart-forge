@@ -4,7 +4,7 @@ import {
   History, Search, Download, Clock, User, Calendar,
   ArrowUpDown, Filter, ChevronLeft, ChevronRight, DoorOpen
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

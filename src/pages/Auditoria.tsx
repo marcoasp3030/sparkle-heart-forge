@@ -6,7 +6,7 @@ import {
   Activity, TrendingUp, UserCheck, Lock, Unlock, Wrench,
   Ban, FileText, Calendar, BarChart3, X
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
