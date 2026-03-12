@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+// supabase import removed - using api.ts for auth
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useToast } from "@/hooks/use-toast";
 import { registrarAuditoria } from "@/services/auditoria";

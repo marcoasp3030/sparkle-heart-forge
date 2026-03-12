@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
 

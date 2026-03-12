@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { usePlatform, CompanyBranding } from "@/contexts/ContextoPlataforma";

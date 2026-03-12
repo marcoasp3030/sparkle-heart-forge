@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 
 interface Company {
