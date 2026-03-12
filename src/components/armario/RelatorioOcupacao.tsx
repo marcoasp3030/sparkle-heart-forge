@@ -88,8 +88,8 @@ export default function RelatorioOcupacao({ open, onOpenChange }: RelatorioOcupa
     const personsMap = new Map((personsRes.data || []).map((p: any) => [p.id, p]));
 
     setData(doors.map(d => {
-      const locker = lockersMap.get(d.locker_id);
-      const person = d.occupied_by_person ? personsMap.get(d.occupied_by_person) : null;
+      const locker: any = lockersMap.get(d.locker_id);
+      const person: any = d.occupied_by_person ? personsMap.get(d.occupied_by_person) : null;
       return {
         id: d.id, door_number: d.door_number, label: d.label, size: d.size,
         usage_type: d.usage_type || "temporary", expires_at: d.expires_at, occupied_at: d.occupied_at,
