@@ -70,7 +70,7 @@ sudo apt-get install -y git
 
 ```
 /opt/locker-system/
-├── frontend/dist/       # Build do React (Nginx serve estáticos)
+├── dist/                # Build do React (Traefik roteia para servidor estático)
 ├── backend/
 │   ├── src/
 │   │   ├── config/      # database.ts, migrate.ts
