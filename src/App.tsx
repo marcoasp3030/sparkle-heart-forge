@@ -47,6 +47,7 @@ function RotasAnimadas() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/auth" element={<TransicaoPagina><Autenticacao /></TransicaoPagina>} />
+        <Route path="/reset-password" element={<TransicaoPagina><RedefinirSenha /></TransicaoPagina>} />
         <Route path="/portal" element={<RotaProtegida><TransicaoPagina><Portal /></TransicaoPagina></RotaProtegida>} />
         <Route path="/" element={protectedRoute(<PainelDeControle />)} />
         <Route path="/armarios" element={protectedRoute(<Armarios />)} />
