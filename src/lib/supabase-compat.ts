@@ -252,7 +252,7 @@ class CompatAuth {
 class CompatStorage {
   from(bucket: string) {
     return {
-      upload: async (path: string, file: File) => {
+      upload: async (path: string, file: File, _options?: { upsert?: boolean }) => {
         try {
           const formData = new FormData();
           formData.append("file", file);
