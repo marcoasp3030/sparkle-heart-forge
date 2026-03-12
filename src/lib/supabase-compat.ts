@@ -26,7 +26,7 @@ class QueryBuilder {
     this.table = table;
   }
 
-  select(fields: string = "*") {
+  select(fields: string = "*", _options?: { count?: string; head?: boolean }) {
     this.method = "GET";
     this.selectFields = fields;
     return this;
