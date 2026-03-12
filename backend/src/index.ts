@@ -57,11 +57,8 @@ app.use("/uploads", express.static(path.resolve(UPLOAD_DIR)));
 app.use("/api/auth", authRouter);
 app.use("/api/health", healthRouter);
 
-// Webhook routes (validated by their own mechanism)
-app.post("/api/webhooks/whatsapp", express.json(), (req, res) => {
-  console.log("[Webhook WhatsApp]", req.body);
-  res.json({ ok: true });
-});
+// Webhook routes (no auth - validated by their own mechanism)
+app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
 // ============================================
 // Protected Routes
