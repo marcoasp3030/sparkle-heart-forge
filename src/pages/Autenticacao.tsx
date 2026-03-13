@@ -97,14 +97,12 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        // O backend /api/auth/login já faz TUDO:
-        // - Verifica lockout
-        // - Valida credenciais (bcrypt)
-        // - Registra tentativa
-        // - Busca profile (role, company_id, etc.)
-        // - Registra audit log
-        // Não precisamos duplicar essas chamadas no frontend!
+        const t0 = performance.now();
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const elapsed = Math.round(performance.now() - t0);
+
+        const style = elapsed < 500 ? "color:#22c55e;font-weight:bold" : elapsed < 1500 ? "color:#eab308;font-weight:bold" : "color:#ef4444;font-weight:bold";
+        console.log(`%c⚡ Login ${error ? "FALHOU" : "OK"} em ${elapsed}ms`, style);
 
         if (error) {
           // O backend retorna lockout info no corpo do erro
