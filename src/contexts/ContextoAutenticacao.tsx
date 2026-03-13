@@ -92,30 +92,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     try {
-      const response = await api.post<{ token?: string; user?: User }>("/auth/login", {
+      const response = await api.post<any>("/auth/login", {
         email: normalizedEmail,
         password,
       });
 
-      const data = response.data;
+      const rawData = response.data;
+      const payload = rawData?.data && typeof rawData.data === "object" ? rawData.data : rawData;
+      const token =
+        payload?.token ??
+        payload?.access_token ??
+        payload?.accessToken ??
+        payload?.jwt ??
+        payload?.session?.access_token ??
+        payload?.session?.token;
+      const userFromPayload = payload?.user ?? payload?.session?.user ?? payload?.profile;
+
       const elapsed = Math.round(performance.now() - t0);
+      const contentType = String(response.headers?.["content-type"] || "");
+      const isHtmlResponse =
+        contentType.includes("text/html") ||
+        (typeof rawData === "string" && /<!doctype html|<html/i.test(rawData));
 
       console.log("[AUTH] Resposta /auth/login", {
         status: response.status,
-        hasToken: Boolean(data?.token),
-        hasUser: Boolean(data?.user),
-        keys: data ? Object.keys(data) : [],
+        method: response.config?.method,
+        url: `${response.config?.baseURL || ""}${response.config?.url || ""}`,
+        contentType,
+        hasToken: Boolean(token),
+        hasUser: Boolean(userFromPayload),
+        rawType: typeof rawData,
+        topLevelKeys: rawData && typeof rawData === "object" ? Object.keys(rawData) : [],
+        payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
         elapsedMs: elapsed,
       });
 
-      if (!data?.token) {
-        console.error("[AUTH] Resposta inválida: token ausente", data);
-        return { error: "Resposta inválida do servidor (token ausente)" };
+      if (!token) {
+        const rawPreview = typeof rawData === "string" ? rawData.slice(0, 220) : rawData;
+        console.error("[AUTH] Resposta inválida: token ausente", {
+          contentType,
+          rawType: typeof rawData,
+          rawPreview,
+          payload,
+        });
+
+        return {
+          error: isHtmlResponse
+            ? "Login retornou HTML em vez de JSON (verifique proxy /api e VITE_API_URL na VPS)"
+            : "Resposta inválida do servidor (token ausente)",
+        };
       }
 
-      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("auth_token", token);
 
-      let resolvedUser = data.user;
+      let resolvedUser = userFromPayload;
       if (!resolvedUser) {
         console.warn("[AUTH] user ausente no login, tentando fallback /auth/me");
         try {
@@ -129,12 +159,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!resolvedUser) {
         localStorage.removeItem("auth_token");
-        console.error("[AUTH] Não foi possível resolver usuário após login", data);
+        console.error("[AUTH] Não foi possível resolver usuário após login", payload);
         return { error: "Login recebido, mas sem dados de usuário" };
       }
 
       const u = enrichUser(resolvedUser);
-      setSession({ token: data.token, user: u });
+      setSession({ token, user: u });
 
       console.log("[AUTH] Sessão criada", {
         userId: u.id,
@@ -146,11 +176,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return {};
     } catch (err: any) {
       const lockout = err.original?.response?.data?.lockout || null;
+      const responseData = err.original?.response?.data;
+      const responseHeaders = err.original?.response?.headers || {};
+      const contentType = String(responseHeaders["content-type"] || "");
+
       console.error("[AUTH] Erro no login", {
         message: err.message,
         status: err.status,
+        method: err.original?.config?.method,
+        url: `${err.original?.config?.baseURL || ""}${err.original?.config?.url || ""}`,
         lockout,
-        response: err.original?.response?.data || null,
+        contentType,
+        responseType: typeof responseData,
+        responsePreview: typeof responseData === "string" ? responseData.slice(0, 220) : responseData,
         elapsedMs: Math.round(performance.now() - t0),
       });
 
