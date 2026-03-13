@@ -36,7 +36,7 @@ const PainelDeControle = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState<DoorWithLocker[]>([]);
-  const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, maintenance: 0 });
+  const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, maintenance: 0, hygienizing: 0 });
   const { selectedCompany } = useCompany();
 
   useEffect(() => {
