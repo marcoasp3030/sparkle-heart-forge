@@ -24,6 +24,9 @@ export default function ConfigSistema() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(true);
+  const [hygienizationEnabled, setHygienizationEnabled] = useState(false);
+  const [hygienizationMinutes, setHygienizationMinutes] = useState(15);
+  const [hygienizationLoading, setHygienizationLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
