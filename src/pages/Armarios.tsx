@@ -531,13 +531,23 @@ export default function LockersPage() {
                     onClick={() => { setStatusFilter(f.value); setCurrentPage(1); }}
                     className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
                       statusFilter === f.value
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? f.value === "scheduled"
+                          ? "bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-sm ring-1 ring-violet-500/20"
+                          : "bg-background text-foreground shadow-sm"
+                        : f.value === "scheduled"
+                          ? "text-violet-500/70 hover:text-violet-600 dark:hover:text-violet-400"
+                          : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {f.label}
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                      statusFilter === f.value ? "bg-primary/10 text-primary" : "bg-muted-foreground/10"
+                      statusFilter === f.value
+                        ? f.value === "scheduled"
+                          ? "bg-violet-500/20 text-violet-700 dark:text-violet-300"
+                          : "bg-primary/10 text-primary"
+                        : f.value === "scheduled"
+                          ? "bg-violet-500/10 text-violet-500"
+                          : "bg-muted-foreground/10"
                     }`}>
                       {f.count}
                     </span>
