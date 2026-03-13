@@ -36,7 +36,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://admin:${DB_PASSWORD:-SenhaForte123!}@postgres:5432/pblocker
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD_URL_ENCODED:-${DB_PASSWORD:-SenhaForte123!}}@postgres:5432/pblocker
       JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
       JWT_EXPIRES_IN: 7d
       PORT: 3001
