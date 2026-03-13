@@ -35,6 +35,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
   occupied: { label: "Ocupado", color: "text-rose-600", bg: "bg-rose-500" },
   maintenance: { label: "Manutenção", color: "text-amber-600", bg: "bg-amber-500" },
   reserved: { label: "Reservado", color: "text-blue-600", bg: "bg-blue-500" },
+  hygienizing: { label: "Higienização", color: "text-cyan-600", bg: "bg-cyan-500" },
 };
 
 const sizeLabels: Record<string, string> = { small: "Pequeno", medium: "Médio", large: "Grande" };
