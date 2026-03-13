@@ -19,7 +19,7 @@ export interface LockerDoorData {
   door_number: number;
   label: string | null;
   size: "small" | "medium" | "large";
-  status: "available" | "occupied" | "maintenance" | "reserved";
+  status: "available" | "occupied" | "maintenance" | "reserved" | "hygienizing";
   occupied_by: string | null;
   usage_type?: string;
   expires_at?: string | null;
