@@ -13,6 +13,59 @@ const router = Router();
 const PROJECT_ROOT = process.env.PROJECT_ROOT || "/app";
 const COMPOSE_DIR = process.env.COMPOSE_DIR || path.resolve(PROJECT_ROOT, "..");
 
+const ensureGitRepository = async () => {
+  try {
+    await execAsync("git rev-parse --is-inside-work-tree", { cwd: PROJECT_ROOT });
+  } catch {
+    throw new Error(
+      `Repositório Git não encontrado em ${PROJECT_ROOT}. Configure PROJECT_ROOT para o diretório do projeto montado com a pasta .git.`
+    );
+  }
+};
+
+const resolveRemoteRef = async (): Promise<{ remoteRef: string; branch: string }> => {
+  try {
+    const { stdout } = await execAsync("git symbolic-ref --quiet refs/remotes/origin/HEAD", {
+      cwd: PROJECT_ROOT,
+    });
+    const remoteRef = stdout.trim().replace("refs/remotes/", "");
+    const branch = remoteRef.replace("origin/", "");
+    return { remoteRef, branch };
+  } catch {
+    try {
+      await execAsync("git rev-parse --verify origin/main", { cwd: PROJECT_ROOT });
+      return { remoteRef: "origin/main", branch: "main" };
+    } catch {
+      return { remoteRef: "origin/master", branch: "master" };
+    }
+  }
+};
+
+const runComposeRebuild = async () => {
+  const commands = [
+    "docker compose up -d --build --no-deps backend frontend 2>&1",
+    "docker-compose up -d --build --no-deps backend frontend 2>&1",
+  ];
+
+  let lastError: any = null;
+
+  for (const command of commands) {
+    try {
+      const { stdout, stderr } = await execAsync(command, {
+        cwd: COMPOSE_DIR,
+        timeout: 300000,
+      });
+      return `${stdout}${stderr ? `\n${stderr}` : ""}`.trim();
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+
+  throw new Error(
+    `Falha ao executar Docker Compose em ${COMPOSE_DIR}. Verifique se docker compose está disponível e se /var/run/docker.sock está montado no backend. Erro: ${lastError?.message || "desconhecido"}`
+  );
+};
+
 // ============================================
 // GET /api/system/version - Versão atual
 // ============================================
@@ -32,11 +85,13 @@ router.get("/version", async (_req: Request, res: Response) => {
     try {
       const { stdout: hash } = await execAsync("git rev-parse --short HEAD", { cwd: PROJECT_ROOT });
       commitHash = hash.trim();
-      const { stdout: date } = await execAsync('git log -1 --format=%ci', { cwd: PROJECT_ROOT });
+      const { stdout: date } = await execAsync("git log -1 --format=%ci", { cwd: PROJECT_ROOT });
       commitDate = date.trim();
-      const { stdout: msg } = await execAsync('git log -1 --format=%s', { cwd: PROJECT_ROOT });
+      const { stdout: msg } = await execAsync("git log -1 --format=%s", { cwd: PROJECT_ROOT });
       commitMessage = msg.trim();
-    } catch { /* ignore if not a git repo */ }
+    } catch {
+      /* ignore if not a git repo */
+    }
 
     res.json({
       version,
@@ -55,27 +110,24 @@ router.get("/version", async (_req: Request, res: Response) => {
 // ============================================
 router.get("/check-update", requireSuperAdmin, async (_req: Request, res: Response) => {
   try {
+    await ensureGitRepository();
+
     // Fetch sem merge
     await execAsync("git fetch origin", { cwd: PROJECT_ROOT });
 
+    const { remoteRef } = await resolveRemoteRef();
+
     // Compara local vs remoto
     const { stdout: localHash } = await execAsync("git rev-parse HEAD", { cwd: PROJECT_ROOT });
-    const { stdout: remoteHash } = await execAsync("git rev-parse origin/main", { cwd: PROJECT_ROOT }).catch(() =>
-      execAsync("git rev-parse origin/master", { cwd: PROJECT_ROOT })
-    );
+    const { stdout: remoteHash } = await execAsync(`git rev-parse ${remoteRef}`, { cwd: PROJECT_ROOT });
 
     const hasUpdate = localHash.trim() !== remoteHash.trim();
 
     let changelog: Array<{ hash: string; date: string; message: string; author: string }> = [];
     if (hasUpdate) {
       const { stdout: log } = await execAsync(
-        'git log HEAD..origin/main --format="%h|%ci|%s|%an" --no-merges',
+        `git log HEAD..${remoteRef} --format=\"%h|%ci|%s|%an\" --no-merges`,
         { cwd: PROJECT_ROOT }
-      ).catch(() =>
-        execAsync(
-          'git log HEAD..origin/master --format="%h|%ci|%s|%an" --no-merges',
-          { cwd: PROJECT_ROOT }
-        )
       );
 
       changelog = log
@@ -92,15 +144,13 @@ router.get("/check-update", requireSuperAdmin, async (_req: Request, res: Respon
     let remoteVersion = "";
     if (hasUpdate) {
       try {
-        const branch = await execAsync("git rev-parse --abbrev-ref origin/HEAD", { cwd: PROJECT_ROOT })
-          .then(r => r.stdout.trim().replace("origin/", ""))
-          .catch(() => "main");
-        const { stdout: remotePkg } = await execAsync(
-          `git show origin/${branch}:package.json`,
-          { cwd: PROJECT_ROOT }
-        );
+        const { stdout: remotePkg } = await execAsync(`git show ${remoteRef}:package.json`, {
+          cwd: PROJECT_ROOT,
+        });
         remoteVersion = JSON.parse(remotePkg).version || "";
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     res.json({
@@ -123,6 +173,10 @@ router.post("/update", requireSuperAdmin, async (req: Request, res: Response) =>
   const userId = req.user!.user_id;
 
   try {
+    await ensureGitRepository();
+    await execAsync("git fetch origin", { cwd: PROJECT_ROOT });
+    const { branch } = await resolveRemoteRef();
+
     // Salva commit atual para rollback
     const { stdout: currentCommit } = await execAsync("git rev-parse HEAD", { cwd: PROJECT_ROOT });
     const rollbackCommit = currentCommit.trim();
@@ -135,24 +189,21 @@ router.post("/update", requireSuperAdmin, async (req: Request, res: Response) =>
     );
 
     // 1. Git pull
-    const { stdout: pullOutput } = await execAsync("git pull origin", { cwd: PROJECT_ROOT });
+    const { stdout: pullOutputStdout, stderr: pullOutputStderr } = await execAsync(
+      `git pull --ff-only origin ${branch}`,
+      { cwd: PROJECT_ROOT }
+    );
+    const pullOutput = `${pullOutputStdout}${pullOutputStderr ? `\n${pullOutputStderr}` : ""}`.trim();
 
     // 2. Rebuild containers com Docker Compose
     let buildOutput = "";
     try {
-      const { stdout } = await execAsync(
-        "docker-compose up -d --build --no-deps backend frontend 2>&1",
-        { cwd: COMPOSE_DIR, timeout: 300000 } // 5 min timeout
-      );
-      buildOutput = stdout;
+      buildOutput = await runComposeRebuild();
     } catch (buildErr: any) {
       // ROLLBACK: reverte ao commit anterior
       console.error("Build falhou, iniciando rollback...", buildErr.message);
       await execAsync(`git reset --hard ${rollbackCommit}`, { cwd: PROJECT_ROOT });
-      await execAsync("docker-compose up -d --build --no-deps backend frontend 2>&1", {
-        cwd: COMPOSE_DIR,
-        timeout: 300000,
-      });
+      await runComposeRebuild();
 
       await pool.query(
         `INSERT INTO audit_logs (user_id, action, resource_type, category, details)
@@ -182,11 +233,14 @@ router.post("/update", requireSuperAdmin, async (req: Request, res: Response) =>
     await pool.query(
       `INSERT INTO audit_logs (user_id, action, resource_type, category, details)
        VALUES ($1, 'system_update_completed', 'system', 'admin', $2)`,
-      [userId, JSON.stringify({
-        from_commit: rollbackCommit.substring(0, 7),
-        to_commit: newCommit.trim(),
-        new_version: newVersion,
-      })]
+      [
+        userId,
+        JSON.stringify({
+          from_commit: rollbackCommit.substring(0, 7),
+          to_commit: newCommit.trim(),
+          new_version: newVersion,
+        }),
+      ]
     );
 
     res.json({

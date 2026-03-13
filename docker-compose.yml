@@ -44,8 +44,12 @@ services:
       API_URL: https://pblocker.sistembr.com.br/api
       UPLOAD_DIR: ./uploads
       MAX_FILE_SIZE: 5242880
+      PROJECT_ROOT: /workspace
+      COMPOSE_DIR: /workspace
     volumes:
       - uploads:/app/uploads
+      - ./:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "3001"
 
