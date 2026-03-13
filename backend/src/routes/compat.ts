@@ -187,7 +187,7 @@ router.put("/:table", async (req: Request, res: Response) => {
 
     // Regular update
     const updateKeys = Object.keys(data).filter(k => !k.startsWith("_"));
-    const updateVals = updateKeys.map(k => data[k]);
+    const updateVals = updateKeys.map(k => serializeValue(data[k]));
     const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`).join(", ");
 
     const { clauses, values } = parseFilters(params as Record<string, any>);
