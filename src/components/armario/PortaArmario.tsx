@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { Lock, Unlock, Wrench, User } from "lucide-react";
+import { Lock, Unlock, Wrench, User, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CountdownPorta, { useUrgencyLevel } from "./CountdownPorta";
+
+export interface ScheduledReservation {
+  id: string;
+  door_id: string;
+  person_name?: string;
+  starts_at: string;
+  expires_at?: string | null;
+}
 
 export interface LockerDoorData {
   id: string;
@@ -16,6 +24,7 @@ export interface LockerDoorData {
   usage_type?: string;
   expires_at?: string | null;
   occupied_at?: string | null;
+  scheduledReservation?: ScheduledReservation | null;
 }
 
 interface LockerDoorProps {
