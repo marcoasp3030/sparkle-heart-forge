@@ -130,7 +130,14 @@ router.post("/:table", async (req: Request, res: Response) => {
 
     for (const item of items) {
       const keys = Object.keys(item).filter(k => !k.startsWith("_"));
-      const vals = keys.map(k => item[k]);
+      const vals = keys.map(k => {
+        const v = item[k];
+        // Auto-serialize objects/arrays for jsonb columns
+        if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+          return JSON.stringify(v);
+        }
+        return v;
+      });
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
 
       const { rows } = await pool.query(
@@ -157,18 +164,29 @@ router.put("/:table", async (req: Request, res: Response) => {
     const data = req.body.data || req.body;
     const params = req.body.params || req.query;
     const isUpsert = data._upsert;
+    const conflictColumn = data._onConflict || null;
     delete data._upsert;
+    delete data._onConflict;
+
+    // Auto-serialize objects/arrays for jsonb columns
+    const serializeValue = (v: any) => {
+      if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+        return JSON.stringify(v);
+      }
+      return v;
+    };
 
     if (isUpsert) {
-      // Upsert logic
       const keys = Object.keys(data).filter(k => !k.startsWith("_"));
-      const vals = keys.map(k => data[k]);
+      const vals = keys.map(k => serializeValue(data[k]));
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
-      const updates = keys.map((k, i) => `${k} = $${i + 1}`).join(", ");
+      const updateKeys = keys.filter(k => k !== conflictColumn);
+      const updates = updateKeys.map((k) => `${k} = EXCLUDED.${k}`).join(", ");
+      const conflictClause = conflictColumn ? `(${conflictColumn})` : `(id)`;
 
       const { rows } = await pool.query(
         `INSERT INTO ${table} (${keys.join(", ")}) VALUES (${placeholders})
-         ON CONFLICT DO UPDATE SET ${updates} RETURNING *`,
+         ON CONFLICT ${conflictClause} DO UPDATE SET ${updates}, updated_at = NOW() RETURNING *`,
         vals
       );
       return res.json(rows[0]);
@@ -176,7 +194,7 @@ router.put("/:table", async (req: Request, res: Response) => {
 
     // Regular update
     const updateKeys = Object.keys(data).filter(k => !k.startsWith("_"));
-    const updateVals = updateKeys.map(k => data[k]);
+    const updateVals = updateKeys.map(k => serializeValue(data[k]));
     const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`).join(", ");
 
     const { clauses, values } = parseFilters(params as Record<string, any>);
