@@ -176,11 +176,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return {};
     } catch (err: any) {
       const lockout = err.original?.response?.data?.lockout || null;
+      const responseData = err.original?.response?.data;
+      const responseHeaders = err.original?.response?.headers || {};
+      const contentType = String(responseHeaders["content-type"] || "");
+
       console.error("[AUTH] Erro no login", {
         message: err.message,
         status: err.status,
+        method: err.original?.config?.method,
+        url: `${err.original?.config?.baseURL || ""}${err.original?.config?.url || ""}`,
         lockout,
-        response: err.original?.response?.data || null,
+        contentType,
+        responseType: typeof responseData,
+        responsePreview: typeof responseData === "string" ? responseData.slice(0, 220) : responseData,
         elapsedMs: Math.round(performance.now() - t0),
       });
 
