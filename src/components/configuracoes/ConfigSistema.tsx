@@ -120,6 +120,56 @@ export default function ConfigSistema() {
     toast({ title: enabled ? "Fila de espera ativada" : "Fila de espera desativada" });
   };
 
+  const toggleHygienization = async (enabled: boolean) => {
+    if (!selectedCompany) return;
+    setHygienizationEnabled(enabled);
+
+    const { data: existing } = await supabase
+      .from("company_permissions")
+      .select("id")
+      .eq("company_id", selectedCompany.id)
+      .eq("permission", "hygienization_enabled")
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("company_permissions")
+        .update({ enabled })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("company_permissions")
+        .insert({ company_id: selectedCompany.id, permission: "hygienization_enabled", enabled });
+    }
+
+    toast({ title: enabled ? "Higienização ativada" : "Higienização desativada" });
+  };
+
+  const saveHygienizationMinutes = async (minutes: number) => {
+    if (!selectedCompany) return;
+    setHygienizationMinutes(minutes);
+
+    const key = `hygienization_minutes_${selectedCompany.id}`;
+    const { data: existing } = await supabase
+      .from("platform_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("platform_settings")
+        .update({ value: minutes })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("platform_settings")
+        .insert({ key, value: minutes });
+    }
+
+    toast({ title: `Tempo de higienização: ${minutes} minutos` });
+  };
+
   const handleExportLogs = async () => {
     try {
       const { data, error } = await supabase
