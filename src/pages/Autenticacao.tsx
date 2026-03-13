@@ -97,52 +97,47 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const status = await verificarBloqueioLogin(email);
-        if (status.bloqueado) {
-          setStatusLogin(status);
-          setSegundosRestantes(status.segundosRestantes ?? 60);
-          setLoading(false);
-          return;
-        }
+        // O backend /api/auth/login já faz TUDO:
+        // - Verifica lockout
+        // - Valida credenciais (bcrypt)
+        // - Registra tentativa
+        // - Busca profile (role, company_id, etc.)
+        // - Registra audit log
+        // Não precisamos duplicar essas chamadas no frontend!
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          await registrarTentativaLogin(email, false);
-          await registrarAuditoria({
-            action: "login_failed",
-            resource_type: "auth",
-            details: { email, reason: error.message },
-          });
+          // O backend retorna lockout info no corpo do erro
+          const errResponse = (error as any).original?.response?.data;
+          const lockout = errResponse?.lockout;
 
-          const updated = await verificarBloqueioLogin(email);
-          setStatusLogin(updated);
-
-          if (updated.bloqueado) {
-            setSegundosRestantes(updated.segundosRestantes ?? 60);
+          if (lockout) {
+            const status: StatusBloqueio = {
+              bloqueado: lockout.blocked,
+              tentativasRestantes: lockout.attempts_remaining ?? 0,
+              minutosRestantes: Math.ceil((lockout.seconds_remaining ?? 0) / 60),
+              segundosRestantes: lockout.seconds_remaining ?? 0,
+              totalFalhas: 5 - (lockout.attempts_remaining ?? 0),
+              nivel: lockout.blocked ? "bloqueado" : lockout.level === "perigo" ? "perigo" : lockout.level === "aviso" ? "aviso" : "info",
+              mensagem: errResponse?.error || "Credenciais inválidas",
+            };
+            setStatusLogin(status);
+            if (lockout.blocked) {
+              setSegundosRestantes(lockout.seconds_remaining ?? 60);
+            }
           } else {
             toast({
               title: traduzirErro(error.message),
-              description: updated.mensagem,
+              description: "Verifique suas credenciais e tente novamente.",
               variant: "destructive",
             });
           }
           return;
         }
 
-        await registrarTentativaLogin(email, true);
-        await registrarAuditoria({
-          action: "login_success",
-          resource_type: "auth",
-          details: { email },
-        });
-        // Check role to redirect appropriately
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-          .single();
-        
-        if (profile?.role === "user") {
+        // Login com sucesso — o role já vem na resposta do backend
+        const userRole = (data as any)?.user?.role;
+        if (userRole === "user") {
           navigate("/portal");
         } else {
           navigate("/");
