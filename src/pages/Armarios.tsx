@@ -368,6 +368,7 @@ export default function LockersPage() {
     .map((l) => {
       if (statusFilter === "all") return l;
       if (statusFilter === "scheduled") return { ...l, doors: l.doors.filter((d) => !!d.scheduledReservation) };
+      if (statusFilter === "hygienizing") return { ...l, doors: l.doors.filter((d) => d.status === "hygienizing") };
       return { ...l, doors: l.doors.filter((d) => d.status === statusFilter) };
     })
     .filter((l) => {

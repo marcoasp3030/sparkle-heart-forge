@@ -69,6 +69,32 @@ export default function ConfigSistema() {
     loadWaitlistSetting();
   }, [selectedCompany]);
 
+  // Load hygienization settings
+  useEffect(() => {
+    const loadHygienization = async () => {
+      if (!selectedCompany) return;
+      const { data } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", selectedCompany.id)
+        .eq("permission", "hygienization_enabled")
+        .maybeSingle();
+      setHygienizationEnabled(data?.enabled ?? false);
+
+      // Load minutes from platform_settings
+      const { data: minutesData } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", `hygienization_minutes_${selectedCompany.id}`)
+        .maybeSingle();
+      if (minutesData?.value) {
+        setHygienizationMinutes(parseInt(String(minutesData.value)) || 15);
+      }
+      setHygienizationLoading(false);
+    };
+    loadHygienization();
+  }, [selectedCompany]);
+
   const toggleWaitlist = async (enabled: boolean) => {
     if (!selectedCompany) return;
     setWaitlistEnabled(enabled);
