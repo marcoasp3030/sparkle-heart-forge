@@ -35,6 +35,7 @@ const Auth = () => {
   const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
   const { toast } = useToast();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { settings, effectiveSettings } = usePlatform();
