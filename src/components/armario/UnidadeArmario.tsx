@@ -110,6 +110,12 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
               <span className="text-[10px] font-medium text-muted-foreground">{maintenance}</span>
             </div>
           )}
+          {scheduled > 0 && (
+            <div className="flex items-center gap-1.5" title="Portas com agendamento">
+              <CalendarClock className="h-2.5 w-2.5 text-violet-500" />
+              <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">{scheduled}</span>
+            </div>
+          )}
           <div className="flex-1" />
           <span className="text-[9px] text-muted-foreground/50 font-mono">
             {Math.round((available / Math.max(doors.length, 1)) * 100)}% livre
