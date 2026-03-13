@@ -27,7 +27,9 @@ class QueryBuilder {
   }
 
   select(fields: string = "*", _options?: { count?: string; head?: boolean }) {
-    this.method = "GET";
+    if (this.method !== "POST" && this.method !== "PUT") {
+      this.method = "GET";
+    }
     this.selectFields = fields;
     return this;
   }

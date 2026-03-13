@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  proxy:
+    image: nginx:alpine
+    configs:
+      - source: proxy_conf
+        target: /etc/nginx/conf.d/default.conf
+    networks:
+      - sistembr
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pblocker.rule=Host(`pblocker.sistembr.com.br`)"
+        - "traefik.http.routers.pblocker.entrypoints=web,websecure"
+        - "traefik.http.routers.pblocker.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.pblocker.loadbalancer.server.port=80"
+
+configs:
+  proxy_conf:
+    file: ./traefik-pblocker-proxy.conf
+
+networks:
+  sistembr:
+    external: true

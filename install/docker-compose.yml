@@ -16,7 +16,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/schema-completo-pblocker.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d pblocker"]
       interval: 5s
@@ -36,7 +36,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://admin:${DB_PASSWORD:-SenhaForte123!}@postgres:5432/pblocker
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD_URL_ENCODED:-${DB_PASSWORD:-SenhaForte123!}}@postgres:5432/pblocker
       JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
       JWT_EXPIRES_IN: 7d
       PORT: 3001
@@ -63,7 +63,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "8080:80"
 
   # ==========================================
   # Traefik (SSL automático) — opcional

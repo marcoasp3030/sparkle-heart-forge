@@ -99,7 +99,7 @@ export async function authenticateUser(
   const token = jwt.sign(
     { sub: rows[0].id, email: rows[0].email },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
   );
 
   return { token, user: { id: rows[0].id, email: rows[0].email } };
@@ -146,5 +146,5 @@ export async function resetPassword(
 export function generateToken(userId: string, email: string): string {
   return jwt.sign({ sub: userId, email }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
-  });
+  } as jwt.SignOptions);
 }

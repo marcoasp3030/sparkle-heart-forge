@@ -71,12 +71,17 @@ export default function Renovacoes() {
       (data || []).map(async (req) => {
         const [personRes, doorRes] = await Promise.all([
           supabase.from("funcionarios_clientes").select("nome, email, matricula").eq("id", req.person_id).single(),
-          supabase.from("locker_doors").select("door_number, label, locker:lockers(name)").eq("id", req.door_id).single(),
+          supabase.from("locker_doors").select("door_number, label, locker_id").eq("id", req.door_id).single(),
         ]);
+        let doorData = doorRes.data ? { ...doorRes.data, locker: undefined as { name: string } | undefined } : undefined;
+        if (doorData?.locker_id) {
+          const { data: lockerData } = await supabase.from("lockers").select("name").eq("id", doorData.locker_id).single();
+          if (lockerData) doorData.locker = { name: lockerData.name };
+        }
         return {
           ...req,
           person: personRes.data || undefined,
-          door: doorRes.data ? { ...doorRes.data, locker: Array.isArray(doorRes.data.locker) ? doorRes.data.locker[0] : doorRes.data.locker } : undefined,
+          door: doorData,
         } as RenewalRequest;
       })
     );
