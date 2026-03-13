@@ -526,6 +526,7 @@ export default function LockersPage() {
                   { value: "occupied", label: "Ocupados", count: doorCounts.occupied },
                   { value: "maintenance", label: "Manut.", count: doorCounts.maintenance },
                   { value: "scheduled", label: "Agendados", count: doorCounts.scheduled },
+                  { value: "hygienizing", label: "Higieniz.", count: doorCounts.hygienizing },
                 ].map((f) => (
                   <button
                     key={f.value}
