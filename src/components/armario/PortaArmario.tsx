@@ -92,6 +92,18 @@ const statusConfig = {
     hoverBorder: "",
     hoverShadow: "",
   },
+  hygienizing: {
+    label: "Higienização",
+    bg: "from-cyan-50 to-cyan-100/80 dark:from-cyan-950/40 dark:to-cyan-900/30",
+    border: "border-cyan-200/60 dark:border-cyan-700/40",
+    icon: Droplets,
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    led: "bg-cyan-500",
+    ledGlow: "shadow-[0_0_6px_2px_rgba(6,182,212,0.5)]",
+    handleColor: "bg-cyan-300/60 dark:bg-cyan-600/40",
+    hoverBorder: "",
+    hoverShadow: "",
+  },
 };
 
 const SWIPE_THRESHOLD = 50;
