@@ -102,6 +102,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
+        console.count("🔁 submit_login");
         const t0 = performance.now();
         const { error, lockout } = await signIn(email.trim(), password);
         const elapsed = Math.round(performance.now() - t0);
