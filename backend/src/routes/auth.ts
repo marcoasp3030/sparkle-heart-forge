@@ -52,27 +52,26 @@ router.post("/login", loginLimiter, validate(loginSchema), async (req: Request, 
 
     const result = await authenticateUser(email, password);
 
-    await pool.query(`SELECT register_login_attempt($1, $2)`, [email, true]);
-
-    // Get profile data
-    const { rows: profiles } = await pool.query(
-      `SELECT role, company_id, full_name, password_changed FROM profiles WHERE user_id = $1`,
-      [result.user.id]
-    );
-
-    // Audit
-    await pool.query(
-      `INSERT INTO audit_logs (user_id, action, resource_type, category, details, user_agent, ip_address)
-       VALUES ($1, 'login_success', 'auth', 'auth', '{}', $2, $3)`,
-      [result.user.id, req.headers["user-agent"] || "", req.ip || ""]
-    );
+    // Run non-critical queries in parallel for speed
+    const [profileResult] = await Promise.all([
+      pool.query(
+        `SELECT role, company_id, full_name, password_changed FROM profiles WHERE user_id = $1`,
+        [result.user.id]
+      ),
+      pool.query(`SELECT register_login_attempt($1, $2)`, [email, true]),
+      pool.query(
+        `INSERT INTO audit_logs (user_id, action, resource_type, category, details, user_agent, ip_address)
+         VALUES ($1, 'login_success', 'auth', 'auth', '{}', $2, $3)`,
+        [result.user.id, req.headers["user-agent"] || "", req.ip || ""]
+      ),
+    ]);
 
     res.json({
       token: result.token,
       user: {
         id: result.user.id,
         email: result.user.email,
-        ...profiles[0],
+        ...profileResult.rows[0],
       },
     });
   } catch (err: any) {
