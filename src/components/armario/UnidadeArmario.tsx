@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Pencil, Trash2, MapPin, Lock, Unlock, Wrench, RotateCcw, CalendarClock } from "lucide-react";
+import { Pencil, Trash2, MapPin, Lock, Unlock, Wrench, RotateCcw, CalendarClock, Droplets } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PortaArmario, { LockerDoorData } from "./PortaArmario";
 
