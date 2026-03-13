@@ -317,6 +317,58 @@ export default function ConfigSistema() {
         </CardContent>
       </Card>
 
+      {/* Hygienization toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Droplets className="h-5 w-5" />
+            Higienização Pós-Uso
+          </CardTitle>
+          <CardDescription>
+            Quando ativada, após a liberação de uma porta ocupada, ela entra automaticamente em modo de higienização
+            por um período configurável antes de ficar disponível novamente. O administrador pode liberar manualmente antes do tempo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Ativar higienização automática</p>
+              <p className="text-xs text-muted-foreground">
+                Porta entra em modo higienização após cada liberação
+              </p>
+            </div>
+            {hygienizationLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <Switch checked={hygienizationEnabled} onCheckedChange={toggleHygienization} />
+            )}
+          </div>
+
+          {hygienizationEnabled && (
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Tempo de higienização</p>
+                <p className="text-xs text-muted-foreground">
+                  Duração em minutos antes da porta ficar disponível
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={hygienizationMinutes}
+                  onChange={(e) => setHygienizationMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                  onBlur={() => saveHygienizationMinutes(hygienizationMinutes)}
+                  className="w-20 h-9 text-center"
+                />
+                <span className="text-xs text-muted-foreground">min</span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Audit & export (superadmin) */}
       {isSuperAdmin && (
         <Card>
