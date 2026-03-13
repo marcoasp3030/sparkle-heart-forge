@@ -32,6 +32,7 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
   const occupied = doors.filter((d) => d.status === "occupied").length;
   const maintenance = doors.filter((d) => d.status === "maintenance").length;
   const scheduled = doors.filter((d) => !!d.scheduledReservation).length;
+  const hygienizing = doors.filter((d) => d.status === "hygienizing").length;
 
   return (
     <motion.div
