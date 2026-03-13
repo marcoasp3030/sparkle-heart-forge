@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Lock, Unlock, Package, MapPin, Search,
-  ChevronRight, Wrench, TrendingUp, BarChart3
+  ChevronRight, Wrench, TrendingUp, BarChart3, Droplets
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
