@@ -51,9 +51,9 @@ class QueryBuilder {
     return this;
   }
 
-  upsert(data: any, _options?: { onConflict?: string }) {
+  upsert(data: any, options?: { onConflict?: string }) {
     this.method = "PUT";
-    this.body = { ...data, _upsert: true };
+    this.body = { ...data, _upsert: true, _onConflict: options?.onConflict || null };
     return this;
   }
 

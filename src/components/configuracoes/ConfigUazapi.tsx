@@ -87,16 +87,21 @@ export default function ConfigUazapi() {
         { key: "uazapi_server_url", value: serverUrl.trim() },
         { key: "uazapi_admin_token", value: adminToken.trim() },
       ]) {
+        // value column is jsonb — must wrap strings as valid JSON
+        const jsonValue = JSON.stringify(item.value);
+        
         const { data: existing } = await supabase
           .from("platform_settings")
           .select("id")
           .eq("key", item.key)
-          .single();
+          .maybeSingle();
 
         if (existing) {
-          await supabase.from("platform_settings").update({ value: JSON.parse(JSON.stringify(item.value)) }).eq("key", item.key);
+          const { error } = await supabase.from("platform_settings").update({ value: jsonValue }).eq("key", item.key);
+          if (error) throw new Error(error.message);
         } else {
-          await supabase.from("platform_settings").insert({ key: item.key, value: JSON.parse(JSON.stringify(item.value)) });
+          const { error } = await supabase.from("platform_settings").insert({ key: item.key, value: jsonValue });
+          if (error) throw new Error(error.message);
         }
       }
       toast({ title: "Configuração UAZAPI salva com sucesso!" });
