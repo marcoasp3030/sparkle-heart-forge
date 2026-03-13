@@ -674,6 +674,7 @@ export default function LockersPage() {
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Livres</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Ocupados</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Manut.</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Agendados</TableHead>
                   {isAdmin && <TableHead className="text-xs uppercase tracking-wider font-semibold text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
