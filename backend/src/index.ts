@@ -108,6 +108,7 @@ app.use("/api/email-notify", authMiddleware, emailNotifyRouter);
 app.use("/api/whatsapp-notify", authMiddleware, whatsappNotifyRouter);
 app.use("/api/uazapi-proxy", authMiddleware, uazapiProxyRouter);
 app.use("/api/waitlist-notify", authMiddleware, waitlistNotifyRouter);
+app.use("/api/system", authMiddleware, systemUpdateRouter);
 
 // ============================================
 // Error handler

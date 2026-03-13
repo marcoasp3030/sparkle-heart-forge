@@ -101,6 +101,11 @@ export default function Configuracoes() {
             <ConfigSistema />
           </TabsContent>
         )}
+        {isSuperAdmin && (
+          <TabsContent value="atualizacoes">
+            <ConfigAtualizacoes />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
