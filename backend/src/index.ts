@@ -83,6 +83,9 @@ app.use("/api/health", healthRouter);
 // Webhook routes (no auth - validated by their own mechanism)
 app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
+// Public changelog
+app.use("/api/changelog", changelogRouter);
+
 // ============================================
 // Protected Routes
 // ============================================
