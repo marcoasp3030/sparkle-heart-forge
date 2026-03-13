@@ -109,10 +109,10 @@ export default function ConfigAtualizacoes() {
   };
 
   // Load on mount
-  useState(() => {
+  useEffect(() => {
     fetchVersion();
     fetchHistory();
-  });
+  }, []);
 
   const getActionBadge = (action: string) => {
     switch (action) {
