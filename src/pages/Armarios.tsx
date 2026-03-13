@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -74,13 +74,50 @@ export default function LockersPage() {
     if (selectedCompany) {
       lockersQuery = lockersQuery.eq("company_id", selectedCompany.id);
     }
-    const { data: lockersData } = await lockersQuery;
-    const { data: doorsData } = await supabase.from("locker_doors").select("*");
+    const [{ data: lockersData }, { data: doorsData }, { data: scheduledData }] = await Promise.all([
+      lockersQuery,
+      supabase.from("locker_doors").select("*"),
+      supabase.from("locker_reservations").select("id, door_id, person_id, starts_at, expires_at").eq("status", "scheduled"),
+    ]);
+
+    // Fetch person names for scheduled reservations
+    let personMap: Record<string, string> = {};
+    if (scheduledData && scheduledData.length > 0) {
+      const personIds = [...new Set(scheduledData.map((r: any) => r.person_id).filter(Boolean))];
+      if (personIds.length > 0) {
+        const { data: persons } = await supabase.from("funcionarios_clientes").select("id, nome").in("id", personIds);
+        if (persons) {
+          personMap = Object.fromEntries(persons.map((p: any) => [p.id, p.nome]));
+        }
+      }
+    }
+
+    // Map scheduled reservations by door_id
+    const scheduledByDoor: Record<string, any> = {};
+    if (scheduledData) {
+      for (const r of scheduledData as any[]) {
+        // Keep only the nearest future reservation per door
+        if (!scheduledByDoor[r.door_id] || new Date(r.starts_at) < new Date(scheduledByDoor[r.door_id].starts_at)) {
+          scheduledByDoor[r.door_id] = {
+            id: r.id,
+            door_id: r.door_id,
+            person_name: r.person_id ? personMap[r.person_id] : undefined,
+            starts_at: r.starts_at,
+            expires_at: r.expires_at,
+          };
+        }
+      }
+    }
 
     if (lockersData && doorsData) {
       const merged: LockerWithDoors[] = lockersData.map((l: any) => ({
         ...l,
-        doors: doorsData.filter((d: any) => d.locker_id === l.id),
+        doors: doorsData
+          .filter((d: any) => d.locker_id === l.id)
+          .map((d: any) => ({
+            ...d,
+            scheduledReservation: scheduledByDoor[d.id] || null,
+          })),
       }));
       setLockers(merged);
     }
@@ -637,6 +674,7 @@ export default function LockersPage() {
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Livres</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Ocupados</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Manut.</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider font-semibold text-center">Agendados</TableHead>
                   {isAdmin && <TableHead className="text-xs uppercase tracking-wider font-semibold text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -646,6 +684,7 @@ export default function LockersPage() {
                   const available = locker.doors.filter((d) => d.status === "available").length;
                   const occupied = locker.doors.filter((d) => d.status === "occupied").length;
                   const maintenance = locker.doors.filter((d) => d.status === "maintenance").length;
+                  const scheduled = locker.doors.filter((d) => !!(d as any).scheduledReservation).length;
                   const occupationPct = totalOriginalDoors > 0 ? Math.round((occupied / totalOriginalDoors) * 100) : 0;
 
                   return (
@@ -672,6 +711,16 @@ export default function LockersPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 text-[11px]">{maintenance}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {scheduled > 0 ? (
+                          <Badge variant="outline" className="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 text-[11px] gap-1">
+                            <CalendarClock className="h-3 w-3" />
+                            {scheduled}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40 text-xs">—</span>
+                        )}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">

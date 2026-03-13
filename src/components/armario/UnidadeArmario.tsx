@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Pencil, Trash2, MapPin, Lock, Unlock, Wrench, RotateCcw } from "lucide-react";
+import { Pencil, Trash2, MapPin, Lock, Unlock, Wrench, RotateCcw, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PortaArmario, { LockerDoorData } from "./PortaArmario";
 
@@ -31,6 +31,7 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
   const available = doors.filter((d) => d.status === "available").length;
   const occupied = doors.filter((d) => d.status === "occupied").length;
   const maintenance = doors.filter((d) => d.status === "maintenance").length;
+  const scheduled = doors.filter((d) => !!d.scheduledReservation).length;
 
   return (
     <motion.div
@@ -107,6 +108,12 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-amber-500" />
               <span className="text-[10px] font-medium text-muted-foreground">{maintenance}</span>
+            </div>
+          )}
+          {scheduled > 0 && (
+            <div className="flex items-center gap-1.5" title="Portas com agendamento">
+              <CalendarClock className="h-2.5 w-2.5 text-violet-500" />
+              <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">{scheduled}</span>
             </div>
           )}
           <div className="flex-1" />

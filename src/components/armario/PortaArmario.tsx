@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { Lock, Unlock, Wrench, User } from "lucide-react";
+import { Lock, Unlock, Wrench, User, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CountdownPorta, { useUrgencyLevel } from "./CountdownPorta";
+
+export interface ScheduledReservation {
+  id: string;
+  door_id: string;
+  person_name?: string;
+  starts_at: string;
+  expires_at?: string | null;
+}
 
 export interface LockerDoorData {
   id: string;
@@ -16,6 +24,7 @@ export interface LockerDoorData {
   usage_type?: string;
   expires_at?: string | null;
   occupied_at?: string | null;
+  scheduledReservation?: ScheduledReservation | null;
 }
 
 interface LockerDoorProps {
@@ -122,6 +131,7 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
 
   const isTemporary = door.usage_type === "temporary" && door.status === "occupied" && !!door.expires_at;
   const { urgency } = useUrgencyLevel(isTemporary ? door.expires_at : null, door.occupied_at);
+  const hasSchedule = !!door.scheduledReservation;
 
   const canSwipe = isMobile && (
     (door.status === "available" && !!onQuickReserve) ||
@@ -225,6 +235,18 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         {door.label || `${door.door_number}`}
       </span>
 
+      {/* Scheduled reservation badge */}
+      {hasSchedule && (
+        <div className="absolute top-1.5 left-6 flex items-center gap-0.5">
+          <motion.div
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ repeat: Infinity, duration: 2.5 }}
+          >
+            <CalendarClock className="h-3 w-3 text-violet-500 dark:text-violet-400 drop-shadow-sm" />
+          </motion.div>
+        </div>
+      )}
+
       {/* Ventilation */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
         {[...Array(3)].map((_, i) => (
@@ -323,12 +345,26 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
           {doorContent}
         </motion.button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
+      <TooltipContent side="top" className="text-xs max-w-[220px]">
         <p className="font-semibold">{door.label || `Porta #${door.door_number}`}</p>
         <p className="text-muted-foreground">
           {config.label} • {door.size === "small" ? "P" : door.size === "medium" ? "M" : "G"}
           {isTemporary && door.expires_at && ` • Expira ${new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
         </p>
+        {hasSchedule && door.scheduledReservation && (
+          <div className="mt-1 pt-1 border-t border-border/50 text-violet-600 dark:text-violet-400">
+            <p className="font-medium flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              Agendamento
+            </p>
+            {door.scheduledReservation.person_name && (
+              <p className="text-muted-foreground">{door.scheduledReservation.person_name}</p>
+            )}
+            <p className="text-muted-foreground">
+              {new Date(door.scheduledReservation.starts_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+        )}
       </TooltipContent>
     </Tooltip>
   );
