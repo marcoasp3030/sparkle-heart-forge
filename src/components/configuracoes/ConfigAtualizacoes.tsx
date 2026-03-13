@@ -8,10 +8,11 @@ import { toast } from "sonner";
 import { get, post } from "@/lib/api";
 import {
   RefreshCw, Download, CheckCircle2, AlertTriangle,
-  GitCommit, Clock, History, ArrowUpCircle, Loader2, XCircle, RotateCcw
+  GitCommit, Clock, History, ArrowUpCircle, Loader2, XCircle, RotateCcw, FileText, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface VersionInfo {
   version: string;
@@ -131,6 +132,27 @@ export default function ConfigAtualizacoes() {
 
   return (
     <div className="space-y-6">
+      {/* Link para Changelog público */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Changelog do Sistema</p>
+                <p className="text-sm text-muted-foreground">Veja o histórico completo de versões e commits</p>
+              </div>
+            </div>
+            <Link to="/changelog">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Ver Changelog
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Versão Atual */}
       <Card>
         <CardHeader>

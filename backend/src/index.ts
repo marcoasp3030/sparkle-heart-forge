@@ -34,6 +34,7 @@ import { whatsappWebhookRouter } from "./routes/whatsapp-webhook";
 import { uazapiProxyRouter } from "./routes/uazapi-proxy";
 import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 import { systemUpdateRouter } from "./routes/system-update";
+import { changelogRouter } from "./routes/changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -81,6 +82,9 @@ app.use("/api/health", healthRouter);
 
 // Webhook routes (no auth - validated by their own mechanism)
 app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
+
+// Public changelog
+app.use("/api/changelog", changelogRouter);
 
 // ============================================
 // Protected Routes
