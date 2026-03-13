@@ -43,7 +43,18 @@ const PORT = parseInt(process.env.PORT || "3001");
 // ============================================
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.FRONTEND_URL || "http://localhost:5173",
+      "https://pblocker.sistembr.com.br",
+    ];
+    // Accept Lovable preview/published domains automatically
+    if (!origin || allowed.includes(origin) || /\.lovable\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
