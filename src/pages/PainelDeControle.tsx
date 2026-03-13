@@ -64,7 +64,7 @@ const PainelDeControle = () => {
 
     if (!lockers || lockers.length === 0) {
       setDoors([]);
-      setStats({ total: 0, available: 0, occupied: 0, maintenance: 0 });
+      setStats({ total: 0, available: 0, occupied: 0, maintenance: 0, hygienizing: 0 });
       setLoading(false);
       return;
     }
