@@ -535,10 +535,14 @@ export default function LockersPage() {
                       statusFilter === f.value
                         ? f.value === "scheduled"
                           ? "bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-sm ring-1 ring-violet-500/20"
-                          : "bg-background text-foreground shadow-sm"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-sm ring-1 ring-cyan-500/20"
+                            : "bg-background text-foreground shadow-sm"
                         : f.value === "scheduled"
                           ? "text-violet-500/70 hover:text-violet-600 dark:hover:text-violet-400"
-                          : "text-muted-foreground hover:text-foreground"
+                          : f.value === "hygienizing"
+                            ? "text-cyan-500/70 hover:text-cyan-600 dark:hover:text-cyan-400"
+                            : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {f.label}
@@ -546,10 +550,14 @@ export default function LockersPage() {
                       statusFilter === f.value
                         ? f.value === "scheduled"
                           ? "bg-violet-500/20 text-violet-700 dark:text-violet-300"
-                          : "bg-primary/10 text-primary"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300"
+                            : "bg-primary/10 text-primary"
                         : f.value === "scheduled"
                           ? "bg-violet-500/10 text-violet-500"
-                          : "bg-muted-foreground/10"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/10 text-cyan-500"
+                            : "bg-muted-foreground/10"
                     }`}>
                       {f.count}
                     </span>
