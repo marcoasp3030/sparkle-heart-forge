@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users } from "lucide-react";
+import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users, Droplets } from "lucide-react";
 
 export default function ConfigSistema() {
   const { user } = useAuth();
