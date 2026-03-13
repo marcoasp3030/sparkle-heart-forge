@@ -8,10 +8,11 @@ import { toast } from "sonner";
 import { get, post } from "@/lib/api";
 import {
   RefreshCw, Download, CheckCircle2, AlertTriangle,
-  GitCommit, Clock, History, ArrowUpCircle, Loader2, XCircle, RotateCcw
+  GitCommit, Clock, History, ArrowUpCircle, Loader2, XCircle, RotateCcw, FileText, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface VersionInfo {
   version: string;
