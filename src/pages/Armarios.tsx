@@ -360,6 +360,7 @@ export default function LockersPage() {
     available: allDoors.filter((d) => d.status === "available").length,
     occupied: allDoors.filter((d) => d.status === "occupied").length,
     maintenance: allDoors.filter((d) => d.status === "maintenance").length,
+    scheduled: allDoors.filter((d) => !!d.scheduledReservation).length,
   };
 
   const filteredLockers = lockers
