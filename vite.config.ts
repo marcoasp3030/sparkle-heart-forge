@@ -11,6 +11,18 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api": {
+        target: "https://pblocker.sistembr.com.br",
+        changeOrigin: true,
+        secure: true,
+      },
+      "/uploads": {
+        target: "https://pblocker.sistembr.com.br",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

@@ -8,7 +8,7 @@ import axios from "axios";
  *   VITE_API_URL=https://seudominio.com/api
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://pblocker.sistembr.com.br/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
