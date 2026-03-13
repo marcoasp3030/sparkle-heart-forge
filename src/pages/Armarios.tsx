@@ -74,13 +74,50 @@ export default function LockersPage() {
     if (selectedCompany) {
       lockersQuery = lockersQuery.eq("company_id", selectedCompany.id);
     }
-    const { data: lockersData } = await lockersQuery;
-    const { data: doorsData } = await supabase.from("locker_doors").select("*");
+    const [{ data: lockersData }, { data: doorsData }, { data: scheduledData }] = await Promise.all([
+      lockersQuery,
+      supabase.from("locker_doors").select("*"),
+      supabase.from("locker_reservations").select("id, door_id, person_id, starts_at, expires_at").eq("status", "scheduled"),
+    ]);
+
+    // Fetch person names for scheduled reservations
+    let personMap: Record<string, string> = {};
+    if (scheduledData && scheduledData.length > 0) {
+      const personIds = [...new Set(scheduledData.map((r: any) => r.person_id).filter(Boolean))];
+      if (personIds.length > 0) {
+        const { data: persons } = await supabase.from("funcionarios_clientes").select("id, nome").in("id", personIds);
+        if (persons) {
+          personMap = Object.fromEntries(persons.map((p: any) => [p.id, p.nome]));
+        }
+      }
+    }
+
+    // Map scheduled reservations by door_id
+    const scheduledByDoor: Record<string, any> = {};
+    if (scheduledData) {
+      for (const r of scheduledData as any[]) {
+        // Keep only the nearest future reservation per door
+        if (!scheduledByDoor[r.door_id] || new Date(r.starts_at) < new Date(scheduledByDoor[r.door_id].starts_at)) {
+          scheduledByDoor[r.door_id] = {
+            id: r.id,
+            door_id: r.door_id,
+            person_name: r.person_id ? personMap[r.person_id] : undefined,
+            starts_at: r.starts_at,
+            expires_at: r.expires_at,
+          };
+        }
+      }
+    }
 
     if (lockersData && doorsData) {
       const merged: LockerWithDoors[] = lockersData.map((l: any) => ({
         ...l,
-        doors: doorsData.filter((d: any) => d.locker_id === l.id),
+        doors: doorsData
+          .filter((d: any) => d.locker_id === l.id)
+          .map((d: any) => ({
+            ...d,
+            scheduledReservation: scheduledByDoor[d.id] || null,
+          })),
       }));
       setLockers(merged);
     }
