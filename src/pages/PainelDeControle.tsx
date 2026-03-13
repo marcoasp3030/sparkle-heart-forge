@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
+import CountdownPorta from "@/components/armario/CountdownPorta";
 
 const statusConfig = {
   occupied: { label: "Ocupado", className: "bg-primary/10 text-primary border-primary/20" },
