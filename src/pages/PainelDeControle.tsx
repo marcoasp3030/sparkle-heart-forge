@@ -164,6 +164,15 @@ const PainelDeControle = () => {
       iconBg: "bg-accent/10",
       iconColor: "text-accent",
     },
+    {
+      label: "Higienização",
+      value: stats.hygienizing,
+      icon: Droplets,
+      sublabel: "em limpeza",
+      gradient: "from-cyan-500 to-cyan-500/70",
+      iconBg: "bg-cyan-500/10",
+      iconColor: "text-cyan-600",
+    },
   ];
 
   const formatTime = (isoStr: string | null) => {
