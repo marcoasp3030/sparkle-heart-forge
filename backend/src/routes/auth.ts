@@ -75,28 +75,34 @@ router.post("/login", loginLimiter, validate(loginSchema), async (req: Request, 
       },
     });
   } catch (err: any) {
-    await pool.query(`SELECT register_login_attempt($1, $2)`, [email, false]);
+    // Run failed-login queries in parallel
+    const [, lockoutResult] = await Promise.all([
+      pool.query(
+        `INSERT INTO audit_logs (action, resource_type, category, details, user_agent, ip_address)
+         VALUES ('login_failed', 'auth', 'auth', $1, $2, $3)`,
+        [JSON.stringify({ email }), req.headers["user-agent"] || "", req.ip || ""]
+      ),
+      (async () => {
+        await pool.query(`SELECT register_login_attempt($1, $2)`, [email, false]);
+        // Re-check lockout AFTER registering the attempt
+        const { rows } = await pool.query(
+          `SELECT * FROM get_login_lockout_status($1)`,
+          [email]
+        );
+        return rows;
+      })(),
+    ]);
 
-    // Re-check lockout for updated message
-    const { rows: lockout } = await pool.query(
-      `SELECT * FROM get_login_lockout_status($1)`,
-      [email]
-    );
-
-    await pool.query(
-      `INSERT INTO audit_logs (action, resource_type, category, details, user_agent, ip_address)
-       VALUES ('login_failed', 'auth', 'auth', $1, $2, $3)`,
-      [JSON.stringify({ email }), req.headers["user-agent"] || "", req.ip || ""]
-    );
+    const lockout = lockoutResult[0];
 
     res.status(401).json({
-      error: lockout[0]?.mensagem || "Credenciais inválidas",
-      lockout: lockout[0]
+      error: lockout?.mensagem || "Credenciais inválidas",
+      lockout: lockout
         ? {
-            blocked: lockout[0].bloqueado,
-            attempts_remaining: lockout[0].tentativas_restantes,
-            seconds_remaining: lockout[0].segundos_restantes,
-            level: lockout[0].nivel,
+            blocked: lockout.bloqueado,
+            attempts_remaining: lockout.tentativas_restantes,
+            seconds_remaining: lockout.segundos_restantes,
+            level: lockout.nivel,
           }
         : null,
     });
