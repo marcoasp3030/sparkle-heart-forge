@@ -112,6 +112,7 @@ const PainelDeControle = () => {
       available: mapped.filter((d) => d.status === "available").length,
       occupied: mapped.filter((d) => d.status === "occupied").length,
       maintenance: mapped.filter((d) => d.status === "maintenance").length,
+      hygienizing: mapped.filter((d) => d.status === "hygienizing").length,
     });
     setLoading(false);
   };
