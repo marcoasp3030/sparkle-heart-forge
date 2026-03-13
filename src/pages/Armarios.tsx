@@ -360,11 +360,13 @@ export default function LockersPage() {
     available: allDoors.filter((d) => d.status === "available").length,
     occupied: allDoors.filter((d) => d.status === "occupied").length,
     maintenance: allDoors.filter((d) => d.status === "maintenance").length,
+    scheduled: allDoors.filter((d) => !!d.scheduledReservation).length,
   };
 
   const filteredLockers = lockers
     .map((l) => {
       if (statusFilter === "all") return l;
+      if (statusFilter === "scheduled") return { ...l, doors: l.doors.filter((d) => !!d.scheduledReservation) };
       return { ...l, doors: l.doors.filter((d) => d.status === statusFilter) };
     })
     .filter((l) => {
@@ -522,6 +524,7 @@ export default function LockersPage() {
                   { value: "available", label: "Livres", count: doorCounts.available },
                   { value: "occupied", label: "Ocupados", count: doorCounts.occupied },
                   { value: "maintenance", label: "Manut.", count: doorCounts.maintenance },
+                  { value: "scheduled", label: "Agendados", count: doorCounts.scheduled },
                 ].map((f) => (
                   <button
                     key={f.value}
