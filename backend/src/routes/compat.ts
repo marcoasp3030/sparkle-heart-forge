@@ -130,7 +130,14 @@ router.post("/:table", async (req: Request, res: Response) => {
 
     for (const item of items) {
       const keys = Object.keys(item).filter(k => !k.startsWith("_"));
-      const vals = keys.map(k => item[k]);
+      const vals = keys.map(k => {
+        const v = item[k];
+        // Auto-serialize objects/arrays for jsonb columns
+        if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+          return JSON.stringify(v);
+        }
+        return v;
+      });
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
 
       const { rows } = await pool.query(
