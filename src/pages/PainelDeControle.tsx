@@ -17,6 +17,7 @@ const statusConfig = {
   occupied: { label: "Ocupado", className: "bg-primary/10 text-primary border-primary/20" },
   available: { label: "Disponível", className: "bg-success/10 text-success border-success/20" },
   maintenance: { label: "Manutenção", className: "bg-accent/10 text-accent border-accent/20" },
+  hygienizing: { label: "Higienização", className: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
 };
 
 type DoorWithLocker = {
