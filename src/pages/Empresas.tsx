@@ -151,29 +151,18 @@ export default function CompaniesPage() {
     setAdminLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-company-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            email: adminEmail.trim(),
-            password: adminPassword,
-            full_name: adminFullName.trim(),
-            company_id: adminCompany.id,
-            role: adminRole,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("create-company-user", {
+        body: {
+          email: adminEmail.trim(),
+          password: adminPassword,
+          full_name: adminFullName.trim(),
+          company_id: adminCompany.id,
+          role: adminRole,
+        },
+      });
 
-      const result = await res.json();
-      if (!res.ok) {
-        toast({ title: "Erro ao criar usuário", description: result.error, variant: "destructive" });
+      if (error) {
+        toast({ title: "Erro ao criar usuário", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Usuário criado!", description: `${adminEmail} vinculado à ${adminCompany.name}` });
         setAdminDialogOpen(false);
