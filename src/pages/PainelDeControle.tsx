@@ -76,7 +76,7 @@ const PainelDeControle = () => {
 
     const { data: doorsData } = await supabase
       .from("locker_doors")
-      .select("id, door_number, status, occupied_by, occupied_at, locker_id")
+      .select("id, door_number, status, occupied_by, occupied_at, expires_at, locker_id")
       .in("locker_id", lockerIds);
 
     if (!doorsData) {
