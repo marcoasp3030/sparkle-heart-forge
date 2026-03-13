@@ -712,7 +712,16 @@ export default function LockersPage() {
                       <TableCell className="text-center">
                         <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 text-[11px]">{maintenance}</Badge>
                       </TableCell>
-                      {isAdmin && (
+                      <TableCell className="text-center">
+                        {scheduled > 0 ? (
+                          <Badge variant="outline" className="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 text-[11px] gap-1">
+                            <CalendarClock className="h-3 w-3" />
+                            {scheduled}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40 text-xs">—</span>
+                        )}
+                      </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(locker)}>
