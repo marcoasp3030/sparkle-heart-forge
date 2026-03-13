@@ -722,6 +722,7 @@ export default function LockersPage() {
                           <span className="text-muted-foreground/40 text-xs">—</span>
                         )}
                       </TableCell>
+                      {isAdmin && (
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(locker)}>
