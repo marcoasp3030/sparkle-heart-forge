@@ -29,6 +29,7 @@ import Portal from "./pages/Portal";
 import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
 import RedefinirSenha from "./pages/RedefinirSenha";
+import Changelog from "./pages/Changelog";
 
 const queryClient = new QueryClient();
 
