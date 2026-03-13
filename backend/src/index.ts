@@ -33,6 +33,7 @@ import { whatsappNotifyRouter } from "./routes/whatsapp-notify";
 import { whatsappWebhookRouter } from "./routes/whatsapp-webhook";
 import { uazapiProxyRouter } from "./routes/uazapi-proxy";
 import { waitlistNotifyRouter } from "./routes/waitlist-notify";
+import { systemUpdateRouter } from "./routes/system-update";
 
 const app = express();
 app.set("trust proxy", 1);
