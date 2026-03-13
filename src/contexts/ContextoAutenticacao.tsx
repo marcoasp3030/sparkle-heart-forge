@@ -53,6 +53,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user_metadata: { full_name: u.full_name || "" },
   });
 
+  const maskEmail = (rawEmail: string) => {
+    const [name, domain] = rawEmail.split("@");
+    if (!name || !domain) return rawEmail;
+    const visible = name.slice(0, 2);
+    return `${visible}${"*".repeat(Math.max(1, name.length - 2))}@${domain}`;
+  };
+
   // Ao iniciar, verifica se há token salvo e busca dados do usuário
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
