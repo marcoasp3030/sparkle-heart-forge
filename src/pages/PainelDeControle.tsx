@@ -102,6 +102,7 @@ const PainelDeControle = () => {
       status: d.status,
       occupied_by: d.occupied_by,
       occupied_at: d.occupied_at,
+      expires_at: d.expires_at,
       locker_id: d.locker_id,
       locker_name: lockerMap[d.locker_id]?.name || "",
       locker_location: lockerMap[d.locker_id]?.location || "",
