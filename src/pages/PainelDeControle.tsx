@@ -408,6 +408,8 @@ const PainelDeControle = () => {
                         <Lock className="h-4 w-4" />
                       ) : door.status === "available" ? (
                         <Unlock className="h-4 w-4" />
+                      ) : door.status === "hygienizing" ? (
+                        <Droplets className="h-4 w-4" />
                       ) : (
                         <Wrench className="h-4 w-4" />
                       )}
