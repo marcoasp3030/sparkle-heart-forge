@@ -33,6 +33,7 @@ import { whatsappNotifyRouter } from "./routes/whatsapp-notify";
 import { whatsappWebhookRouter } from "./routes/whatsapp-webhook";
 import { uazapiProxyRouter } from "./routes/uazapi-proxy";
 import { waitlistNotifyRouter } from "./routes/waitlist-notify";
+import { systemUpdateRouter } from "./routes/system-update";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -107,6 +108,7 @@ app.use("/api/email-notify", authMiddleware, emailNotifyRouter);
 app.use("/api/whatsapp-notify", authMiddleware, whatsappNotifyRouter);
 app.use("/api/uazapi-proxy", authMiddleware, uazapiProxyRouter);
 app.use("/api/waitlist-notify", authMiddleware, waitlistNotifyRouter);
+app.use("/api/system", authMiddleware, systemUpdateRouter);
 
 // ============================================
 // Error handler

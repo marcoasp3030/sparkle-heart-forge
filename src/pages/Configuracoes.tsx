@@ -9,7 +9,8 @@ import ConfigSistema from "@/components/configuracoes/ConfigSistema";
 import ConfigEmail from "@/components/configuracoes/ConfigEmail";
 import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
 import ConfigTemplatesNotificacoes from "@/components/configuracoes/ConfigTemplatesWhatsApp";
-import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText } from "lucide-react";
+import ConfigAtualizacoes from "@/components/configuracoes/ConfigAtualizacoes";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText, ArrowUpCircle } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
@@ -63,6 +64,12 @@ export default function Configuracoes() {
               Sistema
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="atualizacoes" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <ArrowUpCircle className="h-4 w-4" />
+              Atualizações
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="perfil">
@@ -92,6 +99,11 @@ export default function Configuracoes() {
         {isAdmin && (
           <TabsContent value="sistema">
             <ConfigSistema />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="atualizacoes">
+            <ConfigAtualizacoes />
           </TabsContent>
         )}
       </Tabs>
