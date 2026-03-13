@@ -2,17 +2,17 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, Mail, User, Eye, EyeOff, ShieldAlert, AlertTriangle, Info } from "lucide-react";
-import { verificarBloqueioLogin, registrarTentativaLogin, registrarAuditoria, type StatusBloqueio, type NivelAlerta } from "@/services/auditoria";
+import { type StatusBloqueio } from "@/services/auditoria";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase-compat";
 
 import { usePlatform } from "@/contexts/ContextoPlataforma";
+import { useAuth } from "@/contexts/ContextoAutenticacao";
 import lockerLogo from "@/assets/locker-logo.png";
 
 interface LoginBranding {
@@ -34,6 +34,7 @@ const Auth = () => {
   const [statusLogin, setStatusLogin] = useState<StatusBloqueio | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
   const { toast } = useToast();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { settings, effectiveSettings } = usePlatform();
@@ -92,40 +93,48 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loading) return;
+    if (isLogin && (segundosRestantes > 0 || (statusLogin?.bloqueado ?? false))) return;
+
     setLoading(true);
     setStatusLogin(null);
 
     try {
       if (isLogin) {
+        console.count("🔁 submit_login");
         const t0 = performance.now();
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, lockout } = await signIn(email.trim(), password);
         const elapsed = Math.round(performance.now() - t0);
 
         const style = elapsed < 500 ? "color:#22c55e;font-weight:bold" : elapsed < 1500 ? "color:#eab308;font-weight:bold" : "color:#ef4444;font-weight:bold";
         console.log(`%c⚡ Login ${error ? "FALHOU" : "OK"} em ${elapsed}ms`, style);
 
         if (error) {
-          // O backend retorna lockout info no corpo do erro
-          const errResponse = (error as any).original?.response?.data;
-          const lockout = errResponse?.lockout;
-
           if (lockout) {
             const status: StatusBloqueio = {
-              bloqueado: lockout.blocked,
-              tentativasRestantes: lockout.attempts_remaining ?? 0,
-              minutosRestantes: Math.ceil((lockout.seconds_remaining ?? 0) / 60),
-              segundosRestantes: lockout.seconds_remaining ?? 0,
-              totalFalhas: 5 - (lockout.attempts_remaining ?? 0),
-              nivel: lockout.blocked ? "bloqueado" : lockout.level === "perigo" ? "perigo" : lockout.level === "aviso" ? "aviso" : "info",
-              mensagem: errResponse?.error || "Credenciais inválidas",
+              bloqueado: Boolean(lockout.blocked),
+              tentativasRestantes: Number(lockout.attempts_remaining ?? 0),
+              minutosRestantes: Math.ceil(Number(lockout.seconds_remaining ?? 0) / 60),
+              segundosRestantes: Number(lockout.seconds_remaining ?? 0),
+              totalFalhas: Math.max(0, 5 - Number(lockout.attempts_remaining ?? 0)),
+              nivel: lockout.blocked
+                ? "bloqueado"
+                : lockout.level === "perigo"
+                ? "perigo"
+                : lockout.level === "aviso"
+                ? "aviso"
+                : "info",
+              mensagem: error || "Credenciais inválidas",
             };
+
             setStatusLogin(status);
-            if (lockout.blocked) {
-              setSegundosRestantes(lockout.seconds_remaining ?? 60);
+            if (status.bloqueado) {
+              setSegundosRestantes(status.segundosRestantes || 60);
             }
           } else {
             toast({
-              title: traduzirErro(error.message),
+              title: traduzirErro(error),
               description: "Verifique suas credenciais e tente novamente.",
               variant: "destructive",
             });
@@ -133,13 +142,8 @@ const Auth = () => {
           return;
         }
 
-        // Login com sucesso — o role já vem na resposta do backend
-        const userRole = (data as any)?.user?.role;
-        if (userRole === "user") {
-          navigate("/portal");
-        } else {
-          navigate("/");
-        }
+        setSegundosRestantes(0);
+        navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
