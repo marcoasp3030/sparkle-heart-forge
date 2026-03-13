@@ -31,5 +31,9 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/integrations/supabase/client.ts",
+    "src/integrations/supabase/types.ts"
   ]
 }
