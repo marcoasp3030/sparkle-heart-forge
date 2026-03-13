@@ -258,13 +258,55 @@ export default function ConfigAtualizacoes() {
                 )}
               </div>
 
-              {/* Changelog */}
-              {updateCheck.hasUpdate && updateCheck.changelog.length > 0 && (
+              {/* Release Notes (user-friendly) */}
+              {updateCheck.hasUpdate && updateCheck.releaseNotes && updateCheck.releaseNotes.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Clock className="h-4 w-4" /> Alterações pendentes ({updateCheck.changelog.length})
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" /> O que há de novo
                   </h4>
-                  <ScrollArea className="h-[200px] rounded-lg border">
+                  <ScrollArea className="max-h-[300px] rounded-lg border">
+                    <div className="p-4 space-y-5">
+                      {updateCheck.releaseNotes.map((release, i) => (
+                        <div key={i}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge variant="default" className="text-xs">v{release.version}</Badge>
+                            {release.date && (
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(release.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                              </span>
+                            )}
+                          </div>
+                          {Object.entries(release.categories).map(([category, items]) => (
+                            <div key={category} className="mb-3">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                                {category}
+                              </p>
+                              <ul className="space-y-1">
+                                {items.map((item, j) => (
+                                  <li key={j} className="text-sm text-foreground flex items-start gap-2">
+                                    <span className="text-primary mt-1 shrink-0">•</span>
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                          {i < updateCheck.releaseNotes.length - 1 && <Separator className="mt-3" />}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Commits técnicos (colapsável) */}
+              {updateCheck.hasUpdate && updateCheck.changelog.length > 0 && (
+                <details className="group">
+                  <summary className="text-sm font-semibold cursor-pointer flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <Clock className="h-4 w-4" />
+                    Detalhes técnicos ({updateCheck.changelog.length} commits)
+                  </summary>
+                  <ScrollArea className="h-[180px] rounded-lg border mt-2">
                     <div className="p-3 space-y-2">
                       {updateCheck.changelog.map((item, i) => (
                         <div key={i} className="flex items-start gap-3 text-sm p-2 rounded hover:bg-muted/50">
@@ -279,7 +321,7 @@ export default function ConfigAtualizacoes() {
                       ))}
                     </div>
                   </ScrollArea>
-                </div>
+                </details>
               )}
 
               {loadingUpdate && (

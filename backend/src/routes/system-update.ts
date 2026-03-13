@@ -106,30 +106,62 @@ router.get("/version", async (_req: Request, res: Response) => {
 });
 
 // ============================================
+// Helper: parse CHANGELOG.md content
+// ============================================
+function parseChangelogContent(content: string) {
+  const versions: Array<{ version: string; date: string; categories: Record<string, string[]> }> = [];
+  let current: { version: string; date: string; categories: Record<string, string[]> } | null = null;
+  let currentCategory = "";
+
+  for (const line of content.split("\n")) {
+    const versionMatch = line.match(/^## \[(.+?)\]\s*-?\s*([\d-]*)/);
+    if (versionMatch) {
+      if (current) versions.push(current);
+      current = { version: versionMatch[1], date: versionMatch[2] || "", categories: {} };
+      continue;
+    }
+    if (!current) continue;
+    const catMatch = line.match(/^### (.+)/);
+    if (catMatch) {
+      currentCategory = catMatch[1].trim();
+      if (!current.categories[currentCategory]) current.categories[currentCategory] = [];
+      continue;
+    }
+    const itemMatch = line.match(/^- (.+)/);
+    if (itemMatch && currentCategory) {
+      current.categories[currentCategory].push(itemMatch[1].trim());
+    }
+  }
+  if (current) versions.push(current);
+  return versions;
+}
+
+// ============================================
 // GET /api/system/check-update - Verifica atualizações
 // ============================================
 router.get("/check-update", requireSuperAdmin, async (_req: Request, res: Response) => {
   try {
     await ensureGitRepository();
 
-    // Fetch sem merge
     await execAsync("git fetch origin", { cwd: PROJECT_ROOT });
 
     const { remoteRef } = await resolveRemoteRef();
 
-    // Compara local vs remoto
     const { stdout: localHash } = await execAsync("git rev-parse HEAD", { cwd: PROJECT_ROOT });
     const { stdout: remoteHash } = await execAsync(`git rev-parse ${remoteRef}`, { cwd: PROJECT_ROOT });
 
     const hasUpdate = localHash.trim() !== remoteHash.trim();
 
     let changelog: Array<{ hash: string; date: string; message: string; author: string }> = [];
+    let releaseNotes: Array<{ version: string; date: string; categories: Record<string, string[]> }> = [];
+    let remoteVersion = "";
+
     if (hasUpdate) {
+      // Raw git commits (kept for technical details)
       const { stdout: log } = await execAsync(
         `git log HEAD..${remoteRef} --format=\"%h|%ci|%s|%an\" --no-merges`,
         { cwd: PROJECT_ROOT }
       );
-
       changelog = log
         .trim()
         .split("\n")
@@ -138,19 +170,33 @@ router.get("/check-update", requireSuperAdmin, async (_req: Request, res: Respon
           const [hash, date, message, author] = line.split("|");
           return { hash, date, message, author };
         });
-    }
 
-    // Busca versão remota do package.json
-    let remoteVersion = "";
-    if (hasUpdate) {
+      // Remote package.json version
       try {
-        const { stdout: remotePkg } = await execAsync(`git show ${remoteRef}:package.json`, {
-          cwd: PROJECT_ROOT,
-        });
+        const { stdout: remotePkg } = await execAsync(`git show ${remoteRef}:package.json`, { cwd: PROJECT_ROOT });
         remoteVersion = JSON.parse(remotePkg).version || "";
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
+
+      // Parse remote CHANGELOG.md for user-friendly release notes
+      try {
+        const { stdout: remoteChangelog } = await execAsync(`git show ${remoteRef}:CHANGELOG.md`, { cwd: PROJECT_ROOT });
+        const allVersions = parseChangelogContent(remoteChangelog);
+
+        // Get current local version
+        const pkgPath = path.resolve(PROJECT_ROOT, "package.json");
+        let currentVersion = "0.0.0";
+        if (existsSync(pkgPath)) {
+          currentVersion = JSON.parse(readFileSync(pkgPath, "utf-8")).version || "0.0.0";
+        }
+
+        // Filter only versions newer than current
+        releaseNotes = allVersions.filter((v) => v.version > currentVersion);
+
+        // If no version filtering works, show all that differ
+        if (releaseNotes.length === 0 && allVersions.length > 0) {
+          releaseNotes = allVersions.slice(0, 3);
+        }
+      } catch { /* CHANGELOG.md may not exist in remote */ }
     }
 
     res.json({
@@ -159,6 +205,7 @@ router.get("/check-update", requireSuperAdmin, async (_req: Request, res: Respon
       remoteCommit: remoteHash.trim().substring(0, 7),
       remoteVersion,
       changelog,
+      releaseNotes,
       checkedAt: new Date().toISOString(),
     });
   } catch (err: any) {
