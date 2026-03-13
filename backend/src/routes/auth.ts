@@ -52,52 +52,57 @@ router.post("/login", loginLimiter, validate(loginSchema), async (req: Request, 
 
     const result = await authenticateUser(email, password);
 
-    await pool.query(`SELECT register_login_attempt($1, $2)`, [email, true]);
-
-    // Get profile data
-    const { rows: profiles } = await pool.query(
-      `SELECT role, company_id, full_name, password_changed FROM profiles WHERE user_id = $1`,
-      [result.user.id]
-    );
-
-    // Audit
-    await pool.query(
-      `INSERT INTO audit_logs (user_id, action, resource_type, category, details, user_agent, ip_address)
-       VALUES ($1, 'login_success', 'auth', 'auth', '{}', $2, $3)`,
-      [result.user.id, req.headers["user-agent"] || "", req.ip || ""]
-    );
+    // Run non-critical queries in parallel for speed
+    const [profileResult] = await Promise.all([
+      pool.query(
+        `SELECT role, company_id, full_name, password_changed FROM profiles WHERE user_id = $1`,
+        [result.user.id]
+      ),
+      pool.query(`SELECT register_login_attempt($1, $2)`, [email, true]),
+      pool.query(
+        `INSERT INTO audit_logs (user_id, action, resource_type, category, details, user_agent, ip_address)
+         VALUES ($1, 'login_success', 'auth', 'auth', '{}', $2, $3)`,
+        [result.user.id, req.headers["user-agent"] || "", req.ip || ""]
+      ),
+    ]);
 
     res.json({
       token: result.token,
       user: {
         id: result.user.id,
         email: result.user.email,
-        ...profiles[0],
+        ...profileResult.rows[0],
       },
     });
   } catch (err: any) {
-    await pool.query(`SELECT register_login_attempt($1, $2)`, [email, false]);
+    // Run failed-login queries in parallel
+    const [, lockoutResult] = await Promise.all([
+      pool.query(
+        `INSERT INTO audit_logs (action, resource_type, category, details, user_agent, ip_address)
+         VALUES ('login_failed', 'auth', 'auth', $1, $2, $3)`,
+        [JSON.stringify({ email }), req.headers["user-agent"] || "", req.ip || ""]
+      ),
+      (async () => {
+        await pool.query(`SELECT register_login_attempt($1, $2)`, [email, false]);
+        // Re-check lockout AFTER registering the attempt
+        const { rows } = await pool.query(
+          `SELECT * FROM get_login_lockout_status($1)`,
+          [email]
+        );
+        return rows;
+      })(),
+    ]);
 
-    // Re-check lockout for updated message
-    const { rows: lockout } = await pool.query(
-      `SELECT * FROM get_login_lockout_status($1)`,
-      [email]
-    );
-
-    await pool.query(
-      `INSERT INTO audit_logs (action, resource_type, category, details, user_agent, ip_address)
-       VALUES ('login_failed', 'auth', 'auth', $1, $2, $3)`,
-      [JSON.stringify({ email }), req.headers["user-agent"] || "", req.ip || ""]
-    );
+    const lockout = lockoutResult[0];
 
     res.status(401).json({
-      error: lockout[0]?.mensagem || "Credenciais inválidas",
-      lockout: lockout[0]
+      error: lockout?.mensagem || "Credenciais inválidas",
+      lockout: lockout
         ? {
-            blocked: lockout[0].bloqueado,
-            attempts_remaining: lockout[0].tentativas_restantes,
-            seconds_remaining: lockout[0].segundos_restantes,
-            level: lockout[0].nivel,
+            blocked: lockout.bloqueado,
+            attempts_remaining: lockout.tentativas_restantes,
+            seconds_remaining: lockout.segundos_restantes,
+            level: lockout.nivel,
           }
         : null,
     });

@@ -227,8 +227,13 @@ class CompatAuth {
       }
       return { data: { user: data.user, session: { access_token: data.token } }, error: null };
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || "Login failed";
-      return { data: { user: null, session: null }, error: { message: msg } };
+      const responseData = err.original?.response?.data || err.response?.data;
+      const msg = responseData?.error || err.message || "Login failed";
+      const errorObj: any = { message: msg, original: err };
+      if (responseData) {
+        errorObj.original = { response: { data: responseData } };
+      }
+      return { data: { user: null, session: null }, error: errorObj };
     }
   }
 
