@@ -207,26 +207,86 @@ router.post("/doors/:doorId/release", requireAdminOrAbove, async (req: Request, 
   try {
     await client.query("BEGIN");
 
-    const { rows } = await client.query(
-      `UPDATE locker_doors SET
-        status = 'available', occupied_by = NULL, occupied_by_person = NULL,
-        occupied_at = NULL, expires_at = NULL, scheduled_reservation_id = NULL,
-        updated_at = NOW()
-       WHERE id = $1 RETURNING *`,
+    // Check if company has hygienization enabled
+    const { rows: doorInfo } = await client.query(
+      `SELECT ld.*, l.company_id FROM locker_doors ld JOIN lockers l ON l.id = ld.locker_id WHERE ld.id = $1`,
       [req.params.doorId]
     );
+    if (!doorInfo[0]) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Porta não encontrada" });
+    }
 
-    // Release active reservation
-    await client.query(
-      `UPDATE locker_reservations SET status = 'released', released_at = NOW()
-       WHERE door_id = $1 AND status = 'active'`,
-      [req.params.doorId]
-    );
+    const companyId = doorInfo[0].company_id;
+    let useHygienization = false;
+    let hygienizationMinutes = 15;
 
-    await client.query("COMMIT");
+    if (companyId) {
+      const { rows: permRows } = await client.query(
+        `SELECT enabled FROM company_permissions WHERE company_id = $1 AND permission = 'hygienization_enabled'`,
+        [companyId]
+      );
+      if (permRows[0]?.enabled) {
+        useHygienization = true;
+        const { rows: settingRows } = await client.query(
+          `SELECT enabled::text as value FROM company_permissions WHERE company_id = $1 AND permission = 'hygienization_minutes'`,
+          [companyId]
+        );
+        // hygienization_minutes is stored as a separate permission where 'permission' column holds the key
+        // and we store the minutes value in platform_settings per company
+        const { rows: minutesRows } = await client.query(
+          `SELECT value FROM platform_settings WHERE key = $1`,
+          [`hygienization_minutes_${companyId}`]
+        );
+        if (minutesRows[0]?.value) {
+          hygienizationMinutes = parseInt(String(minutesRows[0].value)) || 15;
+        }
+      }
+    }
 
-    if (!rows[0]) return res.status(404).json({ error: "Porta não encontrada" });
-    res.json({ message: "Porta liberada com sucesso", door: rows[0] });
+    // Skip hygienization if explicitly requested (admin manual release of hygienizing door)
+    const skipHygienization = req.body?.skipHygienization === true;
+
+    if (useHygienization && !skipHygienization && doorInfo[0].status === "occupied") {
+      const hygienizationExpiry = new Date(Date.now() + hygienizationMinutes * 60 * 1000).toISOString();
+      const { rows } = await client.query(
+        `UPDATE locker_doors SET
+          status = 'hygienizing', occupied_by = NULL, occupied_by_person = NULL,
+          occupied_at = NULL, expires_at = $2, scheduled_reservation_id = NULL,
+          updated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        [req.params.doorId, hygienizationExpiry]
+      );
+
+      // Release active reservation
+      await client.query(
+        `UPDATE locker_reservations SET status = 'released', released_at = NOW()
+         WHERE door_id = $1 AND status = 'active'`,
+        [req.params.doorId]
+      );
+
+      await client.query("COMMIT");
+      res.json({ message: `Porta em higienização por ${hygienizationMinutes} minutos`, door: rows[0], hygienizing: true });
+    } else {
+      const { rows } = await client.query(
+        `UPDATE locker_doors SET
+          status = 'available', occupied_by = NULL, occupied_by_person = NULL,
+          occupied_at = NULL, expires_at = NULL, scheduled_reservation_id = NULL,
+          updated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        [req.params.doorId]
+      );
+
+      // Release active reservation
+      await client.query(
+        `UPDATE locker_reservations SET status = 'released', released_at = NOW()
+         WHERE door_id = $1 AND status IN ('active', 'hygienizing')`,
+        [req.params.doorId]
+      );
+
+      await client.query("COMMIT");
+      res.json({ message: "Porta liberada com sucesso", door: rows[0] });
+    }
   } catch (err: any) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: err.message });

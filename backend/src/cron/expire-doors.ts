@@ -81,9 +81,9 @@ export function startExpireDoorsJob() {
 
       await client.query("COMMIT");
 
-      if (expiredDoors || expiredReservations || scheduledDoors.length) {
+      if (expiredDoors || expiredReservations || scheduledDoors.length || hygienizingDoors) {
         console.log(
-          `[CRON expire-doors] ${expiredDoors} portas liberadas, ${expiredReservations} reservas expiradas, ${scheduledDoors.length} agendamentos ativados`
+          `[CRON expire-doors] ${expiredDoors} portas liberadas, ${expiredReservations} reservas expiradas, ${scheduledDoors.length} agendamentos ativados, ${hygienizingDoors} higienizações concluídas`
         );
       }
     } catch (err) {
