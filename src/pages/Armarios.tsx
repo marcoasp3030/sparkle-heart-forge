@@ -366,6 +366,7 @@ export default function LockersPage() {
   const filteredLockers = lockers
     .map((l) => {
       if (statusFilter === "all") return l;
+      if (statusFilter === "scheduled") return { ...l, doors: l.doors.filter((d) => !!d.scheduledReservation) };
       return { ...l, doors: l.doors.filter((d) => d.status === statusFilter) };
     })
     .filter((l) => {
