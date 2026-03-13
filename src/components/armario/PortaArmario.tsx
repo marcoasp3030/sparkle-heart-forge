@@ -131,6 +131,7 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
 
   const isTemporary = door.usage_type === "temporary" && door.status === "occupied" && !!door.expires_at;
   const { urgency } = useUrgencyLevel(isTemporary ? door.expires_at : null, door.occupied_at);
+  const hasSchedule = !!door.scheduledReservation;
 
   const canSwipe = isMobile && (
     (door.status === "available" && !!onQuickReserve) ||
