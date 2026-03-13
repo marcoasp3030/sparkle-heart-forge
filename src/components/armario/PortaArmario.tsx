@@ -135,7 +135,7 @@ function getLedUrgencyColor(urgency: string) {
 export default function PortaArmario({ door, index, onSelect, onQuickReserve, onQuickRelease, isCurrentUser, isAdmin }: LockerDoorProps) {
   const config = statusConfig[door.status];
   const Icon = config.icon;
-  const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance");
+  const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance" || door.status === "hygienizing");
   const isMobile = useIsMobile();
   const [swiped, setSwiped] = useState(false);
   const x = useMotionValue(0);
