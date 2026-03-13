@@ -39,7 +39,7 @@ npm -v
 No seu computador local, faça o build e envie:
 
 ```bash
-# 1. Clone ou baixe o projeto do Lovable (GitHub)
+# 1. Clone ou baixe o projeto do GitHub
 git clone <URL_DO_SEU_REPO> /tmp/locker-system
 cd /tmp/locker-system
 
