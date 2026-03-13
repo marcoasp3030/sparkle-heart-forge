@@ -220,8 +220,13 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         />
       </div>
 
-      {/* Countdown ring - top right for temporary occupied */}
+      {/* Countdown ring - top right for temporary occupied or hygienizing */}
       {isTemporary && door.expires_at && (
+        <div className="absolute top-1.5 right-7">
+          <CountdownPorta expiresAt={door.expires_at} size="sm" />
+        </div>
+      )}
+      {door.status === "hygienizing" && door.expires_at && (
         <div className="absolute top-1.5 right-7">
           <CountdownPorta expiresAt={door.expires_at} size="sm" />
         </div>
