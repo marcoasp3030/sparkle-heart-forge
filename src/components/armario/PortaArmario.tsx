@@ -235,6 +235,18 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         {door.label || `${door.door_number}`}
       </span>
 
+      {/* Scheduled reservation badge */}
+      {hasSchedule && (
+        <div className="absolute top-1.5 left-6 flex items-center gap-0.5">
+          <motion.div
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ repeat: Infinity, duration: 2.5 }}
+          >
+            <CalendarClock className="h-3 w-3 text-violet-500 dark:text-violet-400 drop-shadow-sm" />
+          </motion.div>
+        </div>
+      )}
+
       {/* Ventilation */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
         {[...Array(3)].map((_, i) => (
