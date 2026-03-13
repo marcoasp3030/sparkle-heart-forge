@@ -27,6 +27,7 @@ type DoorWithLocker = {
   status: string;
   occupied_by: string | null;
   occupied_at: string | null;
+  expires_at: string | null;
   locker_id: string;
   locker_name: string;
   locker_location: string;
