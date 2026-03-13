@@ -112,6 +112,7 @@ const ACTION_WIDTH = 64;
 // LED pulse speed based on urgency
 function getLedAnimation(status: string, urgency: string) {
   if (status === "available") return { opacity: [1, 0.4, 1], scale: [1, 1.1, 1] };
+  if (status === "hygienizing") return { opacity: [1, 0.3, 1], scale: [1, 1.2, 1] };
   if (status === "occupied" && urgency === "critical") return { opacity: [1, 0.2, 1], scale: [1, 1.3, 1] };
   if (status === "occupied" && urgency === "warning") return { opacity: [1, 0.5, 1], scale: [1, 1.15, 1] };
   return {};
@@ -119,6 +120,7 @@ function getLedAnimation(status: string, urgency: string) {
 
 function getLedTransition(status: string, urgency: string) {
   if (status === "available") return { repeat: Infinity, duration: 2 };
+  if (status === "hygienizing") return { repeat: Infinity, duration: 1.5 };
   if (status === "occupied" && urgency === "critical") return { repeat: Infinity, duration: 0.6 };
   if (status === "occupied" && urgency === "warning") return { repeat: Infinity, duration: 1.2 };
   return {};
