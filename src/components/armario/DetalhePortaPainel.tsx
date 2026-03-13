@@ -578,7 +578,25 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             )}
 
-            {/* Actions for occupied/maintenance */}
+            {/* Hygienizing info */}
+            {door.status === "hygienizing" && (
+              <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-cyan-600" />
+                  <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">Em higienização</p>
+                </div>
+                {door.expires_at && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      Disponível em: {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions for occupied/maintenance/hygienizing */}
             <div className="space-y-2.5">
               {(isCurrentUser || isAdmin) && door.status === "occupied" && (
                 <Button
@@ -592,7 +610,19 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
                 </Button>
               )}
 
-              {isAdmin && door.status !== "maintenance" && (
+              {isAdmin && door.status === "hygienizing" && (
+                <Button
+                  onClick={() => setConfirmAction("unmaintenance")}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full h-11 rounded-xl font-semibold border-cyan-300/50 text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
+                >
+                  <Unlock className="mr-2 h-4 w-4" />
+                  Liberar manualmente (pular higienização)
+                </Button>
+              )}
+
+              {isAdmin && door.status !== "maintenance" && door.status !== "hygienizing" && (
                 <Button
                   onClick={() => setConfirmAction("maintenance")}
                   disabled={loading}

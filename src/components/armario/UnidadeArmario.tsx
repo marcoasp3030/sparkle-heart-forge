@@ -117,6 +117,12 @@ export default function UnidadeArmario({ locker, doors, onSelectDoor, onQuickRes
               <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400">{scheduled}</span>
             </div>
           )}
+          {hygienizing > 0 && (
+            <div className="flex items-center gap-1.5" title="Portas em higienização">
+              <Droplets className="h-2.5 w-2.5 text-cyan-500" />
+              <span className="text-[10px] font-medium text-cyan-600 dark:text-cyan-400">{hygienizing}</span>
+            </div>
+          )}
           <div className="flex-1" />
           <span className="text-[9px] text-muted-foreground/50 font-mono">
             {Math.round((available / Math.max(doors.length, 1)) * 100)}% livre
