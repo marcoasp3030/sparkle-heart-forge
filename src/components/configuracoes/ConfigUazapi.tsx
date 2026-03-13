@@ -294,14 +294,14 @@ export default function ConfigUazapi() {
                   <div className="flex gap-2">
                     <Input
                       readOnly
-                      value={`https://pnnoypsyrccdfxdqjakp.supabase.co/functions/v1/whatsapp-webhook`}
+                      value={`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/whatsapp-webhook`}
                       className="font-mono text-xs bg-muted"
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        navigator.clipboard.writeText(`https://pnnoypsyrccdfxdqjakp.supabase.co/functions/v1/whatsapp-webhook`);
+                        navigator.clipboard.writeText(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/whatsapp-webhook`);
                         toast({ title: "URL copiada!" });
                       }}
                     >
