@@ -132,6 +132,27 @@ export default function ConfigAtualizacoes() {
 
   return (
     <div className="space-y-6">
+      {/* Link para Changelog público */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Changelog do Sistema</p>
+                <p className="text-sm text-muted-foreground">Veja o histórico completo de versões e commits</p>
+              </div>
+            </div>
+            <Link to="/changelog">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Ver Changelog
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Versão Atual */}
       <Card>
         <CardHeader>
