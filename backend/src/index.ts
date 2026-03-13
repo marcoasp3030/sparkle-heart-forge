@@ -101,7 +101,7 @@ app.use("/api/upload", authMiddleware, uploadRouter);
 app.use("/api/email", authMiddleware, emailRouter);
 app.use("/api/whatsapp", authMiddleware, whatsappRouter);
 app.use("/api/compat", authMiddleware, compatRouter);
-app.use("/api/rpc", authMiddleware, rpcRouter);
+app.use("/api/rpc", rpcRouter); // Public - individual functions handle their own security
 app.use("/api/functions", authMiddleware, functionsRouter);
 app.use("/api/smtp", authMiddleware, smtpRouter);
 app.use("/api/email-notify", authMiddleware, emailNotifyRouter);
