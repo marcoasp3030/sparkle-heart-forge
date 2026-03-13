@@ -41,7 +41,72 @@ const resolveRemoteRef = async (): Promise<{ remoteRef: string; branch: string }
   }
 };
 
+const checkDockerAccess = async (): Promise<{ ok: boolean; details: string[] }> => {
+  const details: string[] = [];
+  
+  // Check docker socket
+  try {
+    const { existsSync } = require("fs");
+    if (!existsSync("/var/run/docker.sock")) {
+      details.push("❌ /var/run/docker.sock não encontrado. Monte o socket no docker-compose.yml: /var/run/docker.sock:/var/run/docker.sock");
+    } else {
+      details.push("✅ Docker socket encontrado");
+    }
+  } catch { details.push("⚠️ Não foi possível verificar docker.sock"); }
+
+  // Check docker CLI
+  try {
+    await execAsync("docker --version");
+    details.push("✅ Docker CLI disponível");
+  } catch {
+    details.push("❌ Docker CLI não encontrado. Instale no Dockerfile: apk add docker-cli");
+  }
+
+  // Check docker compose
+  try {
+    await execAsync("docker compose version");
+    details.push("✅ Docker Compose (plugin) disponível");
+  } catch {
+    try {
+      await execAsync("docker-compose --version");
+      details.push("✅ Docker Compose (standalone) disponível");
+    } catch {
+      details.push("❌ Docker Compose não encontrado. Instale: apk add docker-cli-compose");
+    }
+  }
+
+  // Check compose file exists
+  try {
+    const composePath = path.resolve(COMPOSE_DIR, "docker-compose.yml");
+    const { existsSync } = require("fs");
+    if (existsSync(composePath)) {
+      details.push(`✅ docker-compose.yml encontrado em ${COMPOSE_DIR}`);
+    } else {
+      details.push(`❌ docker-compose.yml NÃO encontrado em ${COMPOSE_DIR}. Verifique COMPOSE_DIR`);
+    }
+  } catch { /* ignore */ }
+
+  // Check docker connectivity
+  try {
+    await execAsync("docker ps", { timeout: 10000 });
+    details.push("✅ Conexão com Docker daemon OK");
+  } catch (err: any) {
+    details.push(`❌ Não foi possível conectar ao Docker daemon: ${err.message?.substring(0, 100)}`);
+  }
+
+  const ok = !details.some((d) => d.startsWith("❌"));
+  return { ok, details };
+};
+
 const runComposeRebuild = async () => {
+  // Pre-check docker access
+  const dockerCheck = await checkDockerAccess();
+  if (!dockerCheck.ok) {
+    throw new Error(
+      `Docker não está acessível no container backend.\n\nDiagnóstico:\n${dockerCheck.details.join("\n")}\n\nSoluções:\n1. Verifique se o volume docker.sock está montado: /var/run/docker.sock:/var/run/docker.sock\n2. Verifique se COMPOSE_DIR (${COMPOSE_DIR}) aponta para o diretório com docker-compose.yml\n3. Verifique as permissões do socket Docker`
+    );
+  }
+
   const commands = [
     "docker compose up -d --build --no-deps backend frontend 2>&1",
     "docker-compose up -d --build --no-deps backend frontend 2>&1",
@@ -62,9 +127,21 @@ const runComposeRebuild = async () => {
   }
 
   throw new Error(
-    `Falha ao executar Docker Compose em ${COMPOSE_DIR}. Verifique se docker compose está disponível e se /var/run/docker.sock está montado no backend. Erro: ${lastError?.message || "desconhecido"}`
+    `Falha ao executar Docker Compose em ${COMPOSE_DIR}. Erro: ${lastError?.message || "desconhecido"}`
   );
 };
+
+// ============================================
+// GET /api/system/docker-check - Diagnóstico Docker
+// ============================================
+router.get("/docker-check", requireSuperAdmin, async (_req: Request, res: Response) => {
+  try {
+    const result = await checkDockerAccess();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, details: [err.message] });
+  }
+});
 
 // ============================================
 // GET /api/system/version - Versão atual
