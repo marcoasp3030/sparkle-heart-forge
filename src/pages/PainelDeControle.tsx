@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Lock, Unlock, Package, MapPin, Search,
-  ChevronRight, Wrench, TrendingUp, BarChart3, Droplets
+  ChevronRight, Wrench, TrendingUp, BarChart3, Droplets, Timer
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
+import CountdownPorta from "@/components/armario/CountdownPorta";
 
 const statusConfig = {
   occupied: { label: "Ocupado", className: "bg-primary/10 text-primary border-primary/20" },
@@ -26,6 +27,7 @@ type DoorWithLocker = {
   status: string;
   occupied_by: string | null;
   occupied_at: string | null;
+  expires_at: string | null;
   locker_id: string;
   locker_name: string;
   locker_location: string;
@@ -74,7 +76,7 @@ const PainelDeControle = () => {
 
     const { data: doorsData } = await supabase
       .from("locker_doors")
-      .select("id, door_number, status, occupied_by, occupied_at, locker_id")
+      .select("id, door_number, status, occupied_by, occupied_at, expires_at, locker_id")
       .in("locker_id", lockerIds);
 
     if (!doorsData) {
@@ -100,6 +102,7 @@ const PainelDeControle = () => {
       status: d.status,
       occupied_by: d.occupied_by,
       occupied_at: d.occupied_at,
+      expires_at: d.expires_at,
       locker_id: d.locker_id,
       locker_name: lockerMap[d.locker_id]?.name || "",
       locker_location: lockerMap[d.locker_id]?.location || "",
@@ -335,6 +338,57 @@ const PainelDeControle = () => {
                     <span className="text-muted-foreground">Higienização ({stats.hygienizing})</span>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Hygienizing Doors Widget */}
+      {!loading && doors.filter(d => d.status === "hygienizing" && d.expires_at).length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.38 }}
+        >
+          <Card className="border-cyan-500/20 shadow-card overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 to-cyan-400" />
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="rounded-lg p-2 bg-cyan-500/10">
+                  <Timer className="h-4 w-4 text-cyan-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Portas em Higienização</h3>
+                  <p className="text-xs text-muted-foreground">Countdown em tempo real</p>
+                </div>
+                <Badge variant="outline" className="ml-auto bg-cyan-500/10 text-cyan-600 border-cyan-500/20 text-xs">
+                  {doors.filter(d => d.status === "hygienizing").length} porta{doors.filter(d => d.status === "hygienizing").length !== 1 ? "s" : ""}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {doors
+                  .filter(d => d.status === "hygienizing" && d.expires_at)
+                  .map((door) => (
+                    <motion.div
+                      key={door.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3"
+                    >
+                      <CountdownPorta expiresAt={door.expires_at!} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate font-mono">
+                          {door.locker_name} — Porta {door.door_number}
+                        </p>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{door.locker_location || "Sem localização"}</span>
+                        </div>
+                      </div>
+                      <Droplets className="h-4 w-4 text-cyan-500 animate-pulse flex-shrink-0" />
+                    </motion.div>
+                  ))}
               </div>
             </CardContent>
           </Card>
