@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { Lock, Unlock, Wrench, User, CalendarClock } from "lucide-react";
+import { Lock, Unlock, Wrench, User, CalendarClock, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -19,7 +19,7 @@ export interface LockerDoorData {
   door_number: number;
   label: string | null;
   size: "small" | "medium" | "large";
-  status: "available" | "occupied" | "maintenance" | "reserved";
+  status: "available" | "occupied" | "maintenance" | "reserved" | "hygienizing";
   occupied_by: string | null;
   usage_type?: string;
   expires_at?: string | null;
@@ -92,6 +92,18 @@ const statusConfig = {
     hoverBorder: "",
     hoverShadow: "",
   },
+  hygienizing: {
+    label: "Higienização",
+    bg: "from-cyan-50 to-cyan-100/80 dark:from-cyan-950/40 dark:to-cyan-900/30",
+    border: "border-cyan-200/60 dark:border-cyan-700/40",
+    icon: Droplets,
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    led: "bg-cyan-500",
+    ledGlow: "shadow-[0_0_6px_2px_rgba(6,182,212,0.5)]",
+    handleColor: "bg-cyan-300/60 dark:bg-cyan-600/40",
+    hoverBorder: "",
+    hoverShadow: "",
+  },
 };
 
 const SWIPE_THRESHOLD = 50;
@@ -100,6 +112,7 @@ const ACTION_WIDTH = 64;
 // LED pulse speed based on urgency
 function getLedAnimation(status: string, urgency: string) {
   if (status === "available") return { opacity: [1, 0.4, 1], scale: [1, 1.1, 1] };
+  if (status === "hygienizing") return { opacity: [1, 0.3, 1], scale: [1, 1.2, 1] };
   if (status === "occupied" && urgency === "critical") return { opacity: [1, 0.2, 1], scale: [1, 1.3, 1] };
   if (status === "occupied" && urgency === "warning") return { opacity: [1, 0.5, 1], scale: [1, 1.15, 1] };
   return {};
@@ -107,6 +120,7 @@ function getLedAnimation(status: string, urgency: string) {
 
 function getLedTransition(status: string, urgency: string) {
   if (status === "available") return { repeat: Infinity, duration: 2 };
+  if (status === "hygienizing") return { repeat: Infinity, duration: 1.5 };
   if (status === "occupied" && urgency === "critical") return { repeat: Infinity, duration: 0.6 };
   if (status === "occupied" && urgency === "warning") return { repeat: Infinity, duration: 1.2 };
   return {};
@@ -123,7 +137,7 @@ function getLedUrgencyColor(urgency: string) {
 export default function PortaArmario({ door, index, onSelect, onQuickReserve, onQuickRelease, isCurrentUser, isAdmin }: LockerDoorProps) {
   const config = statusConfig[door.status];
   const Icon = config.icon;
-  const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance");
+  const isClickable = Boolean(isAdmin || door.status === "available" || isCurrentUser || door.status === "maintenance" || door.status === "hygienizing");
   const isMobile = useIsMobile();
   const [swiped, setSwiped] = useState(false);
   const x = useMotionValue(0);
@@ -206,8 +220,13 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         />
       </div>
 
-      {/* Countdown ring - top right for temporary occupied */}
+      {/* Countdown ring - top right for temporary occupied or hygienizing */}
       {isTemporary && door.expires_at && (
+        <div className="absolute top-1.5 right-7">
+          <CountdownPorta expiresAt={door.expires_at} size="sm" />
+        </div>
+      )}
+      {door.status === "hygienizing" && door.expires_at && (
         <div className="absolute top-1.5 right-7">
           <CountdownPorta expiresAt={door.expires_at} size="sm" />
         </div>

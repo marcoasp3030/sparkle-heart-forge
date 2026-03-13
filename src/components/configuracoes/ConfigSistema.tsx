@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users } from "lucide-react";
+import { Monitor, Database, Clock, Activity, Download, Loader2, Shield, Users, Droplets } from "lucide-react";
 
 export default function ConfigSistema() {
   const { user } = useAuth();
@@ -23,6 +24,9 @@ export default function ConfigSistema() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(true);
+  const [hygienizationEnabled, setHygienizationEnabled] = useState(false);
+  const [hygienizationMinutes, setHygienizationMinutes] = useState(15);
+  const [hygienizationLoading, setHygienizationLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -65,6 +69,32 @@ export default function ConfigSistema() {
     loadWaitlistSetting();
   }, [selectedCompany]);
 
+  // Load hygienization settings
+  useEffect(() => {
+    const loadHygienization = async () => {
+      if (!selectedCompany) return;
+      const { data } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", selectedCompany.id)
+        .eq("permission", "hygienization_enabled")
+        .maybeSingle();
+      setHygienizationEnabled(data?.enabled ?? false);
+
+      // Load minutes from platform_settings
+      const { data: minutesData } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", `hygienization_minutes_${selectedCompany.id}`)
+        .maybeSingle();
+      if (minutesData?.value) {
+        setHygienizationMinutes(parseInt(String(minutesData.value)) || 15);
+      }
+      setHygienizationLoading(false);
+    };
+    loadHygienization();
+  }, [selectedCompany]);
+
   const toggleWaitlist = async (enabled: boolean) => {
     if (!selectedCompany) return;
     setWaitlistEnabled(enabled);
@@ -88,6 +118,56 @@ export default function ConfigSistema() {
     }
 
     toast({ title: enabled ? "Fila de espera ativada" : "Fila de espera desativada" });
+  };
+
+  const toggleHygienization = async (enabled: boolean) => {
+    if (!selectedCompany) return;
+    setHygienizationEnabled(enabled);
+
+    const { data: existing } = await supabase
+      .from("company_permissions")
+      .select("id")
+      .eq("company_id", selectedCompany.id)
+      .eq("permission", "hygienization_enabled")
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("company_permissions")
+        .update({ enabled })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("company_permissions")
+        .insert({ company_id: selectedCompany.id, permission: "hygienization_enabled", enabled });
+    }
+
+    toast({ title: enabled ? "Higienização ativada" : "Higienização desativada" });
+  };
+
+  const saveHygienizationMinutes = async (minutes: number) => {
+    if (!selectedCompany) return;
+    setHygienizationMinutes(minutes);
+
+    const key = `hygienization_minutes_${selectedCompany.id}`;
+    const { data: existing } = await supabase
+      .from("platform_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("platform_settings")
+        .update({ value: minutes })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("platform_settings")
+        .insert({ key, value: minutes });
+    }
+
+    toast({ title: `Tempo de higienização: ${minutes} minutos` });
   };
 
   const handleExportLogs = async () => {
@@ -234,6 +314,58 @@ export default function ConfigSistema() {
               <Switch checked={waitlistEnabled} onCheckedChange={toggleWaitlist} />
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Hygienization toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Droplets className="h-5 w-5" />
+            Higienização Pós-Uso
+          </CardTitle>
+          <CardDescription>
+            Quando ativada, após a liberação de uma porta ocupada, ela entra automaticamente em modo de higienização
+            por um período configurável antes de ficar disponível novamente. O administrador pode liberar manualmente antes do tempo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Ativar higienização automática</p>
+              <p className="text-xs text-muted-foreground">
+                Porta entra em modo higienização após cada liberação
+              </p>
+            </div>
+            {hygienizationLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <Switch checked={hygienizationEnabled} onCheckedChange={toggleHygienization} />
+            )}
+          </div>
+
+          {hygienizationEnabled && (
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Tempo de higienização</p>
+                <p className="text-xs text-muted-foreground">
+                  Duração em minutos antes da porta ficar disponível
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={hygienizationMinutes}
+                  onChange={(e) => setHygienizationMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                  onBlur={() => saveHygienizationMinutes(hygienizationMinutes)}
+                  className="w-20 h-9 text-center"
+                />
+                <span className="text-xs text-muted-foreground">min</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

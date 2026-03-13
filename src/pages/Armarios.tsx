@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -246,48 +246,112 @@ export default function LockersPage() {
 
   const handleRelease = async (door: LockerDoorData | LockerDoorDataExtended) => {
     setActionLoading(true);
-    const { error } = await supabase
-      .from("locker_doors")
-      .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null, scheduled_reservation_id: null })
-      .eq("id", door.id);
 
-    if (!error) {
-      // Close active reservation
-      await supabase
-        .from("locker_reservations")
-        .update({ status: "released", released_at: new Date().toISOString() })
-        .eq("door_id", door.id)
-        .eq("status", "active");
-    }
+    // Check if company has hygienization enabled
+    let useHygienization = false;
+    let hygienizationMinutes = 15;
 
-    if (error) {
-      toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
-      triggerFeedback("release");
-      playSound("release");
+    if (selectedCompany && door.status === "occupied") {
+      const { data: hygPerm } = await supabase
+        .from("company_permissions")
+        .select("enabled")
+        .eq("company_id", selectedCompany.id)
+        .eq("permission", "hygienization_enabled")
+        .maybeSingle();
 
-      // WhatsApp notification (non-blocking)
-      if (door.occupied_by && selectedCompany) {
-        const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
-        const extDoor = door as LockerDoorDataExtended;
-        sendWhatsAppNotify({
-          type: "reservation_released",
-          companyId: selectedCompany?.id,
-          personId: extDoor.occupied_by_person || undefined,
-          doorLabel: door.label,
-          doorNumber: door.door_number,
-          lockerName: locker?.name,
-        });
-
-        // Notify waitlist (non-blocking)
-        if (locker) {
-          notifyWaitlist(locker.id, selectedCompany.id, door.label, door.door_number, locker.name);
+      if (hygPerm?.enabled) {
+        useHygienization = true;
+        const { data: minutesData } = await supabase
+          .from("platform_settings")
+          .select("value")
+          .eq("key", `hygienization_minutes_${selectedCompany.id}`)
+          .maybeSingle();
+        if (minutesData?.value) {
+          hygienizationMinutes = parseInt(String(minutesData.value)) || 15;
         }
       }
+    }
 
-      setSheetOpen(false);
-      fetchLockers();
+    // For hygienizing doors being manually released by admin, skip hygienization
+    const isHygienizingDoor = door.status === "hygienizing";
+
+    if (useHygienization && !isHygienizingDoor) {
+      // Set to hygienizing with expiry
+      const hygienizationExpiry = new Date(Date.now() + hygienizationMinutes * 60 * 1000).toISOString();
+      const { error } = await supabase
+        .from("locker_doors")
+        .update({
+          status: "hygienizing",
+          occupied_by: null,
+          occupied_at: null,
+          occupied_by_person: null,
+          usage_type: "temporary",
+          expires_at: hygienizationExpiry,
+          scheduled_reservation_id: null,
+        })
+        .eq("id", door.id);
+
+      if (!error) {
+        await supabase
+          .from("locker_reservations")
+          .update({ status: "released", released_at: new Date().toISOString() })
+          .eq("door_id", door.id)
+          .eq("status", "active");
+      }
+
+      if (error) {
+        toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Em higienização!", description: `Porta ${door.label || '#' + door.door_number} em higienização por ${hygienizationMinutes} minutos.` });
+        triggerFeedback("release");
+        playSound("release");
+        setSheetOpen(false);
+        fetchLockers();
+      }
+    } else {
+      // Normal release (or manual release of hygienizing door)
+      const { error } = await supabase
+        .from("locker_doors")
+        .update({ status: "available", occupied_by: null, occupied_at: null, occupied_by_person: null, usage_type: "temporary", expires_at: null, scheduled_reservation_id: null })
+        .eq("id", door.id);
+
+      if (!error) {
+        await supabase
+          .from("locker_reservations")
+          .update({ status: "released", released_at: new Date().toISOString() })
+          .eq("door_id", door.id)
+          .in("status", ["active"]);
+      }
+
+      if (error) {
+        toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Liberado!", description: `Porta ${door.label || '#' + door.door_number} liberada.` });
+        triggerFeedback("release");
+        playSound("release");
+
+        // WhatsApp notification (non-blocking)
+        if (door.occupied_by && selectedCompany) {
+          const locker = lockers.find(l => l.doors.some(d => d.id === door.id));
+          const extDoor = door as LockerDoorDataExtended;
+          sendWhatsAppNotify({
+            type: "reservation_released",
+            companyId: selectedCompany?.id,
+            personId: extDoor.occupied_by_person || undefined,
+            doorLabel: door.label,
+            doorNumber: door.door_number,
+            lockerName: locker?.name,
+          });
+
+          // Notify waitlist (non-blocking)
+          if (locker) {
+            notifyWaitlist(locker.id, selectedCompany.id, door.label, door.door_number, locker.name);
+          }
+        }
+
+        setSheetOpen(false);
+        fetchLockers();
+      }
     }
     setActionLoading(false);
   };
@@ -361,12 +425,14 @@ export default function LockersPage() {
     occupied: allDoors.filter((d) => d.status === "occupied").length,
     maintenance: allDoors.filter((d) => d.status === "maintenance").length,
     scheduled: allDoors.filter((d) => !!d.scheduledReservation).length,
+    hygienizing: allDoors.filter((d) => d.status === "hygienizing").length,
   };
 
   const filteredLockers = lockers
     .map((l) => {
       if (statusFilter === "all") return l;
       if (statusFilter === "scheduled") return { ...l, doors: l.doors.filter((d) => !!d.scheduledReservation) };
+      if (statusFilter === "hygienizing") return { ...l, doors: l.doors.filter((d) => d.status === "hygienizing") };
       return { ...l, doors: l.doors.filter((d) => d.status === statusFilter) };
     })
     .filter((l) => {
@@ -525,6 +591,7 @@ export default function LockersPage() {
                   { value: "occupied", label: "Ocupados", count: doorCounts.occupied },
                   { value: "maintenance", label: "Manut.", count: doorCounts.maintenance },
                   { value: "scheduled", label: "Agendados", count: doorCounts.scheduled },
+                  { value: "hygienizing", label: "Higieniz.", count: doorCounts.hygienizing },
                 ].map((f) => (
                   <button
                     key={f.value}
@@ -533,10 +600,14 @@ export default function LockersPage() {
                       statusFilter === f.value
                         ? f.value === "scheduled"
                           ? "bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-sm ring-1 ring-violet-500/20"
-                          : "bg-background text-foreground shadow-sm"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-sm ring-1 ring-cyan-500/20"
+                            : "bg-background text-foreground shadow-sm"
                         : f.value === "scheduled"
                           ? "text-violet-500/70 hover:text-violet-600 dark:hover:text-violet-400"
-                          : "text-muted-foreground hover:text-foreground"
+                          : f.value === "hygienizing"
+                            ? "text-cyan-500/70 hover:text-cyan-600 dark:hover:text-cyan-400"
+                            : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {f.label}
@@ -544,10 +615,14 @@ export default function LockersPage() {
                       statusFilter === f.value
                         ? f.value === "scheduled"
                           ? "bg-violet-500/20 text-violet-700 dark:text-violet-300"
-                          : "bg-primary/10 text-primary"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300"
+                            : "bg-primary/10 text-primary"
                         : f.value === "scheduled"
                           ? "bg-violet-500/10 text-violet-500"
-                          : "bg-muted-foreground/10"
+                          : f.value === "hygienizing"
+                            ? "bg-cyan-500/10 text-cyan-500"
+                            : "bg-muted-foreground/10"
                     }`}>
                       {f.count}
                     </span>

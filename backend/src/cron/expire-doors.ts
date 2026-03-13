@@ -37,6 +37,17 @@ export function startExpireDoorsJob() {
           AND expires_at < NOW()
       `);
 
+      // 2.5 Liberar portas em higienização que expiraram
+      const { rowCount: hygienizingDoors } = await client.query(`
+        UPDATE locker_doors
+        SET status = 'available',
+            expires_at = NULL,
+            updated_at = NOW()
+        WHERE status = 'hygienizing'
+          AND expires_at IS NOT NULL
+          AND expires_at < NOW()
+      `);
+
       // 3. Ativar reservas agendadas cujo horário chegou
       const { rows: scheduledDoors } = await client.query(`
         SELECT ld.id as door_id, lr.id as reservation_id, lr.person_id,
@@ -70,9 +81,9 @@ export function startExpireDoorsJob() {
 
       await client.query("COMMIT");
 
-      if (expiredDoors || expiredReservations || scheduledDoors.length) {
+      if (expiredDoors || expiredReservations || scheduledDoors.length || hygienizingDoors) {
         console.log(
-          `[CRON expire-doors] ${expiredDoors} portas liberadas, ${expiredReservations} reservas expiradas, ${scheduledDoors.length} agendamentos ativados`
+          `[CRON expire-doors] ${expiredDoors} portas liberadas, ${expiredReservations} reservas expiradas, ${scheduledDoors.length} agendamentos ativados, ${hygienizingDoors} higienizações concluídas`
         );
       }
     } catch (err) {

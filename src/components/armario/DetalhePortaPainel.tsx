@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock } from "lucide-react";
+import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock, Droplets } from "lucide-react";
 import FilaEspera from "@/components/armario/FilaEspera";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -22,7 +22,7 @@ export interface LockerDoorDataExtended {
   door_number: number;
   label: string | null;
   size: "small" | "medium" | "large";
-  status: "available" | "occupied" | "maintenance" | "reserved";
+  status: "available" | "occupied" | "maintenance" | "reserved" | "hygienizing";
   occupied_by: string | null;
   occupied_by_person: string | null;
   usage_type: string;
@@ -35,6 +35,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
   occupied: { label: "Ocupado", color: "text-rose-600", bg: "bg-rose-500" },
   maintenance: { label: "Manutenção", color: "text-amber-600", bg: "bg-amber-500" },
   reserved: { label: "Reservado", color: "text-blue-600", bg: "bg-blue-500" },
+  hygienizing: { label: "Higienização", color: "text-cyan-600", bg: "bg-cyan-500" },
 };
 
 const sizeLabels: Record<string, string> = { small: "Pequeno", medium: "Médio", large: "Grande" };
@@ -175,7 +176,7 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   }, [door?.id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
-  const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : User;
+  const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : door.status === "hygienizing" ? Droplets : User;
 
   if (!door) return null;
 
@@ -577,7 +578,25 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             )}
 
-            {/* Actions for occupied/maintenance */}
+            {/* Hygienizing info */}
+            {door.status === "hygienizing" && (
+              <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-cyan-600" />
+                  <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">Em higienização</p>
+                </div>
+                {door.expires_at && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      Disponível em: {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions for occupied/maintenance/hygienizing */}
             <div className="space-y-2.5">
               {(isCurrentUser || isAdmin) && door.status === "occupied" && (
                 <Button
@@ -591,7 +610,19 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
                 </Button>
               )}
 
-              {isAdmin && door.status !== "maintenance" && (
+              {isAdmin && door.status === "hygienizing" && (
+                <Button
+                  onClick={() => setConfirmAction("unmaintenance")}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full h-11 rounded-xl font-semibold border-cyan-300/50 text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
+                >
+                  <Unlock className="mr-2 h-4 w-4" />
+                  Liberar manualmente (pular higienização)
+                </Button>
+              )}
+
+              {isAdmin && door.status !== "maintenance" && door.status !== "hygienizing" && (
                 <Button
                   onClick={() => setConfirmAction("maintenance")}
                   disabled={loading}
