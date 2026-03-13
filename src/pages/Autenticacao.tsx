@@ -109,6 +109,11 @@ const Auth = () => {
 
         const style = elapsed < 500 ? "color:#22c55e;font-weight:bold" : elapsed < 1500 ? "color:#eab308;font-weight:bold" : "color:#ef4444;font-weight:bold";
         console.log(`%c⚡ Login ${error ? "FALHOU" : "OK"} em ${elapsed}ms`, style);
+        console.log("[AUTH][UI] Resultado signIn", {
+          error,
+          lockout,
+          elapsedMs: elapsed,
+        });
 
         if (error) {
           if (lockout) {
