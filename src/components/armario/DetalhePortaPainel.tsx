@@ -176,7 +176,7 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   }, [door?.id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
-  const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : User;
+  const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : door.status === "hygienizing" ? Droplets : User;
 
   if (!door) return null;
 
