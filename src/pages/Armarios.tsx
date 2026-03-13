@@ -361,6 +361,7 @@ export default function LockersPage() {
     occupied: allDoors.filter((d) => d.status === "occupied").length,
     maintenance: allDoors.filter((d) => d.status === "maintenance").length,
     scheduled: allDoors.filter((d) => !!d.scheduledReservation).length,
+    hygienizing: allDoors.filter((d) => d.status === "hygienizing").length,
   };
 
   const filteredLockers = lockers
