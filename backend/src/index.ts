@@ -35,6 +35,7 @@ import { uazapiProxyRouter } from "./routes/uazapi-proxy";
 import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = parseInt(process.env.PORT || "3001");
 
 // ============================================

@@ -1,14 +1,14 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npx tsc
 
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p uploads/avatars uploads/platform-assets
 EXPOSE 3001

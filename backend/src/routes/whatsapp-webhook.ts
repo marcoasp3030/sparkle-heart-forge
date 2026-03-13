@@ -129,7 +129,7 @@ router.post("/", async (req: Request, res: Response) => {
         const door = await getActiveReservation(person.id);
         if (!door) { replyText = "📦 Sem reserva ativa para renovar."; break; }
         if (!door.expires_at) { replyText = "ℹ️ Reserva permanente, não precisa renovar."; break; }
-        const hours = buttonId === "btn_renew_1h" ? 1 : 2;
+        const hours = buttonId === "btn_renew_2h" ? 2 : 1;
         const newExpires = new Date(new Date(door.expires_at).getTime() + hours * 3600000);
         await pool.query(`UPDATE locker_doors SET expires_at = $1 WHERE id = $2`, [newExpires.toISOString(), door.id]);
         await pool.query(`UPDATE locker_reservations SET expires_at = $1, renewed_count = renewed_count + 1, expiry_notified = false WHERE door_id = $2 AND status = 'active'`, [newExpires.toISOString(), door.id]);
