@@ -684,6 +684,7 @@ export default function LockersPage() {
                   const available = locker.doors.filter((d) => d.status === "available").length;
                   const occupied = locker.doors.filter((d) => d.status === "occupied").length;
                   const maintenance = locker.doors.filter((d) => d.status === "maintenance").length;
+                  const scheduled = locker.doors.filter((d) => !!(d as any).scheduledReservation).length;
                   const occupationPct = totalOriginalDoors > 0 ? Math.round((occupied / totalOriginalDoors) * 100) : 0;
 
                   return (
