@@ -132,6 +132,18 @@ const runComposeRebuild = async () => {
 };
 
 // ============================================
+// GET /api/system/docker-check - Diagnóstico Docker
+// ============================================
+router.get("/docker-check", requireSuperAdmin, async (_req: Request, res: Response) => {
+  try {
+    const result = await checkDockerAccess();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, details: [err.message] });
+  }
+});
+
+// ============================================
 // GET /api/system/version - Versão atual
 // ============================================
 router.get("/version", async (_req: Request, res: Response) => {
