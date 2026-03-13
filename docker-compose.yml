@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  # ==========================================
+  # PostgreSQL
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: pblocker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pblocker
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SenhaForte123!}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/schema-completo-pblocker.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d pblocker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ==========================================
+  # Backend (Express API)
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pblocker-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD:-SenhaForte123!}@postgres:5432/pblocker
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      FRONTEND_URL: https://pblocker.sistembr.com.br
+      API_URL: https://pblocker.sistembr.com.br/api
+      UPLOAD_DIR: ./uploads
+      MAX_FILE_SIZE: 5242880
+    volumes:
+      - uploads:/app/uploads
+    expose:
+      - "3001"
+
+  # ==========================================
+  # Frontend (Nginx + React build)
+  # ==========================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://pblocker.sistembr.com.br/api
+    container_name: pblocker-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  # ==========================================
+  # Traefik (SSL automático) — opcional
+  # Descomente se quiser HTTPS automático
+  # ==========================================
+  # traefik:
+  #   image: traefik:v3.0
+  #   container_name: pblocker-proxy
+  #   restart: unless-stopped
+  #   command:
+  #     - "--providers.docker=true"
+  #     - "--providers.docker.exposedbydefault=false"
+  #     - "--entrypoints.web.address=:80"
+  #     - "--entrypoints.websecure.address=:443"
+  #     - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+  #     - "--certificatesresolvers.letsencrypt.acme.email=admin@pblocker.sistembr.com.br"
+  #     - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+  #     - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     - letsencrypt:/letsencrypt
+
+volumes:
+  pgdata:
+  uploads:
+  # letsencrypt:
