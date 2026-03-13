@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Lock, Unlock, Package, MapPin, Search,
-  ChevronRight, Wrench, TrendingUp, BarChart3
+  ChevronRight, Wrench, TrendingUp, BarChart3, Droplets
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ const statusConfig = {
   occupied: { label: "Ocupado", className: "bg-primary/10 text-primary border-primary/20" },
   available: { label: "Disponível", className: "bg-success/10 text-success border-success/20" },
   maintenance: { label: "Manutenção", className: "bg-accent/10 text-accent border-accent/20" },
+  hygienizing: { label: "Higienização", className: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
 };
 
 type DoorWithLocker = {
@@ -35,7 +36,7 @@ const PainelDeControle = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState<DoorWithLocker[]>([]);
-  const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, maintenance: 0 });
+  const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, maintenance: 0, hygienizing: 0 });
   const { selectedCompany } = useCompany();
 
   useEffect(() => {
@@ -63,7 +64,7 @@ const PainelDeControle = () => {
 
     if (!lockers || lockers.length === 0) {
       setDoors([]);
-      setStats({ total: 0, available: 0, occupied: 0, maintenance: 0 });
+      setStats({ total: 0, available: 0, occupied: 0, maintenance: 0, hygienizing: 0 });
       setLoading(false);
       return;
     }
@@ -111,6 +112,7 @@ const PainelDeControle = () => {
       available: mapped.filter((d) => d.status === "available").length,
       occupied: mapped.filter((d) => d.status === "occupied").length,
       maintenance: mapped.filter((d) => d.status === "maintenance").length,
+      hygienizing: mapped.filter((d) => d.status === "hygienizing").length,
     });
     setLoading(false);
   };
@@ -162,6 +164,15 @@ const PainelDeControle = () => {
       iconBg: "bg-accent/10",
       iconColor: "text-accent",
     },
+    {
+      label: "Higienização",
+      value: stats.hygienizing,
+      icon: Droplets,
+      sublabel: "em limpeza",
+      gradient: "from-cyan-500 to-cyan-500/70",
+      iconBg: "bg-cyan-500/10",
+      iconColor: "text-cyan-600",
+    },
   ];
 
   const formatTime = (isoStr: string | null) => {
@@ -203,7 +214,7 @@ const PainelDeControle = () => {
       </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -295,6 +306,14 @@ const PainelDeControle = () => {
                     className="bg-accent"
                   />
                 )}
+                {stats.hygienizing > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(stats.hygienizing / stats.total) * 100}%` }}
+                    transition={{ duration: 0.8, delay: 0.8 }}
+                    className="bg-cyan-500"
+                  />
+                )}
               </div>
               {/* Legend */}
               <div className="mt-3 flex flex-wrap gap-4 text-xs">
@@ -310,6 +329,12 @@ const PainelDeControle = () => {
                   <span className="h-2.5 w-2.5 rounded-full bg-accent" />
                   <span className="text-muted-foreground">Manutenção ({stats.maintenance})</span>
                 </div>
+                {stats.hygienizing > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                    <span className="text-muted-foreground">Higienização ({stats.hygienizing})</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -383,6 +408,8 @@ const PainelDeControle = () => {
                         <Lock className="h-4 w-4" />
                       ) : door.status === "available" ? (
                         <Unlock className="h-4 w-4" />
+                      ) : door.status === "hygienizing" ? (
+                        <Droplets className="h-4 w-4" />
                       ) : (
                         <Wrench className="h-4 w-4" />
                       )}
