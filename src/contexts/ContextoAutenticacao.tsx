@@ -81,21 +81,85 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const attemptId = `login_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    const t0 = performance.now();
+
+    console.groupCollapsed(`[AUTH][${attemptId}] Login ${maskEmail(normalizedEmail)}`);
+    console.log("[AUTH] Payload", {
+      email: normalizedEmail,
+      passwordLength: password.length,
+    });
+
     try {
-      const data = await post<{ token: string; user: User }>("/auth/login", {
-        email,
+      const response = await api.post<{ token?: string; user?: User }>("/auth/login", {
+        email: normalizedEmail,
         password,
       });
 
-      const u = enrichUser(data.user);
+      const data = response.data;
+      const elapsed = Math.round(performance.now() - t0);
+
+      console.log("[AUTH] Resposta /auth/login", {
+        status: response.status,
+        hasToken: Boolean(data?.token),
+        hasUser: Boolean(data?.user),
+        keys: data ? Object.keys(data) : [],
+        elapsedMs: elapsed,
+      });
+
+      if (!data?.token) {
+        console.error("[AUTH] Resposta inválida: token ausente", data);
+        return { error: "Resposta inválida do servidor (token ausente)" };
+      }
+
       localStorage.setItem("auth_token", data.token);
+
+      let resolvedUser = data.user;
+      if (!resolvedUser) {
+        console.warn("[AUTH] user ausente no login, tentando fallback /auth/me");
+        try {
+          const me = await get<{ user: User }>("/auth/me");
+          resolvedUser = me?.user;
+          console.log("[AUTH] Fallback /auth/me", { hasUser: Boolean(resolvedUser) });
+        } catch (fallbackErr: any) {
+          console.error("[AUTH] Falha no fallback /auth/me", fallbackErr);
+        }
+      }
+
+      if (!resolvedUser) {
+        localStorage.removeItem("auth_token");
+        console.error("[AUTH] Não foi possível resolver usuário após login", data);
+        return { error: "Login recebido, mas sem dados de usuário" };
+      }
+
+      const u = enrichUser(resolvedUser);
       setSession({ token: data.token, user: u });
+
+      console.log("[AUTH] Sessão criada", {
+        userId: u.id,
+        role: u.role,
+        companyId: u.company_id,
+        elapsedMs: Math.round(performance.now() - t0),
+      });
+
       return {};
     } catch (err: any) {
+      const lockout = err.original?.response?.data?.lockout || null;
+      console.error("[AUTH] Erro no login", {
+        message: err.message,
+        status: err.status,
+        lockout,
+        response: err.original?.response?.data || null,
+        elapsedMs: Math.round(performance.now() - t0),
+      });
+
       return {
         error: err.message || "Erro ao fazer login",
-        lockout: err.original?.response?.data?.lockout || null,
+        lockout,
       };
+    } finally {
+      console.groupEnd();
     }
   };
 
