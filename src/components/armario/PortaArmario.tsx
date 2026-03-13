@@ -345,12 +345,26 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
           {doorContent}
         </motion.button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
+      <TooltipContent side="top" className="text-xs max-w-[220px]">
         <p className="font-semibold">{door.label || `Porta #${door.door_number}`}</p>
         <p className="text-muted-foreground">
           {config.label} • {door.size === "small" ? "P" : door.size === "medium" ? "M" : "G"}
           {isTemporary && door.expires_at && ` • Expira ${new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
         </p>
+        {hasSchedule && door.scheduledReservation && (
+          <div className="mt-1 pt-1 border-t border-border/50 text-violet-600 dark:text-violet-400">
+            <p className="font-medium flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              Agendamento
+            </p>
+            {door.scheduledReservation.person_name && (
+              <p className="text-muted-foreground">{door.scheduledReservation.person_name}</p>
+            )}
+            <p className="text-muted-foreground">
+              {new Date(door.scheduledReservation.starts_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+        )}
       </TooltipContent>
     </Tooltip>
   );
