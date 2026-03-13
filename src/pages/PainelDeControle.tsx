@@ -306,6 +306,14 @@ const PainelDeControle = () => {
                     className="bg-accent"
                   />
                 )}
+                {stats.hygienizing > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(stats.hygienizing / stats.total) * 100}%` }}
+                    transition={{ duration: 0.8, delay: 0.8 }}
+                    className="bg-cyan-500"
+                  />
+                )}
               </div>
               {/* Legend */}
               <div className="mt-3 flex flex-wrap gap-4 text-xs">
@@ -321,6 +329,12 @@ const PainelDeControle = () => {
                   <span className="h-2.5 w-2.5 rounded-full bg-accent" />
                   <span className="text-muted-foreground">Manutenção ({stats.maintenance})</span>
                 </div>
+                {stats.hygienizing > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                    <span className="text-muted-foreground">Higienização ({stats.hygienizing})</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
