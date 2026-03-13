@@ -22,12 +22,19 @@ interface VersionInfo {
   environment: string;
 }
 
+interface ReleaseNote {
+  version: string;
+  date: string;
+  categories: Record<string, string[]>;
+}
+
 interface UpdateCheck {
   hasUpdate: boolean;
   currentCommit: string;
   remoteCommit: string;
   remoteVersion: string;
   changelog: Array<{ hash: string; date: string; message: string; author: string }>;
+  releaseNotes: ReleaseNote[];
   checkedAt: string;
 }
 
