@@ -18,22 +18,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription
-} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import GerenciarPermissoes from "@/components/empresas/GerenciarPermissoes";
 
 const typeLabels: Record<string, { label: string; className: string }> = {
   employee: { label: "Funcionários", className: "bg-secondary/10 text-secondary border-secondary/20" },
   rental: { label: "Aluguel", className: "bg-accent/10 text-accent border-accent/20" },
 };
-
-const AVAILABLE_PERMISSIONS = [
-  { key: "manage_employees", label: "Gerenciar Funcionários/Clientes", description: "Cadastrar, editar e remover funcionários e clientes" },
-  { key: "manage_lockers", label: "Gerenciar Armários", description: "Reservar e administrar portas de armários" },
-  { key: "white_label", label: "White Label", description: "Permitir personalização de logotipos, cores e textos exclusivos da empresa" },
-  { key: "google_login", label: "Login com Google", description: "Permitir que os usuários da empresa façam login usando conta Google" },
-];
 
 export default function CompaniesPage() {
   const { companies: activeCompanies, refreshCompanies, isSuperAdmin } = useCompany();
