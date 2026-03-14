@@ -44,8 +44,6 @@ export default function CompaniesPage() {
 
   // Permissions sheet
   const [permCompany, setPermCompany] = useState<any>(null);
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-  const [permLoading, setPermLoading] = useState(false);
 
   // Create admin dialog
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
