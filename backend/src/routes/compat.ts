@@ -13,7 +13,7 @@ const ALLOWED_TABLES = [
   "company_notification_templates", "departamentos", "setores", "funcionarios_clientes",
   "lockers", "locker_doors", "locker_reservations", "locker_waitlist",
   "renewal_requests", "notifications", "audit_logs", "login_attempts",
-  "platform_settings", "platform_settings_history", "profiles",
+  "platform_settings", "platform_settings_history", "profiles", "permission_groups",
 ];
 
 function parseFilters(params: Record<string, any>): { clauses: string[]; values: any[]; idx: number } {
