@@ -191,8 +191,7 @@ export default function Personalizacao() {
     for (const u of updates) {
       const { error } = await supabase
         .from("platform_settings")
-        .update({ value: u.value as any })
-        .eq("key", u.key);
+        .upsert({ key: u.key, value: u.value as any } as any, { onConflict: "key" });
       if (error) errors++;
     }
 
