@@ -4,11 +4,25 @@ import axios from "axios";
  * Client HTTP configurado para comunicação com o backend Express.
  * Substitui o supabase client quando rodando em VPS própria.
  *
- * No .env.production do frontend, defina:
+ * No .env.production do frontend, defina preferencialmente:
  *   VITE_API_URL=https://seudominio.com/api
  */
+const resolveApiBaseUrl = () => {
+  const rawBase = String(import.meta.env.VITE_API_URL || "").trim();
+  if (!rawBase) return "/api";
+
+  const normalized = rawBase.replace(/\/+$/, "");
+  const hasApiSegment = /(^|\/)api(\/|$)/i.test(normalized);
+
+  if (hasApiSegment) return normalized;
+
+  const withApi = `${normalized}/api`;
+  console.warn(`[API] VITE_API_URL sem '/api'. Ajustando automaticamente para: ${withApi}`);
+  return withApi;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: resolveApiBaseUrl(),
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
