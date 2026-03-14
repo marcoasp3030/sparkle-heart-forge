@@ -101,6 +101,15 @@ function applyThemeColors(colors: ThemeColors) {
   root.style.setProperty("--ring", colors.primary);
   root.style.setProperty("--sidebar-ring", colors.primary);
   root.style.setProperty("--sidebar-primary", colors.primary);
+  // Update gradients dynamically
+  root.style.setProperty(
+    "--gradient-primary",
+    `linear-gradient(135deg, hsl(${colors.primary}), hsl(${colors.primary_glow}))`
+  );
+  root.style.setProperty(
+    "--gradient-secondary",
+    `linear-gradient(135deg, hsl(${colors.secondary}), hsl(${colors.secondary}) / 0.8))`
+  );
 }
 
 function applyFavicon(url: string) {
