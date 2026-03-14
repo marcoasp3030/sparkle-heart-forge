@@ -341,6 +341,19 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ============================================
+-- 22. TABELA: permission_groups
+-- ============================================
+CREATE TABLE IF NOT EXISTS permission_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  permissions JSONB NOT NULL DEFAULT '{}',
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  created_by UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- ============================================================
 -- ÍNDICES PARA PERFORMANCE

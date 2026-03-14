@@ -20,13 +20,13 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: "view_dashboard" },
   { icon: Archive, label: "Armários", path: "/armarios", permission: "manage_lockers" },
-  { icon: History, label: "Histórico", path: "/historico" },
-  { icon: RefreshCw, label: "Renovações", path: "/renovacoes" },
-  { icon: ShieldCheck, label: "Auditoria", path: "/auditoria" },
-  { icon: Building, label: "Departamentos", path: "/departamentos" },
-  { icon: Layers, label: "Setores", path: "/setores" },
+  { icon: History, label: "Histórico", path: "/historico", permission: "view_history" },
+  { icon: RefreshCw, label: "Renovações", path: "/renovacoes", permission: "manage_renewals" },
+  { icon: ShieldCheck, label: "Auditoria", path: "/auditoria", permission: "view_audit" },
+  { icon: Building, label: "Departamentos", path: "/departamentos", permission: "manage_departments" },
+  { icon: Layers, label: "Setores", path: "/setores", permission: "manage_sectors" },
   { icon: Users, label: "Pessoas", path: "/pessoas", permission: "manage_employees" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];

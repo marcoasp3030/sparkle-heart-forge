@@ -18,22 +18,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription
-} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import GerenciarPermissoes from "@/components/empresas/GerenciarPermissoes";
 
 const typeLabels: Record<string, { label: string; className: string }> = {
   employee: { label: "Funcionários", className: "bg-secondary/10 text-secondary border-secondary/20" },
   rental: { label: "Aluguel", className: "bg-accent/10 text-accent border-accent/20" },
 };
-
-const AVAILABLE_PERMISSIONS = [
-  { key: "manage_employees", label: "Gerenciar Funcionários/Clientes", description: "Cadastrar, editar e remover funcionários e clientes" },
-  { key: "manage_lockers", label: "Gerenciar Armários", description: "Reservar e administrar portas de armários" },
-  { key: "white_label", label: "White Label", description: "Permitir personalização de logotipos, cores e textos exclusivos da empresa" },
-  { key: "google_login", label: "Login com Google", description: "Permitir que os usuários da empresa façam login usando conta Google" },
-];
 
 export default function CompaniesPage() {
   const { companies: activeCompanies, refreshCompanies, isSuperAdmin } = useCompany();
@@ -53,8 +44,6 @@ export default function CompaniesPage() {
 
   // Permissions sheet
   const [permCompany, setPermCompany] = useState<any>(null);
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-  const [permLoading, setPermLoading] = useState(false);
 
   // Create admin dialog
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
@@ -189,40 +178,8 @@ export default function CompaniesPage() {
     setDialogOpen(true);
   };
 
-  const openPermissions = async (company: any) => {
+  const openPermissions = (company: any) => {
     setPermCompany(company);
-    setPermLoading(true);
-    const { data } = await supabase
-      .from("company_permissions")
-      .select("permission, enabled")
-      .eq("company_id", company.id);
-
-    const perms: Record<string, boolean> = {};
-    AVAILABLE_PERMISSIONS.forEach((p) => { perms[p.key] = false; });
-    if (data) {
-      data.forEach((row: any) => { perms[row.permission] = row.enabled; });
-    }
-    setPermissions(perms);
-    setPermLoading(false);
-  };
-
-  const togglePermission = async (permKey: string, enabled: boolean) => {
-    if (!permCompany) return;
-    setPermissions((prev) => ({ ...prev, [permKey]: enabled }));
-
-    const { error } = await supabase
-      .from("company_permissions")
-      .upsert(
-        { company_id: permCompany.id, permission: permKey, enabled },
-        { onConflict: "company_id,permission" }
-      );
-
-    if (error) {
-      toast({ title: "Erro ao salvar permissão", description: error.message, variant: "destructive" });
-      setPermissions((prev) => ({ ...prev, [permKey]: !enabled }));
-    } else {
-      toast({ title: "Permissão atualizada!", description: `${enabled ? "Ativada" : "Desativada"} para ${permCompany.name}` });
-    }
   };
 
   const handleSave = async () => {
@@ -248,12 +205,16 @@ export default function CompaniesPage() {
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       } else {
-        // Auto-create default permissions for new company
+        // Auto-create default permissions (standard preset) for new company
         if (newCompany) {
-          await supabase.from("company_permissions").insert([
-            { company_id: newCompany.id, permission: "manage_employees", enabled: true },
-            { company_id: newCompany.id, permission: "manage_lockers", enabled: true },
-          ]);
+          const defaultPerms = [
+            "manage_lockers", "manage_employees", "manage_departments",
+            "manage_sectors", "view_dashboard", "view_history",
+            "manage_renewals", "view_audit", "notify_email",
+          ];
+          await supabase.from("company_permissions").insert(
+            defaultPerms.map(p => ({ company_id: newCompany.id, permission: p, enabled: true }))
+          );
         }
         toast({ title: "Empresa criada!", description: `${name} adicionada com sucesso.` });
       }
@@ -573,39 +534,12 @@ export default function CompaniesPage() {
       )}
 
       {/* Permissions Sheet */}
-      <Sheet open={!!permCompany} onOpenChange={(open) => !open && setPermCompany(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5 text-primary" />
-              Permissões — {permCompany?.name}
-            </SheetTitle>
-            <SheetDescription>
-              Ative ou desative funcionalidades para esta empresa.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {permLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : (
-              AVAILABLE_PERMISSIONS.map((perm) => (
-                <div key={perm.key} className="flex items-center justify-between rounded-xl border border-border/50 p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 mr-4">
-                    <p className="text-sm font-semibold text-foreground">{perm.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{perm.description}</p>
-                  </div>
-                  <Switch
-                    checked={permissions[perm.key] || false}
-                    onCheckedChange={(checked) => togglePermission(perm.key, checked)}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Permissions Panel */}
+      <GerenciarPermissoes
+        company={permCompany}
+        open={!!permCompany}
+        onClose={() => setPermCompany(null)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteCompany} onOpenChange={(open) => !open && setDeleteCompany(null)}>
