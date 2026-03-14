@@ -205,12 +205,16 @@ export default function CompaniesPage() {
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       } else {
-        // Auto-create default permissions for new company
+        // Auto-create default permissions (standard preset) for new company
         if (newCompany) {
-          await supabase.from("company_permissions").insert([
-            { company_id: newCompany.id, permission: "manage_employees", enabled: true },
-            { company_id: newCompany.id, permission: "manage_lockers", enabled: true },
-          ]);
+          const defaultPerms = [
+            "manage_lockers", "manage_employees", "manage_departments",
+            "manage_sectors", "view_dashboard", "view_history",
+            "manage_renewals", "view_audit", "notify_email",
+          ];
+          await supabase.from("company_permissions").insert(
+            defaultPerms.map(p => ({ company_id: newCompany.id, permission: p, enabled: true }))
+          );
         }
         toast({ title: "Empresa criada!", description: `${name} adicionada com sucesso.` });
       }
