@@ -530,39 +530,12 @@ export default function CompaniesPage() {
       )}
 
       {/* Permissions Sheet */}
-      <Sheet open={!!permCompany} onOpenChange={(open) => !open && setPermCompany(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5 text-primary" />
-              Permissões — {permCompany?.name}
-            </SheetTitle>
-            <SheetDescription>
-              Ative ou desative funcionalidades para esta empresa.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {permLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : (
-              AVAILABLE_PERMISSIONS.map((perm) => (
-                <div key={perm.key} className="flex items-center justify-between rounded-xl border border-border/50 p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 mr-4">
-                    <p className="text-sm font-semibold text-foreground">{perm.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{perm.description}</p>
-                  </div>
-                  <Switch
-                    checked={permissions[perm.key] || false}
-                    onCheckedChange={(checked) => togglePermission(perm.key, checked)}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Permissions Panel */}
+      <GerenciarPermissoes
+        company={permCompany}
+        open={!!permCompany}
+        onClose={() => setPermCompany(null)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteCompany} onOpenChange={(open) => !open && setDeleteCompany(null)}>
