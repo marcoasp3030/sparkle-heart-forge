@@ -141,6 +141,30 @@ export default function Personalizacao() {
     setImages(settings.images);
   }, [settings]);
 
+  // Apply colors in real-time as user changes them
+  useEffect(() => {
+    const root = document.documentElement;
+    const c = colors as any;
+    if (c.primary) root.style.setProperty("--primary", c.primary);
+    if (c.primary_glow) root.style.setProperty("--primary-glow", c.primary_glow);
+    if (c.secondary) root.style.setProperty("--secondary", c.secondary);
+    if (c.accent) root.style.setProperty("--accent", c.accent);
+    if (c.success) root.style.setProperty("--success", c.success);
+    if (c.destructive) root.style.setProperty("--destructive", c.destructive);
+    if (c.sidebar_bg) root.style.setProperty("--sidebar-background", c.sidebar_bg);
+    if (c.primary) {
+      root.style.setProperty("--ring", c.primary);
+      root.style.setProperty("--sidebar-ring", c.primary);
+      root.style.setProperty("--sidebar-primary", c.primary);
+    }
+    if (c.primary && c.primary_glow) {
+      root.style.setProperty("--gradient-primary", `linear-gradient(135deg, hsl(${c.primary}), hsl(${c.primary_glow}))`);
+    }
+    if (c.secondary) {
+      root.style.setProperty("--gradient-secondary", `linear-gradient(135deg, hsl(${c.secondary}), hsl(${c.secondary}) / 0.8))`);
+    }
+  }, [colors]);
+
   const handlePreset = (name: string) => {
     setColors({ ...COLOR_PRESETS[name], preset: name } as any);
   };
