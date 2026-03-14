@@ -178,40 +178,8 @@ export default function CompaniesPage() {
     setDialogOpen(true);
   };
 
-  const openPermissions = async (company: any) => {
+  const openPermissions = (company: any) => {
     setPermCompany(company);
-    setPermLoading(true);
-    const { data } = await supabase
-      .from("company_permissions")
-      .select("permission, enabled")
-      .eq("company_id", company.id);
-
-    const perms: Record<string, boolean> = {};
-    AVAILABLE_PERMISSIONS.forEach((p) => { perms[p.key] = false; });
-    if (data) {
-      data.forEach((row: any) => { perms[row.permission] = row.enabled; });
-    }
-    setPermissions(perms);
-    setPermLoading(false);
-  };
-
-  const togglePermission = async (permKey: string, enabled: boolean) => {
-    if (!permCompany) return;
-    setPermissions((prev) => ({ ...prev, [permKey]: enabled }));
-
-    const { error } = await supabase
-      .from("company_permissions")
-      .upsert(
-        { company_id: permCompany.id, permission: permKey, enabled },
-        { onConflict: "company_id,permission" }
-      );
-
-    if (error) {
-      toast({ title: "Erro ao salvar permissão", description: error.message, variant: "destructive" });
-      setPermissions((prev) => ({ ...prev, [permKey]: !enabled }));
-    } else {
-      toast({ title: "Permissão atualizada!", description: `${enabled ? "Ativada" : "Desativada"} para ${permCompany.name}` });
-    }
   };
 
   const handleSave = async () => {
