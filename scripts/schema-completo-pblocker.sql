@@ -820,4 +820,20 @@ ON CONFLICT (key) DO NOTHING;
 -- ============================================================
 
 -- FIM DO SCRIPT
+
+-- ============================================
+-- TABELA: comandos_fechadura (fila IoT)
+-- ============================================
+CREATE TABLE IF NOT EXISTS comandos_fechadura (
+    id SERIAL PRIMARY KEY,
+    acao VARCHAR(20) NOT NULL,
+    lock_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pendente',
+    resposta TEXT,
+    origem VARCHAR(30) DEFAULT 'web',
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    executado_em TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_comandos_fechadura_status ON comandos_fechadura (status, id ASC);
+
 SELECT 'Schema PBLocker criado com sucesso! 🎉' AS resultado;
