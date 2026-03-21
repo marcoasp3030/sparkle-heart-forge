@@ -10,7 +10,8 @@ import ConfigEmail from "@/components/configuracoes/ConfigEmail";
 import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
 import ConfigTemplatesNotificacoes from "@/components/configuracoes/ConfigTemplatesWhatsApp";
 import ConfigAtualizacoes from "@/components/configuracoes/ConfigAtualizacoes";
-import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText, ArrowUpCircle } from "lucide-react";
+import ConfigFechaduras from "@/components/configuracoes/ConfigFechaduras";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText, ArrowUpCircle, Lock } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
@@ -59,6 +60,12 @@ export default function Configuracoes() {
             </TabsTrigger>
           )}
           {isAdmin && (
+            <TabsTrigger value="fechaduras" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <Lock className="h-4 w-4" />
+              Fechaduras
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="sistema" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <Monitor className="h-4 w-4" />
               Sistema
@@ -94,6 +101,11 @@ export default function Configuracoes() {
         {isAdmin && (
           <TabsContent value="templates">
             <ConfigTemplatesNotificacoes />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="fechaduras">
+            <ConfigFechaduras />
           </TabsContent>
         )}
         {isAdmin && (
