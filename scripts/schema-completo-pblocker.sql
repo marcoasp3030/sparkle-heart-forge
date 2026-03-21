@@ -375,6 +375,7 @@ CREATE INDEX IF NOT EXISTS idx_locker_doors_locker_id ON locker_doors(locker_id)
 CREATE INDEX IF NOT EXISTS idx_locker_doors_status ON locker_doors(status);
 CREATE INDEX IF NOT EXISTS idx_locker_doors_occupied_by_person ON locker_doors(occupied_by_person);
 CREATE INDEX IF NOT EXISTS idx_locker_doors_expires_at ON locker_doors(expires_at);
+CREATE INDEX IF NOT EXISTS idx_locker_doors_lock_id ON locker_doors(lock_id) WHERE lock_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_locker_reservations_door_id ON locker_reservations(door_id);
 CREATE INDEX IF NOT EXISTS idx_locker_reservations_person_id ON locker_reservations(person_id);
