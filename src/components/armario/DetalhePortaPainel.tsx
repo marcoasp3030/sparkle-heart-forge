@@ -412,7 +412,56 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             </div>
 
-            {/* Occupied info */}
+            {/* Smart Lock binding (admin) */}
+            {isAdmin && (
+              <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Fechadura Inteligente</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={lockIdInput}
+                    onChange={(e) => setLockIdInput(e.target.value)}
+                    placeholder="Lock ID (ex: 1)"
+                    className="h-8 text-sm font-mono flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveLockId}
+                    disabled={savingLockId}
+                    className="h-8 text-xs shrink-0"
+                  >
+                    {savingLockId ? <Loader2 className="h-3 w-3 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+                {door.lock_id && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Fechadura <strong className="font-mono">#{door.lock_id}</strong> vinculada
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Open lock button - visible to assigned user or admin when lock is bound */}
+            {door.lock_id && (door.status === "occupied") && (isCurrentUser || isAdmin) && (
+              <Button
+                onClick={handleOpenLock}
+                disabled={openingLock}
+                className="w-full h-11 rounded-xl font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+              >
+                {openingLock ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                {openingLock ? "Enviando comando..." : "🔓 Abrir Fechadura"}
+              </Button>
+            )}
+
             {door.status === "occupied" && (personName || door.usage_type || door.expires_at) && (
               <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 space-y-2">
                 {personName && (
