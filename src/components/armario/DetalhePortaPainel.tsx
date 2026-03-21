@@ -29,6 +29,7 @@ export interface LockerDoorDataExtended {
   usage_type: string;
   expires_at: string | null;
   locker_id?: string;
+  lock_id?: number | null;
 }
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
