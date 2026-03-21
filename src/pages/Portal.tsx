@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
-  CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw, Unlock,
-  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send, Loader2,
-  ClockArrowUp, Hourglass
+  CheckCircle2, AlertCircle, Shield, RefreshCw, Unlock,
+  Building2, Eye, EyeOff, Loader2,
+  Hourglass
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase-compat";
