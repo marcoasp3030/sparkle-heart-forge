@@ -97,8 +97,6 @@ export default function Portal() {
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
   const [openingLockId, setOpeningLockId] = useState<string | null>(null);
-  const [lockCommands, setLockCommands] = useState<Record<string, { commandId: number; status: string; resposta?: string }>>({});
-  const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   useEffect(() => {
     if (!user) return;
