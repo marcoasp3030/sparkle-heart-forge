@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Clock, Archive, Unlock, XCircle, Timer, RefreshCw,
-  ChevronDown, CalendarDays, ArrowUpRight, ArrowDownRight,
-  CheckCircle2, AlertCircle, Ban
+  Clock, Archive, Unlock, Timer, RefreshCw,
+  ChevronDown, CalendarDays,
+  CheckCircle2, AlertCircle, Ban, Lock, Loader2, Zap
 } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
+import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { format, formatDistanceToNow, differenceInMinutes, differenceInHours } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format, differenceInMinutes, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ReservationHistory {
@@ -23,15 +24,8 @@ interface ReservationHistory {
   renewed_count: number;
   notes: string | null;
   created_at: string;
-  door: {
-    door_number: number;
-    label: string | null;
-    size: string;
-  } | null;
-  locker: {
-    name: string;
-    location: string;
-  } | null;
+  door: { door_number: number; label: string | null; size: string } | null;
+  locker: { name: string; location: string } | null;
 }
 
 interface RenewalHistory {
@@ -44,41 +38,34 @@ interface RenewalHistory {
   admin_notes: string | null;
 }
 
+interface LockCommand {
+  id: number;
+  acao: string;
+  lock_id: number;
+  status: string;
+  resposta: string | null;
+  origem: string | null;
+  criado_em: string;
+  executado_em: string | null;
+}
+
 interface HistoricoPortalProps {
   personId: string;
 }
 
 const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  active: {
-    label: "Ativa",
-    icon: CheckCircle2,
-    color: "text-green-600 dark:text-green-400",
-    bg: "bg-green-500/10 border-green-500/20",
-  },
-  released: {
-    label: "Liberada",
-    icon: Unlock,
-    color: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-500/10 border-blue-500/20",
-  },
-  expired: {
-    label: "Expirada",
-    icon: Timer,
-    color: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-500/10 border-amber-500/20",
-  },
-  cancelled: {
-    label: "Cancelada",
-    icon: Ban,
-    color: "text-destructive",
-    bg: "bg-destructive/10 border-destructive/20",
-  },
-  scheduled: {
-    label: "Agendada",
-    icon: CalendarDays,
-    color: "text-purple-600 dark:text-purple-400",
-    bg: "bg-purple-500/10 border-purple-500/20",
-  },
+  active: { label: "Ativa", icon: CheckCircle2, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10 border-green-500/20" },
+  released: { label: "Liberada", icon: Unlock, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+  expired: { label: "Expirada", icon: Timer, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
+  cancelled: { label: "Cancelada", icon: Ban, color: "text-destructive", bg: "bg-destructive/10 border-destructive/20" },
+  scheduled: { label: "Agendada", icon: CalendarDays, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+};
+
+const lockStatusConfig: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+  pendente: { label: "Pendente", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
+  executando: { label: "Executando", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", icon: Loader2 },
+  executado: { label: "Executado", color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle2 },
+  erro: { label: "Erro", color: "text-destructive", bg: "bg-destructive/10 border-destructive/20", icon: AlertCircle },
 };
 
 function getDuration(startsAt: string, endsAt: string | null): string {
@@ -93,8 +80,12 @@ function getDuration(startsAt: string, endsAt: string | null): string {
 export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
   const [reservations, setReservations] = useState<ReservationHistory[]>([]);
   const [renewals, setRenewals] = useState<RenewalHistory[]>([]);
+  const [lockCommands, setLockCommands] = useState<LockCommand[]>([]);
+  const [lockDoorsMap, setLockDoorsMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [showAllCommands, setShowAllCommands] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState("tudo");
   const INITIAL_COUNT = 10;
 
   useEffect(() => {
@@ -112,18 +103,34 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
           .order("created_at", { ascending: false }),
       ]);
 
-      if (resResult.data && resResult.data.length > 0) {
-        const doorIds = [...new Set(resResult.data.map(r => r.door_id))];
-        const lockerIds = [...new Set(resResult.data.map(r => r.locker_id))];
+      // Collect all door IDs from reservations + current occupied doors
+      const resDoorIds = resResult.data?.map(r => r.door_id) || [];
+      const resLockerIds = resResult.data?.map(r => r.locker_id) || [];
 
+      const { data: currentDoors } = await supabase
+        .from("locker_doors")
+        .select("id, door_number, label, size, lock_id, locker_id")
+        .eq("occupied_by_person", personId);
+
+      const allDoorIds = [...new Set([...resDoorIds, ...(currentDoors?.map(d => d.id) || [])])];
+      const allLockerIds = [...new Set([...resLockerIds, ...(currentDoors?.map(d => d.locker_id) || [])])];
+
+      let doorsMap = new Map<string, any>();
+      let lockersMap = new Map<string, any>();
+
+      if (allDoorIds.length > 0) {
         const [doorsRes, lockersRes] = await Promise.all([
-          supabase.from("locker_doors").select("id, door_number, label, size").in("id", doorIds),
-          supabase.from("lockers").select("id, name, location").in("id", lockerIds),
+          supabase.from("locker_doors").select("id, door_number, label, size, lock_id").in("id", allDoorIds),
+          allLockerIds.length > 0
+            ? supabase.from("lockers").select("id, name, location").in("id", allLockerIds)
+            : Promise.resolve({ data: [] }),
         ]);
+        doorsMap = new Map(doorsRes.data?.map(d => [d.id, d]) || []);
+        lockersMap = new Map(lockersRes.data?.map(l => [l.id, l]) || []);
+      }
 
-        const doorsMap = new Map(doorsRes.data?.map(d => [d.id, d]) || []);
-        const lockersMap = new Map(lockersRes.data?.map(l => [l.id, l]) || []);
-
+      // Enrich reservations
+      if (resResult.data && resResult.data.length > 0) {
         const enriched: ReservationHistory[] = resResult.data.map(r => ({
           ...r,
           door: doorsMap.get(r.door_id) || null,
@@ -132,13 +139,35 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
         setReservations(enriched);
       }
 
+      // Build lock_id -> door label map
+      const ldMap = new Map<number, string>();
+      const allDoorsArr = [...doorsMap.values(), ...(currentDoors || [])];
+      const lockIds: number[] = [];
+      allDoorsArr.forEach((d: any) => {
+        if (d.lock_id != null && !ldMap.has(d.lock_id)) {
+          ldMap.set(d.lock_id, d.label || `Porta ${d.door_number}`);
+          lockIds.push(d.lock_id);
+        }
+      });
+      setLockDoorsMap(ldMap);
+
+      // Fetch lock commands
+      if (lockIds.length > 0) {
+        try {
+          const cmdRes = await api.get("/fechaduras/historico");
+          const allCommands: LockCommand[] = cmdRes.data?.data || cmdRes.data || [];
+          setLockCommands(allCommands.filter(c => lockIds.includes(c.lock_id)));
+        } catch {
+          // API may not be available
+        }
+      }
+
       if (renewalResult.data) setRenewals(renewalResult.data as RenewalHistory[]);
       setLoading(false);
     };
     load();
   }, [personId]);
 
-  // Build unified timeline
   type TimelineItem =
     | { type: "reservation"; data: ReservationHistory; date: Date }
     | { type: "renewal"; data: RenewalHistory; date: Date };
@@ -149,6 +178,7 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const visibleTimeline = showAll ? timeline : timeline.slice(0, INITIAL_COUNT);
+  const visibleCommands = showAllCommands ? lockCommands : lockCommands.slice(0, INITIAL_COUNT);
 
   if (loading) {
     return (
@@ -158,7 +188,10 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
     );
   }
 
-  if (timeline.length === 0) {
+  const hasCommands = lockCommands.length > 0;
+  const hasTimeline = timeline.length > 0;
+
+  if (!hasTimeline && !hasCommands) {
     return (
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="shadow-card border-border/50">
@@ -178,8 +211,8 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
 
   return (
     <div className="space-y-3">
-      {/* Stats summary */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-3 gap-3">
+      {/* Stats */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-2">
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xl font-bold text-primary">{reservations.length}</p>
@@ -188,79 +221,185 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
         </Card>
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-secondary">
-              {reservations.filter(r => r.status === "released").length}
-            </p>
+            <p className="text-xl font-bold text-secondary">{reservations.filter(r => r.status === "released").length}</p>
             <p className="text-[10px] text-muted-foreground">Liberadas</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-accent">
-              {renewals.filter(r => r.status === "approved").length}
-            </p>
+            <p className="text-xl font-bold text-accent">{renewals.filter(r => r.status === "approved").length}</p>
             <p className="text-[10px] text-muted-foreground">Renovações</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-3 text-center">
+            <p className="text-xl font-bold text-primary">{lockCommands.length}</p>
+            <p className="text-[10px] text-muted-foreground">Aberturas</p>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Timeline */}
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-border/60 rounded-full" />
+      {/* Sub-tabs */}
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="tudo" className="text-xs">
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
+            Reservas
+          </TabsTrigger>
+          <TabsTrigger value="fechaduras" className="text-xs">
+            <Lock className="h-3.5 w-3.5 mr-1.5" />
+            Fechaduras
+            {hasCommands && (
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
+                {lockCommands.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-        <AnimatePresence>
-          {visibleTimeline.map((item, i) => (
-            <motion.div
-              key={`${item.type}-${item.type === "reservation" ? item.data.id : item.data.id}`}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="relative flex gap-3 pb-4"
-            >
-              {/* Timeline dot */}
-              <div className="relative z-10 flex-shrink-0 mt-1">
-                {item.type === "reservation" ? (
-                  <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${statusConfig[item.data.status]?.bg || "bg-muted border-border"}`}>
-                    {(() => {
-                      const cfg = statusConfig[item.data.status];
-                      const Icon = cfg?.icon || Archive;
-                      return <Icon className={`h-4 w-4 ${cfg?.color || "text-muted-foreground"}`} />;
-                    })()}
-                  </div>
-                ) : (
-                  <div className="h-10 w-10 rounded-full border-2 bg-primary/10 border-primary/20 flex items-center justify-center">
-                    <RefreshCw className="h-4 w-4 text-primary" />
-                  </div>
+        {/* Reservations */}
+        <TabsContent value="tudo" className="mt-3">
+          {hasTimeline ? (
+            <div className="relative">
+              <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-border/60 rounded-full" />
+              <AnimatePresence>
+                {visibleTimeline.map((item, i) => (
+                  <motion.div
+                    key={`${item.type}-${item.data.id}`}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="relative flex gap-3 pb-4"
+                  >
+                    <div className="relative z-10 flex-shrink-0 mt-1">
+                      {item.type === "reservation" ? (
+                        <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${statusConfig[item.data.status]?.bg || "bg-muted border-border"}`}>
+                          {(() => {
+                            const cfg = statusConfig[item.data.status];
+                            const Icon = cfg?.icon || Archive;
+                            return <Icon className={`h-4 w-4 ${cfg?.color || "text-muted-foreground"}`} />;
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-full border-2 bg-primary/10 border-primary/20 flex items-center justify-center">
+                          <RefreshCw className="h-4 w-4 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <Card className="flex-1 shadow-sm border-border/50 overflow-hidden">
+                      <CardContent className="p-3">
+                        {item.type === "reservation" ? (
+                          <ReservationCard reservation={item.data} />
+                        ) : (
+                          <RenewalCard renewal={item.data} />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {timeline.length > INITIAL_COUNT && !showAll && (
+                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setShowAll(true)}>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Ver mais ({timeline.length - INITIAL_COUNT} restantes)
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Card className="shadow-card border-border/50">
+              <CardContent className="p-8 text-center">
+                <Archive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhuma reserva registrada</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Lock commands */}
+        <TabsContent value="fechaduras" className="mt-3">
+          {hasCommands ? (
+            <div className="space-y-2">
+              <AnimatePresence>
+                {visibleCommands.map((cmd, i) => (
+                  <motion.div
+                    key={cmd.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                  >
+                    <LockCommandCard command={cmd} doorLabel={lockDoorsMap.get(cmd.lock_id) || `Lock #${cmd.lock_id}`} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {lockCommands.length > INITIAL_COUNT && !showAllCommands && (
+                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setShowAllCommands(true)}>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Ver mais ({lockCommands.length - INITIAL_COUNT} restantes)
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Card className="shadow-card border-border/50">
+              <CardContent className="p-8 text-center">
+                <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhum comando de fechadura registrado</p>
+                <p className="text-xs text-muted-foreground mt-1">Quando você abrir fechaduras, o histórico aparecerá aqui.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function LockCommandCard({ command, doorLabel }: { command: LockCommand; doorLabel: string }) {
+  const cfg = lockStatusConfig[command.status] || lockStatusConfig.pendente;
+  const Icon = cfg.icon;
+
+  return (
+    <Card className="shadow-sm border-border/50 overflow-hidden">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`h-9 w-9 rounded-lg border flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+              <Icon className={`h-4 w-4 ${cfg.color} ${command.status === "executando" ? "animate-spin" : ""}`} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-foreground truncate">{doorLabel}</p>
+                <Badge variant="outline" className="text-[9px] h-4 px-1.5 flex-shrink-0">#{command.id}</Badge>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                <span>{format(new Date(command.criado_em), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</span>
+                {command.origem && (
+                  <Badge variant="outline" className="text-[9px] h-4 px-1 border-border/50">{command.origem}</Badge>
                 )}
               </div>
+            </div>
+          </div>
+          <Badge variant="outline" className={`text-[10px] flex-shrink-0 border ${cfg.bg} ${cfg.color}`}>
+            {cfg.label}
+          </Badge>
+        </div>
 
-              {/* Content */}
-              <Card className="flex-1 shadow-sm border-border/50 overflow-hidden">
-                <CardContent className="p-3">
-                  {item.type === "reservation" ? (
-                    <ReservationCard reservation={item.data} />
-                  ) : (
-                    <RenewalCard renewal={item.data} />
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {timeline.length > INITIAL_COUNT && !showAll && (
-        <Button
-          variant="ghost"
-          className="w-full text-sm text-muted-foreground"
-          onClick={() => setShowAll(true)}
-        >
-          <ChevronDown className="h-4 w-4 mr-1" />
-          Ver mais ({timeline.length - INITIAL_COUNT} restantes)
-        </Button>
-      )}
-    </div>
+        {(command.executado_em || command.resposta) && (
+          <div className="mt-2 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              {command.executado_em && (
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {getDuration(command.criado_em, command.executado_em)} para executar
+                </span>
+              )}
+              {command.resposta && (
+                <span className="flex items-center gap-1 truncate">→ {command.resposta}</span>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -276,42 +415,26 @@ function ReservationCard({ reservation }: { reservation: ReservationHistory }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-foreground">{doorLabel}</p>
-            {reservation.locker && (
-              <span className="text-[10px] text-muted-foreground">• {reservation.locker.name}</span>
-            )}
+            {reservation.locker && <span className="text-[10px] text-muted-foreground">• {reservation.locker.name}</span>}
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {format(new Date(reservation.starts_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            {endTime && (
-              <> → {format(new Date(endTime), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>
-            )}
+            {endTime && <> → {format(new Date(endTime), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
           </p>
         </div>
-        <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${cfg.bg} ${cfg.color} border`}>
-          {cfg.label}
-        </Badge>
+        <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${cfg.bg} ${cfg.color} border`}>{cfg.label}</Badge>
       </div>
-
       <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {duration}
-        </span>
+        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{duration}</span>
         <span className="flex items-center gap-1">
           <Archive className="h-3 w-3" />
           {reservation.door?.size === "small" ? "P" : reservation.door?.size === "medium" ? "M" : "G"}
         </span>
         {reservation.usage_type === "temporary" && (
-          <span className="flex items-center gap-1">
-            <Timer className="h-3 w-3" />
-            Temporário
-          </span>
+          <span className="flex items-center gap-1"><Timer className="h-3 w-3" />Temporário</span>
         )}
         {reservation.renewed_count > 0 && (
-          <span className="flex items-center gap-1 text-primary">
-            <RefreshCw className="h-3 w-3" />
-            {reservation.renewed_count}x renovada
-          </span>
+          <span className="flex items-center gap-1 text-primary"><RefreshCw className="h-3 w-3" />{reservation.renewed_count}x renovada</span>
         )}
       </div>
     </div>
@@ -330,16 +453,12 @@ function RenewalCard({ renewal }: { renewal: RenewalHistory }) {
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">
-            Renovação de +{renewal.requested_hours}h
-          </p>
+          <p className="text-sm font-semibold text-foreground">Renovação de +{renewal.requested_hours}h</p>
           <p className="text-[11px] text-muted-foreground">
             {format(new Date(renewal.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </p>
         </div>
-        <Badge variant="outline" className={`text-[10px] flex-shrink-0 border ${st.color}`}>
-          {st.label}
-        </Badge>
+        <Badge variant="outline" className={`text-[10px] flex-shrink-0 border ${st.color}`}>{st.label}</Badge>
       </div>
       {renewal.reviewed_at && (
         <p className="text-[10px] text-muted-foreground">
@@ -347,9 +466,7 @@ function RenewalCard({ renewal }: { renewal: RenewalHistory }) {
         </p>
       )}
       {renewal.admin_notes && (
-        <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2">
-          {renewal.admin_notes}
-        </p>
+        <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2">{renewal.admin_notes}</p>
       )}
     </div>
   );
