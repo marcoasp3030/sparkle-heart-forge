@@ -180,7 +180,9 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
     setSchedDurationPreset(null);
     setSchedExpiresAt("");
     setRenewHours(2);
-  }, [door?.id]);
+    setLockIdInput(door?.lock_id != null ? String(door.lock_id) : "");
+    setOpeningLock(false);
+  }, [door?.id, door?.lock_id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
   const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : door.status === "hygienizing" ? Droplets : User;
