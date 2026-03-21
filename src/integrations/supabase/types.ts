@@ -64,6 +64,39 @@ export type Database = {
           },
         ]
       }
+      comandos_fechadura: {
+        Row: {
+          acao: string
+          criado_em: string
+          executado_em: string | null
+          id: number
+          lock_id: number
+          origem: string | null
+          resposta: string | null
+          status: string
+        }
+        Insert: {
+          acao: string
+          criado_em?: string
+          executado_em?: string | null
+          id?: number
+          lock_id: number
+          origem?: string | null
+          resposta?: string | null
+          status?: string
+        }
+        Update: {
+          acao?: string
+          criado_em?: string
+          executado_em?: string | null
+          id?: number
+          lock_id?: number
+          origem?: string | null
+          resposta?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           active: boolean

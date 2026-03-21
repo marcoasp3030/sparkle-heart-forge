@@ -35,6 +35,7 @@ import { uazapiProxyRouter } from "./routes/uazapi-proxy";
 import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 import { systemUpdateRouter } from "./routes/system-update";
 import { changelogRouter } from "./routes/changelog";
+import { fechadurasRouter } from "./routes/fechaduras";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -85,6 +86,9 @@ app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
 // Public changelog
 app.use("/api/changelog", changelogRouter);
+
+// Fechaduras IoT - sem auth na fase inicial (agente Python consulta)
+app.use("/api/fechaduras", fechadurasRouter);
 
 // ============================================
 // Protected Routes
