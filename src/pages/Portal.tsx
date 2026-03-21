@@ -95,6 +95,7 @@ export default function Portal() {
   const [renewalDoor, setRenewalDoor] = useState<DoorInfo | null>(null);
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
+  const [openingLockId, setOpeningLockId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
