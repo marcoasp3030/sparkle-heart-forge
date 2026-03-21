@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
-  CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw,
-  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send,
+  CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw, Unlock,
+  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send, Loader2,
   ClockArrowUp, Hourglass
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase-compat";
+import api from "@/lib/api";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ interface DoorInfo {
   expires_at: string | null;
   occupied_at: string | null;
   usage_type: string;
+  lock_id: number | null;
   locker: {
     name: string;
     location: string;
@@ -94,6 +96,7 @@ export default function Portal() {
   const [renewalDoor, setRenewalDoor] = useState<DoorInfo | null>(null);
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
+  const [openingLockId, setOpeningLockId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -131,7 +134,7 @@ export default function Portal() {
 
       const { data: doorsData } = await supabase
         .from("locker_doors")
-        .select("id, door_number, label, size, status, expires_at, occupied_at, locker_id, usage_type")
+        .select("id, door_number, label, size, status, expires_at, occupied_at, locker_id, usage_type, lock_id")
         .eq("occupied_by_person", personData.id);
 
       if (doorsData && doorsData.length > 0) {
@@ -256,6 +259,24 @@ export default function Portal() {
       toast.error(err.message || "Erro ao alterar senha");
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleOpenLock = async (door: DoorInfo) => {
+    if (!door.lock_id) return;
+    setOpeningLockId(door.id);
+    try {
+      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id });
+      const data = res.data?.data || res.data;
+      if (data?.success) {
+        toast.success(`Comando de abertura enviado para Porta ${door.label || door.door_number}!`);
+      } else {
+        toast.error("Erro ao enviar comando de abertura");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao abrir fechadura");
+    } finally {
+      setOpeningLockId(null);
     }
   };
 
@@ -517,6 +538,25 @@ export default function Portal() {
                             )
                           )}
                         </div>
+
+                        {/* Open lock button */}
+                        {door.lock_id && !isExpired(door.expires_at) && (
+                          <>
+                            <Separator />
+                            <Button
+                              className="w-full gap-2"
+                              onClick={() => handleOpenLock(door)}
+                              disabled={openingLockId === door.id}
+                            >
+                              {openingLockId === door.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Unlock className="h-4 w-4" />
+                              )}
+                              {openingLockId === door.id ? "Abrindo..." : "Abrir Fechadura"}
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
