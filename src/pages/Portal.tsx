@@ -49,6 +49,7 @@ interface DoorInfo {
   expires_at: string | null;
   occupied_at: string | null;
   usage_type: string;
+  lock_id: number | null;
   locker: {
     name: string;
     location: string;
