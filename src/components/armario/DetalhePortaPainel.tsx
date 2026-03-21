@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock, Droplets } from "lucide-react";
+import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock, Droplets, Zap, Loader2 } from "lucide-react";
 import FilaEspera from "@/components/armario/FilaEspera";
+import api from "@/lib/api";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export interface LockerDoorDataExtended {
   usage_type: string;
   expires_at: string | null;
   locker_id?: string;
+  lock_id?: number | null;
 }
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
@@ -131,6 +133,11 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   const [renewHours, setRenewHours] = useState<number>(2);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Lock binding fields
+  const [lockIdInput, setLockIdInput] = useState<string>("");
+  const [savingLockId, setSavingLockId] = useState(false);
+  const [openingLock, setOpeningLock] = useState(false);
+
   // Fetch people
   useEffect(() => {
     if (!open || !selectedCompany) return;
@@ -173,13 +180,49 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
     setSchedDurationPreset(null);
     setSchedExpiresAt("");
     setRenewHours(2);
-  }, [door?.id]);
+    setLockIdInput(door?.lock_id != null ? String(door.lock_id) : "");
+    setOpeningLock(false);
+  }, [door?.id, door?.lock_id]);
 
   const status = door ? statusLabels[door.status] : statusLabels.available;
   const StatusIcon = !door ? Unlock : door.status === "available" ? Unlock : door.status === "occupied" ? Lock : door.status === "maintenance" ? Wrench : door.status === "hygienizing" ? Droplets : User;
 
   if (!door) return null;
 
+  const handleSaveLockId = async () => {
+    if (!door) return;
+    setSavingLockId(true);
+    const newLockId = lockIdInput.trim() === "" ? null : parseInt(lockIdInput);
+    if (lockIdInput.trim() !== "" && (isNaN(newLockId!) || newLockId! <= 0)) {
+      toast({ title: "ID inválido", description: "Informe um número inteiro positivo ou deixe vazio para desvincular.", variant: "destructive" });
+      setSavingLockId(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("locker_doors")
+      .update({ lock_id: newLockId })
+      .eq("id", door.id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: newLockId ? "Fechadura vinculada!" : "Fechadura desvinculada", description: newLockId ? `Lock ID ${newLockId} vinculado à porta ${door.label || '#' + door.door_number}.` : "Porta sem fechadura vinculada." });
+      onRefresh?.();
+    }
+    setSavingLockId(false);
+  };
+
+  const handleOpenLock = async () => {
+    if (!door?.lock_id) return;
+    setOpeningLock(true);
+    try {
+      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id, origem: "painel" });
+      toast({ title: "🔓 Comando enviado!", description: `Abrindo fechadura #${door.lock_id} — Comando #${res.data.id}` });
+    } catch (err: any) {
+      toast({ title: "Erro ao abrir fechadura", description: err.message || "Falha na comunicação com a API", variant: "destructive" });
+    } finally {
+      setOpeningLock(false);
+    }
+  };
   const applyDurationPreset = (hours: number, target: "now" | "schedule") => {
     const date = new Date();
     if (target === "schedule" && schedStartsAt) {
@@ -369,7 +412,56 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             </div>
 
-            {/* Occupied info */}
+            {/* Smart Lock binding (admin) */}
+            {isAdmin && (
+              <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Fechadura Inteligente</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={lockIdInput}
+                    onChange={(e) => setLockIdInput(e.target.value)}
+                    placeholder="Lock ID (ex: 1)"
+                    className="h-8 text-sm font-mono flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveLockId}
+                    disabled={savingLockId}
+                    className="h-8 text-xs shrink-0"
+                  >
+                    {savingLockId ? <Loader2 className="h-3 w-3 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+                {door.lock_id && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Fechadura <strong className="font-mono">#{door.lock_id}</strong> vinculada
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Open lock button - visible to assigned user or admin when lock is bound */}
+            {door.lock_id && (door.status === "occupied") && (isCurrentUser || isAdmin) && (
+              <Button
+                onClick={handleOpenLock}
+                disabled={openingLock}
+                className="w-full h-11 rounded-xl font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+              >
+                {openingLock ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                {openingLock ? "Enviando comando..." : "🔓 Abrir Fechadura"}
+              </Button>
+            )}
+
             {door.status === "occupied" && (personName || door.usage_type || door.expires_at) && (
               <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 space-y-2">
                 {personName && (

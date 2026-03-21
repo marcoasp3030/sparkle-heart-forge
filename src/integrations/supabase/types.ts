@@ -454,6 +454,7 @@ export type Database = {
           expires_at: string | null
           id: string
           label: string | null
+          lock_id: number | null
           locker_id: string
           occupied_at: string | null
           occupied_by: string | null
@@ -470,6 +471,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           label?: string | null
+          lock_id?: number | null
           locker_id: string
           occupied_at?: string | null
           occupied_by?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           label?: string | null
+          lock_id?: number | null
           locker_id?: string
           occupied_at?: string | null
           occupied_by?: string | null

@@ -24,6 +24,7 @@ export interface LockerDoorData {
   usage_type?: string;
   expires_at?: string | null;
   occupied_at?: string | null;
+  lock_id?: number | null;
   scheduledReservation?: ScheduledReservation | null;
 }
 
