@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
-  CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw,
-  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send,
+  CheckCircle2, AlertCircle, Lock, ChevronRight, Shield, RefreshCw, Unlock,
+  Building2, Mail, Phone, BadgeCheck, Eye, EyeOff, Timer, Send, Loader2,
   ClockArrowUp, Hourglass
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
