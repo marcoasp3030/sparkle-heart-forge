@@ -133,6 +133,11 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
   const [renewHours, setRenewHours] = useState<number>(2);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Lock binding fields
+  const [lockIdInput, setLockIdInput] = useState<string>("");
+  const [savingLockId, setSavingLockId] = useState(false);
+  const [openingLock, setOpeningLock] = useState(false);
+
   // Fetch people
   useEffect(() => {
     if (!open || !selectedCompany) return;
