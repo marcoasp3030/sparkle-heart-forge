@@ -189,6 +189,40 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
 
   if (!door) return null;
 
+  const handleSaveLockId = async () => {
+    if (!door) return;
+    setSavingLockId(true);
+    const newLockId = lockIdInput.trim() === "" ? null : parseInt(lockIdInput);
+    if (lockIdInput.trim() !== "" && (isNaN(newLockId!) || newLockId! <= 0)) {
+      toast({ title: "ID inválido", description: "Informe um número inteiro positivo ou deixe vazio para desvincular.", variant: "destructive" });
+      setSavingLockId(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("locker_doors")
+      .update({ lock_id: newLockId })
+      .eq("id", door.id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: newLockId ? "Fechadura vinculada!" : "Fechadura desvinculada", description: newLockId ? `Lock ID ${newLockId} vinculado à porta ${door.label || '#' + door.door_number}.` : "Porta sem fechadura vinculada." });
+      onRefresh?.();
+    }
+    setSavingLockId(false);
+  };
+
+  const handleOpenLock = async () => {
+    if (!door?.lock_id) return;
+    setOpeningLock(true);
+    try {
+      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id, origem: "painel" });
+      toast({ title: "🔓 Comando enviado!", description: `Abrindo fechadura #${door.lock_id} — Comando #${res.data.id}` });
+    } catch (err: any) {
+      toast({ title: "Erro ao abrir fechadura", description: err.message || "Falha na comunicação com a API", variant: "destructive" });
+    } finally {
+      setOpeningLock(false);
+    }
+  };
   const applyDurationPreset = (hours: number, target: "now" | "schedule") => {
     const date = new Date();
     if (target === "schedule" && schedStartsAt) {
