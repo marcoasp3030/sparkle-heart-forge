@@ -393,6 +393,21 @@ export default function Portal() {
                 >
                   <Card className="shadow-card border-border/50 overflow-hidden">
                     <CardContent className="p-0">
+                      {/* Locker identification banner */}
+                      <div className={`px-4 py-2 flex items-center gap-2 border-b border-border/30 ${
+                        isExpired(door.expires_at)
+                          ? "bg-destructive/5"
+                          : isExpiringSoon(door.expires_at)
+                          ? "bg-accent/5"
+                          : "bg-muted/40"
+                      }`}>
+                        <Building2 className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="font-semibold text-sm text-foreground">{door.locker.name}</span>
+                        <span className="text-muted-foreground text-xs">•</span>
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs text-muted-foreground truncate">{door.locker.location || "Sem localização"}</span>
+                      </div>
+
                       {/* Door header */}
                       <div className={`p-4 flex items-center justify-between ${
                         isExpired(door.expires_at)
@@ -425,13 +440,6 @@ export default function Portal() {
                             }`}>
                               Porta {door.label || door.door_number}
                             </p>
-                            <p className={`text-xs ${
-                              isExpired(door.expires_at) || isExpiringSoon(door.expires_at)
-                                ? "text-muted-foreground"
-                                : "text-primary-foreground/70"
-                            }`}>
-                              {door.locker.name}
-                            </p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -454,10 +462,6 @@ export default function Portal() {
 
                       {/* Door details */}
                       <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-2.5 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-foreground">{door.locker.location || "Sem localização"}</span>
-                        </div>
 
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
