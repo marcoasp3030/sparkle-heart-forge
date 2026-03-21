@@ -261,7 +261,25 @@ export default function Portal() {
     }
   };
 
-  if (loading) {
+  const handleOpenLock = async (door: DoorInfo) => {
+    if (!door.lock_id) return;
+    setOpeningLockId(door.id);
+    try {
+      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id });
+      const data = res.data?.data || res.data;
+      if (data?.success) {
+        toast.success(`Comando de abertura enviado para Porta ${door.label || door.door_number}!`);
+      } else {
+        toast.error("Erro ao enviar comando de abertura");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao abrir fechadura");
+    } finally {
+      setOpeningLockId(null);
+    }
+  };
+
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
