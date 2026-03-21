@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock, Droplets } from "lucide-react";
+import { Lock, Unlock, Wrench, User, Hash, Maximize2, Calendar, Clock, UserCheck, RefreshCw, CalendarClock, Droplets, Zap, Loader2 } from "lucide-react";
 import FilaEspera from "@/components/armario/FilaEspera";
+import api from "@/lib/api";
 import { motion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
