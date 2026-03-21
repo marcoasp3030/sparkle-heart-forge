@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS locker_doors (
   occupied_by_person UUID REFERENCES funcionarios_clientes(id),
   occupied_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
+  lock_id INTEGER,
   scheduled_reservation_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -374,6 +375,7 @@ CREATE INDEX IF NOT EXISTS idx_locker_doors_locker_id ON locker_doors(locker_id)
 CREATE INDEX IF NOT EXISTS idx_locker_doors_status ON locker_doors(status);
 CREATE INDEX IF NOT EXISTS idx_locker_doors_occupied_by_person ON locker_doors(occupied_by_person);
 CREATE INDEX IF NOT EXISTS idx_locker_doors_expires_at ON locker_doors(expires_at);
+CREATE INDEX IF NOT EXISTS idx_locker_doors_lock_id ON locker_doors(lock_id) WHERE lock_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_locker_reservations_door_id ON locker_reservations(door_id);
 CREATE INDEX IF NOT EXISTS idx_locker_reservations_person_id ON locker_reservations(person_id);
@@ -820,4 +822,20 @@ ON CONFLICT (key) DO NOTHING;
 -- ============================================================
 
 -- FIM DO SCRIPT
+
+-- ============================================
+-- TABELA: comandos_fechadura (fila IoT)
+-- ============================================
+CREATE TABLE IF NOT EXISTS comandos_fechadura (
+    id SERIAL PRIMARY KEY,
+    acao VARCHAR(20) NOT NULL,
+    lock_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pendente',
+    resposta TEXT,
+    origem VARCHAR(30) DEFAULT 'web',
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    executado_em TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_comandos_fechadura_status ON comandos_fechadura (status, id ASC);
+
 SELECT 'Schema PBLocker criado com sucesso! 🎉' AS resultado;
