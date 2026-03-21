@@ -262,62 +262,14 @@ export default function Portal() {
     }
   };
 
-  // Cleanup polling timers on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(pollTimersRef.current).forEach(clearInterval);
-    };
-  }, []);
-
-  const pollCommandStatus = useCallback((doorId: string, commandId: number) => {
-    // Clear any existing poll for this door
-    if (pollTimersRef.current[doorId]) clearInterval(pollTimersRef.current[doorId]);
-
-    pollTimersRef.current[doorId] = setInterval(async () => {
-      try {
-        const res = await api.get(`/fechaduras/status/${commandId}`);
-        const data = res.data?.data || res.data;
-        const status = data?.status;
-
-        setLockCommands(prev => ({
-          ...prev,
-          [doorId]: { commandId, status, resposta: data?.resposta },
-        }));
-
-        if (status === "executado" || status === "erro") {
-          clearInterval(pollTimersRef.current[doorId]);
-          delete pollTimersRef.current[doorId];
-
-          // Auto-clear after 6 seconds
-          setTimeout(() => {
-            setLockCommands(prev => {
-              const next = { ...prev };
-              delete next[doorId];
-              return next;
-            });
-          }, 6000);
-        }
-      } catch {
-        // On error, stop polling
-        clearInterval(pollTimersRef.current[doorId]);
-        delete pollTimersRef.current[doorId];
-      }
-    }, 2000);
-  }, []);
-
   const handleOpenLock = async (door: DoorInfo) => {
     if (!door.lock_id) return;
     setOpeningLockId(door.id);
     try {
       const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id, origem: "portal" });
       const data = res.data?.data || res.data;
-      if (data?.success && data?.id) {
-        setLockCommands(prev => ({
-          ...prev,
-          [door.id]: { commandId: data.id, status: "pendente" },
-        }));
-        toast.success(`Comando enviado para Porta ${door.label || door.door_number}`);
-        pollCommandStatus(door.id, data.id);
+      if (data?.success) {
+        toast.success(`Comando de abertura enviado para ${door.label || "Porta " + door.door_number} — ${door.locker.name}`);
       } else {
         toast.error("Erro ao enviar comando de abertura");
       }
