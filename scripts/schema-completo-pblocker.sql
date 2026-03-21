@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS locker_doors (
   occupied_by_person UUID REFERENCES funcionarios_clientes(id),
   occupied_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
+  lock_id INTEGER,
   scheduled_reservation_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
