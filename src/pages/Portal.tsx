@@ -132,7 +132,7 @@ export default function Portal() {
 
       const { data: doorsData } = await supabase
         .from("locker_doors")
-        .select("id, door_number, label, size, status, expires_at, occupied_at, locker_id, usage_type")
+        .select("id, door_number, label, size, status, expires_at, occupied_at, locker_id, usage_type, lock_id")
         .eq("occupied_by_person", personData.id);
 
       if (doorsData && doorsData.length > 0) {
