@@ -538,6 +538,25 @@ export default function Portal() {
                             )
                           )}
                         </div>
+
+                        {/* Open lock button */}
+                        {door.lock_id && !isExpired(door.expires_at) && (
+                          <>
+                            <Separator />
+                            <Button
+                              className="w-full gap-2"
+                              onClick={() => handleOpenLock(door)}
+                              disabled={openingLockId === door.id}
+                            >
+                              {openingLockId === door.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Unlock className="h-4 w-4" />
+                              )}
+                              {openingLockId === door.id ? "Abrindo..." : "Abrir Fechadura"}
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
