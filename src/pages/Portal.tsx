@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
@@ -97,6 +97,8 @@ export default function Portal() {
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
   const [openingLockId, setOpeningLockId] = useState<string | null>(null);
+  const [lockCommands, setLockCommands] = useState<Record<string, { commandId: number; status: string; resposta?: string }>>({});
+  const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -262,14 +264,62 @@ export default function Portal() {
     }
   };
 
+  // Cleanup polling timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pollTimersRef.current).forEach(clearInterval);
+    };
+  }, []);
+
+  const pollCommandStatus = useCallback((doorId: string, commandId: number) => {
+    // Clear any existing poll for this door
+    if (pollTimersRef.current[doorId]) clearInterval(pollTimersRef.current[doorId]);
+
+    pollTimersRef.current[doorId] = setInterval(async () => {
+      try {
+        const res = await api.get(`/fechaduras/status/${commandId}`);
+        const data = res.data?.data || res.data;
+        const status = data?.status;
+
+        setLockCommands(prev => ({
+          ...prev,
+          [doorId]: { commandId, status, resposta: data?.resposta },
+        }));
+
+        if (status === "executado" || status === "erro") {
+          clearInterval(pollTimersRef.current[doorId]);
+          delete pollTimersRef.current[doorId];
+
+          // Auto-clear after 6 seconds
+          setTimeout(() => {
+            setLockCommands(prev => {
+              const next = { ...prev };
+              delete next[doorId];
+              return next;
+            });
+          }, 6000);
+        }
+      } catch {
+        // On error, stop polling
+        clearInterval(pollTimersRef.current[doorId]);
+        delete pollTimersRef.current[doorId];
+      }
+    }, 2000);
+  }, []);
+
   const handleOpenLock = async (door: DoorInfo) => {
     if (!door.lock_id) return;
     setOpeningLockId(door.id);
     try {
-      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id });
+      const res = await api.post("/fechaduras/abrir", { lock_id: door.lock_id, origem: "portal" });
       const data = res.data?.data || res.data;
-      if (data?.success) {
-        toast.success(`Comando de abertura enviado para Porta ${door.label || door.door_number}!`);
+      if (data?.success && data?.id) {
+        setLockCommands(prev => ({
+          ...prev,
+          [door.id]: { commandId: data.id, status: "pendente" },
+        }));
+        toast.success(`Comando enviado para Porta ${door.label || door.door_number}`);
+        pollCommandStatus(door.id, data.id);
       } else {
         toast.error("Erro ao enviar comando de abertura");
       }
@@ -539,21 +589,118 @@ export default function Portal() {
                           )}
                         </div>
 
-                        {/* Open lock button */}
+                        {/* Open lock button + status tracker */}
                         {door.lock_id && !isExpired(door.expires_at) && (
                           <>
                             <Separator />
+
+                            {/* Status tracker */}
+                            {lockCommands[door.id] && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="rounded-lg border border-border overflow-hidden"
+                              >
+                                <div className="p-3 space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    <Lock className="h-3 w-3" />
+                                    Status do Comando #{lockCommands[door.id].commandId}
+                                  </div>
+
+                                  {/* Progress steps */}
+                                  <div className="flex items-center gap-1">
+                                    {(["pendente", "executando", "executado"] as const).map((step, idx) => {
+                                      const currentStatus = lockCommands[door.id].status;
+                                      const stepOrder = { pendente: 0, executando: 1, executado: 2, erro: 2 };
+                                      const current = stepOrder[currentStatus as keyof typeof stepOrder] ?? 0;
+                                      const isError = currentStatus === "erro" && idx === 2;
+                                      const isActive = idx === current;
+                                      const isCompleted = idx < current;
+                                      const isDone = currentStatus === "executado" && idx === 2;
+
+                                      return (
+                                        <div key={step} className="flex-1 flex flex-col items-center gap-1">
+                                          <div
+                                            className={`h-2 w-full rounded-full transition-all duration-500 ${
+                                              isError
+                                                ? "bg-destructive"
+                                                : isDone
+                                                ? "bg-primary"
+                                                : isCompleted
+                                                ? "bg-primary"
+                                                : isActive
+                                                ? "bg-primary/50 animate-pulse"
+                                                : "bg-muted"
+                                            }`}
+                                          />
+                                          <span className={`text-[10px] ${
+                                            isError
+                                              ? "text-destructive font-semibold"
+                                              : isActive || isCompleted || isDone
+                                              ? "text-foreground font-medium"
+                                              : "text-muted-foreground"
+                                          }`}>
+                                            {isError ? "Erro" : step === "pendente" ? "Enviado" : step === "executando" ? "Executando" : "Concluído"}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Result message */}
+                                  <AnimatePresence>
+                                    {lockCommands[door.id].status === "executado" && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex items-center gap-2 p-2 rounded-md bg-primary/10 text-primary text-xs font-medium"
+                                      >
+                                        <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                                        Fechadura aberta com sucesso!
+                                        {lockCommands[door.id].resposta && (
+                                          <span className="text-muted-foreground ml-1">({lockCommands[door.id].resposta})</span>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                    {lockCommands[door.id].status === "erro" && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-xs font-medium"
+                                      >
+                                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                        Erro ao abrir fechadura
+                                        {lockCommands[door.id].resposta && (
+                                          <span className="ml-1">— {lockCommands[door.id].resposta}</span>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              </motion.div>
+                            )}
+
                             <Button
                               className="w-full gap-2"
                               onClick={() => handleOpenLock(door)}
-                              disabled={openingLockId === door.id}
+                              disabled={openingLockId === door.id || lockCommands[door.id]?.status === "pendente" || lockCommands[door.id]?.status === "executando"}
                             >
-                              {openingLockId === door.id ? (
+                              {openingLockId === door.id || lockCommands[door.id]?.status === "pendente" || lockCommands[door.id]?.status === "executando" ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : lockCommands[door.id]?.status === "executado" ? (
+                                <CheckCircle2 className="h-4 w-4" />
                               ) : (
                                 <Unlock className="h-4 w-4" />
                               )}
-                              {openingLockId === door.id ? "Abrindo..." : "Abrir Fechadura"}
+                              {openingLockId === door.id
+                                ? "Enviando..."
+                                : lockCommands[door.id]?.status === "pendente"
+                                ? "Aguardando agente..."
+                                : lockCommands[door.id]?.status === "executando"
+                                ? "Executando..."
+                                : lockCommands[door.id]?.status === "executado"
+                                ? "Aberta ✓"
+                                : "Abrir Fechadura"}
                             </Button>
                           </>
                         )}
