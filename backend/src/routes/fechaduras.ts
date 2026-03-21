@@ -2,8 +2,12 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { validate } from "../middleware/validate";
 import { pool } from "../config/database";
+import { apiKeyMiddleware } from "../middleware/apikey";
 
 const router = Router();
+
+// Todas as rotas de fechaduras passam pelo middleware de API Key
+router.use(apiKeyMiddleware);
 
 // ============================================
 // POST /api/fechaduras/abrir
