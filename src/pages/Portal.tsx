@@ -669,9 +669,30 @@ export default function Portal() {
             )}
           </TabsContent>
 
+          {/* === FILA DE ESPERA TAB === */}
+          <TabsContent value="fila" className="space-y-4 mt-4">
+            {person && (
+              <FilaEsperaPortal
+                personId={person.id}
+                companyId={person.company_id}
+                userId={user!.id}
+              />
+            )}
+          </TabsContent>
+
           {/* === HISTÓRICO TAB === */}
           <TabsContent value="historico" className="space-y-4 mt-4">
             {person && <HistoricoPortal personId={person.id} />}
+          </TabsContent>
+
+          {/* === NOTIFICAÇÕES TAB === */}
+          <TabsContent value="notificacoes" className="space-y-4 mt-4">
+            {user && (
+              <NotificacoesPortal
+                userId={user.id}
+                onUnreadCountChange={setUnreadNotifications}
+              />
+            )}
           </TabsContent>
 
           {/* === PERFIL TAB === */}
