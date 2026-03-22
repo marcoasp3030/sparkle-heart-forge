@@ -329,22 +329,6 @@ export default function LogsFechaduras() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {l.resposta ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs text-muted-foreground max-w-[120px] truncate block cursor-help">
-                                {l.resposta}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-xs">
-                              <p className="text-xs break-all">{l.resposta}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
                     </TableRow>
                   );
                 })}
