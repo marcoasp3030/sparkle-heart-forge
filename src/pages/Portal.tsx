@@ -365,22 +365,35 @@ export default function Portal() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="armarios" className="text-xs sm:text-sm">
-              <Archive className="h-4 w-4 mr-1.5" />
-              Armários
+          <TabsList className="w-full grid grid-cols-6">
+            <TabsTrigger value="armarios" className="text-xs">
+              <Archive className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Armários</span>
             </TabsTrigger>
-            <TabsTrigger value="historico" className="text-xs sm:text-sm">
-              <Clock className="h-4 w-4 mr-1.5" />
-              Histórico
+            <TabsTrigger value="fila" className="text-xs">
+              <ListOrdered className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Fila</span>
             </TabsTrigger>
-            <TabsTrigger value="perfil" className="text-xs sm:text-sm">
-              <User className="h-4 w-4 mr-1.5" />
-              Perfil
+            <TabsTrigger value="historico" className="text-xs">
+              <Clock className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="seguranca" className="text-xs sm:text-sm">
-              <Shield className="h-4 w-4 mr-1.5" />
-              Segurança
+            <TabsTrigger value="notificacoes" className="text-xs relative">
+              <Bell className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Avisos</span>
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="perfil" className="text-xs">
+              <User className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="seguranca" className="text-xs">
+              <Shield className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Segurança</span>
             </TabsTrigger>
           </TabsList>
 
