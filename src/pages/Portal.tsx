@@ -4,7 +4,7 @@ import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
   CheckCircle2, AlertCircle, Lock, Shield, RefreshCw, Unlock,
   Building2, Eye, EyeOff, Loader2,
-  ClockArrowUp, Hourglass
+  ClockArrowUp, Hourglass, Bell, ListOrdered
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase-compat";
@@ -24,6 +24,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import HistoricoPortal from "@/components/portal/HistoricoPortal";
 import PerfilPortal from "@/components/portal/PerfilPortal";
+import NotificacoesPortal from "@/components/portal/NotificacoesPortal";
+import FilaEsperaPortal from "@/components/portal/FilaEsperaPortal";
 
 interface PersonInfo {
   id: string;
@@ -96,6 +98,7 @@ export default function Portal() {
   const [renewalDoor, setRenewalDoor] = useState<DoorInfo | null>(null);
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [openingLockId, setOpeningLockId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -362,22 +365,35 @@ export default function Portal() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="armarios" className="text-xs sm:text-sm">
-              <Archive className="h-4 w-4 mr-1.5" />
-              Armários
+          <TabsList className="w-full grid grid-cols-6">
+            <TabsTrigger value="armarios" className="text-xs">
+              <Archive className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Armários</span>
             </TabsTrigger>
-            <TabsTrigger value="historico" className="text-xs sm:text-sm">
-              <Clock className="h-4 w-4 mr-1.5" />
-              Histórico
+            <TabsTrigger value="fila" className="text-xs">
+              <ListOrdered className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Fila</span>
             </TabsTrigger>
-            <TabsTrigger value="perfil" className="text-xs sm:text-sm">
-              <User className="h-4 w-4 mr-1.5" />
-              Perfil
+            <TabsTrigger value="historico" className="text-xs">
+              <Clock className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="seguranca" className="text-xs sm:text-sm">
-              <Shield className="h-4 w-4 mr-1.5" />
-              Segurança
+            <TabsTrigger value="notificacoes" className="text-xs relative">
+              <Bell className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Avisos</span>
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="perfil" className="text-xs">
+              <User className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="seguranca" className="text-xs">
+              <Shield className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Segurança</span>
             </TabsTrigger>
           </TabsList>
 
@@ -653,9 +669,30 @@ export default function Portal() {
             )}
           </TabsContent>
 
+          {/* === FILA DE ESPERA TAB === */}
+          <TabsContent value="fila" className="space-y-4 mt-4">
+            {person && (
+              <FilaEsperaPortal
+                personId={person.id}
+                companyId={person.company_id}
+                userId={user!.id}
+              />
+            )}
+          </TabsContent>
+
           {/* === HISTÓRICO TAB === */}
           <TabsContent value="historico" className="space-y-4 mt-4">
             {person && <HistoricoPortal personId={person.id} />}
+          </TabsContent>
+
+          {/* === NOTIFICAÇÕES TAB === */}
+          <TabsContent value="notificacoes" className="space-y-4 mt-4">
+            {user && (
+              <NotificacoesPortal
+                userId={user.id}
+                onUnreadCountChange={setUnreadNotifications}
+              />
+            )}
           </TabsContent>
 
           {/* === PERFIL TAB === */}
