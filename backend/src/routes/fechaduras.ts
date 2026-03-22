@@ -19,7 +19,6 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
   const { lock_id, origem } = req.body;
 
   try {
-    // Verificar se o usuário tem uma porta vinculada com esse lock_id
     const userId = req.user?.user_id;
     const { rows: personRows } = await pool.query(
       `SELECT fc.id FROM funcionarios_clientes fc
@@ -32,11 +31,13 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
       return res.status(403).json({ success: false, error: "Você não tem permissão para abrir esta fechadura." });
     }
 
+    const personId = personRows[0].id;
+
     const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
-       VALUES ('abrir', $1, 'pendente', $2)
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
+       VALUES ('abrir', $1, 'pendente', $2, $3)
        RETURNING id`,
-      [lock_id, origem || "portal"]
+      [lock_id, origem || "portal", personId]
     );
 
     res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
