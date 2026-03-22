@@ -260,7 +260,7 @@ export default function LogsFechaduras() {
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Origem</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Enviado em</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Tempo Exec.</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Resposta</TableHead>
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
