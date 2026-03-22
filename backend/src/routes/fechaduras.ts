@@ -125,12 +125,32 @@ router.get("/historico-admin", authMiddleware, async (req: Request, res: Respons
       return res.status(403).json({ error: "Acesso restrito a administradores." });
     }
 
-    const { rows } = await pool.query(
-      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
-       FROM comandos_fechadura
-       ORDER BY criado_em DESC
-       LIMIT 500`
-    );
+    const companyId = req.query.company_id as string | undefined;
+
+    let query = `
+      SELECT 
+        cf.id, cf.acao, cf.lock_id, cf.status, cf.resposta, cf.origem, cf.criado_em, cf.executado_em,
+        ld.door_number, ld.label AS door_label,
+        l.name AS locker_name, l.location AS locker_location, l.company_id,
+        fc.nome AS person_name, fc.tipo AS person_type, fc.matricula AS person_matricula
+      FROM comandos_fechadura cf
+      LEFT JOIN locker_doors ld ON ld.lock_id = cf.lock_id
+      LEFT JOIN lockers l ON l.id = ld.locker_id
+      LEFT JOIN funcionarios_clientes fc ON fc.id = ld.occupied_by_person
+    `;
+    const params: any[] = [];
+
+    if (companyId && role !== "superadmin") {
+      params.push(companyId);
+      query += ` WHERE l.company_id = $${params.length}`;
+    } else if (companyId) {
+      params.push(companyId);
+      query += ` WHERE l.company_id = $${params.length}`;
+    }
+
+    query += ` ORDER BY cf.criado_em DESC LIMIT 1000`;
+
+    const { rows } = await pool.query(query, params);
 
     res.json(rows);
   } catch (err: any) {
