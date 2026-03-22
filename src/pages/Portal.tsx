@@ -99,6 +99,7 @@ export default function Portal() {
   const [renewalHours, setRenewalHours] = useState("1");
   const [renewalLoading, setRenewalLoading] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [openingLockId, setOpeningLockId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
