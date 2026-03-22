@@ -5,7 +5,7 @@ import {
   Filter, ChevronLeft, ChevronRight, Building2, MapPin,
   CheckCircle2, AlertCircle, Loader2, TimerIcon, DoorOpen
 } from "lucide-react";
-import { supabase } from "@/lib/supabase-compat";
+import api from "@/lib/api";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,14 +25,13 @@ interface CommandLog {
   resposta: string | null;
   criado_em: string;
   executado_em: string | null;
-  // joined
-  doorNumber: number;
-  doorLabel: string | null;
-  lockerName: string;
-  lockerLocation: string;
-  personName: string | null;
-  personType: string | null;
-  personMatricula: string | null;
+  door_number: number | null;
+  door_label: string | null;
+  locker_name: string | null;
+  locker_location: string | null;
+  person_name: string | null;
+  person_type: string | null;
+  person_matricula: string | null;
 }
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
@@ -45,6 +44,7 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
 const origemLabels: Record<string, string> = {
   portal: "Portal Usuário",
   web: "Painel Admin",
+  painel: "Painel Admin",
   api: "API Externa",
   agente: "Agente Local",
 };
@@ -65,7 +65,7 @@ function formatExecutionTime(criado: string, executado: string | null): string {
 const ITEMS_PER_PAGE = 25;
 
 export default function LogsFechaduras() {
-  const { selectedCompany, isSuperAdmin } = useCompany();
+  const { selectedCompany } = useCompany();
   const [logs, setLogs] = useState<CommandLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -79,87 +79,20 @@ export default function LogsFechaduras() {
 
   const fetchLogs = async () => {
     setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (selectedCompany?.id) params.company_id = selectedCompany.id;
 
-    // 1. Get all commands
-    const { data: commands } = await supabase
-      .from("comandos_fechadura")
-      .select("*")
-      .order("criado_em", { ascending: false })
-      .limit(1000);
-
-    if (!commands || commands.length === 0) {
+      const res = await api.get("/fechaduras/historico-admin", { params });
+      setLogs(res.data || []);
+    } catch (err: any) {
+      console.error("[LOGS] Erro ao buscar histórico:", err);
       setLogs([]);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 2. Get all lock_ids and find matching doors
-    const lockIds = [...new Set(commands.map(c => c.lock_id))];
-
-    // Get doors with these lock_ids
-    const { data: doors } = await supabase
-      .from("locker_doors")
-      .select("id, door_number, label, lock_id, locker_id, occupied_by_person")
-      .in("lock_id", lockIds);
-
-    if (!doors || doors.length === 0) {
-      // No doors matched - show raw data
-      setLogs(commands.map(c => ({
-        ...c,
-        doorNumber: 0,
-        doorLabel: null,
-        lockerName: `Lock #${c.lock_id}`,
-        lockerLocation: "—",
-        personName: null,
-        personType: null,
-        personMatricula: null,
-      })));
-      setLoading(false);
-      return;
-    }
-
-    const doorByLockId = new Map(doors.map(d => [d.lock_id, d]));
-    const lockerIds = [...new Set(doors.map(d => d.locker_id))];
-    const personIds = doors.map(d => d.occupied_by_person).filter(Boolean) as string[];
-
-    // 3. Fetch lockers and persons
-    const [lockersRes, personsRes] = await Promise.all([
-      supabase.from("lockers").select("id, name, location, company_id").in("id", lockerIds),
-      personIds.length > 0
-        ? supabase.from("funcionarios_clientes").select("id, nome, tipo, matricula").in("id", personIds)
-        : { data: [] },
-    ]);
-
-    const lockerMap = new Map((lockersRes.data || []).map(l => [l.id, l]));
-    const personMap = new Map((personsRes.data || []).map(p => [p.id, p]));
-
-    // 4. Map and filter by company if selected
-    const mapped: CommandLog[] = commands.map(c => {
-      const door: any = doorByLockId.get(c.lock_id);
-      const locker: any = door ? lockerMap.get(door.locker_id) : null;
-      const person: any = door?.occupied_by_person ? personMap.get(door.occupied_by_person) : null;
-
-      return {
-        ...c,
-        doorNumber: door?.door_number || 0,
-        doorLabel: door?.label || null,
-        lockerName: locker?.name || `Lock #${c.lock_id}`,
-        lockerLocation: locker?.location || "—",
-        personName: person?.nome || null,
-        personType: person?.tipo || null,
-        personMatricula: person?.matricula || null,
-        _companyId: locker?.company_id || null,
-      };
-    }).filter((c: any) => {
-      if (!selectedCompany) return true;
-      return c._companyId === selectedCompany.id;
-    });
-
-    setLogs(mapped);
-    setLoading(false);
   };
 
-  // Stats
   const stats = useMemo(() => {
     const total = logs.length;
     const executados = logs.filter(l => l.status === "executado").length;
@@ -171,11 +104,11 @@ export default function LogsFechaduras() {
   const filtered = useMemo(() => {
     return logs.filter(l => {
       const matchSearch = !search ||
-        l.personName?.toLowerCase().includes(search.toLowerCase()) ||
-        l.lockerName.toLowerCase().includes(search.toLowerCase()) ||
+        l.person_name?.toLowerCase().includes(search.toLowerCase()) ||
+        (l.locker_name || "").toLowerCase().includes(search.toLowerCase()) ||
         String(l.lock_id).includes(search) ||
-        (l.doorLabel?.toLowerCase().includes(search.toLowerCase())) ||
-        (l.personMatricula?.toLowerCase().includes(search.toLowerCase()));
+        (l.door_label?.toLowerCase().includes(search.toLowerCase())) ||
+        (l.person_matricula?.toLowerCase().includes(search.toLowerCase()));
       const matchStatus = statusFilter === "all" || l.status === statusFilter;
       const matchOrigem = origemFilter === "all" || l.origem === origemFilter;
       return matchSearch && matchStatus && matchOrigem;
@@ -190,11 +123,11 @@ export default function LogsFechaduras() {
     const headers = ["ID", "Armário", "Localização", "Porta", "Pessoa", "Tipo", "Ação", "Status", "Origem", "Enviado em", "Executado em", "Tempo", "Resposta"];
     const rows = filtered.map(l => [
       l.id,
-      l.lockerName,
-      l.lockerLocation,
-      l.doorLabel || `#${l.doorNumber}`,
-      l.personName || "—",
-      l.personType === "funcionario" ? "Funcionário" : l.personType === "cliente" ? "Cliente" : "—",
+      l.locker_name || `Lock #${l.lock_id}`,
+      l.locker_location || "—",
+      l.door_label || `#${l.door_number || 0}`,
+      l.person_name || "—",
+      l.person_type === "funcionario" ? "Funcionário" : l.person_type === "cliente" ? "Cliente" : "—",
       l.acao,
       statusConfig[l.status]?.label || l.status,
       origemLabels[l.origem || ""] || l.origem || "—",
@@ -223,7 +156,7 @@ export default function LogsFechaduras() {
             Logs de Fechaduras
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Registro de todos os comandos de abertura enviados por funcionários e clientes
+            Registro de todos os comandos de abertura — portal, painel e agente
           </p>
         </div>
         <div className="flex gap-2">
@@ -295,7 +228,8 @@ export default function LogsFechaduras() {
               <SelectContent>
                 <SelectItem value="all" className="text-xs">Todas origens</SelectItem>
                 <SelectItem value="portal" className="text-xs">Portal Usuário</SelectItem>
-                <SelectItem value="web" className="text-xs">Painel Admin</SelectItem>
+                <SelectItem value="painel" className="text-xs">Painel Admin</SelectItem>
+                <SelectItem value="web" className="text-xs">Web</SelectItem>
                 <SelectItem value="api" className="text-xs">API Externa</SelectItem>
                 <SelectItem value="agente" className="text-xs">Agente Local</SelectItem>
               </SelectContent>
@@ -340,12 +274,12 @@ export default function LogsFechaduras() {
                         <div className="flex items-start gap-2">
                           <Building2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-sm font-semibold text-foreground">{l.lockerName}</p>
+                            <p className="text-sm font-semibold text-foreground">{l.locker_name || `Lock #${l.lock_id}`}</p>
                             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <MapPin className="h-3 w-3" />
-                              <span>{l.lockerLocation}</span>
+                              <span>{l.locker_location || "—"}</span>
                               <span className="mx-0.5">·</span>
-                              <span className="font-mono">{l.doorLabel || `Porta #${l.doorNumber}`}</span>
+                              <span className="font-mono">{l.door_label || `Porta #${l.door_number || l.lock_id}`}</span>
                             </div>
                           </div>
                         </div>
@@ -354,15 +288,15 @@ export default function LogsFechaduras() {
                         <div className="flex items-center gap-2">
                           <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <div>
-                            <p className="text-sm font-medium">{l.personName || "—"}</p>
+                            <p className="text-sm font-medium">{l.person_name || "—"}</p>
                             <div className="flex items-center gap-1">
-                              {l.personType && (
+                              {l.person_type && (
                                 <Badge variant="outline" className="text-[9px] px-1 py-0">
-                                  {l.personType === "funcionario" ? "Funcionário" : "Cliente"}
+                                  {l.person_type === "funcionario" ? "Funcionário" : "Cliente"}
                                 </Badge>
                               )}
-                              {l.personMatricula && (
-                                <span className="text-[10px] text-muted-foreground">{l.personMatricula}</span>
+                              {l.person_matricula && (
+                                <span className="text-[10px] text-muted-foreground">{l.person_matricula}</span>
                               )}
                             </div>
                           </div>
