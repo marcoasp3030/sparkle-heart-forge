@@ -114,7 +114,7 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
         </div>
       )}
 
-      <nav className="flex-1 py-2 px-3 space-y-0.5">
+      <nav className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto">
         {navItems.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => {
           const isActive = location.pathname === item.path;
           return (
