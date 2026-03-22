@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Settings, LogOut, Shield, LayoutDashboard, Archive, History,
@@ -42,6 +43,24 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
   const { settings, effectiveSettings } = usePlatform();
   const navigate = useNavigate();
   const location = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const hasMore = el.scrollHeight - el.scrollTop - el.clientHeight > 8;
+    setShowScrollIndicator(hasMore);
+  }, []);
+
+  useEffect(() => {
+    handleScroll();
+    const el = navRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(handleScroll);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleScroll]);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -114,98 +133,114 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
         </div>
       )}
 
-      <nav className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto">
-        {navItems.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.label}
-              onClick={() => handleNav(item.path)}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
-                isActive
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <item.icon className={`h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 ${!isActive ? "group-hover:scale-110" : ""}`} />
-              {expanded && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
-                  {item.label}
-                </motion.span>
-              )}
-              {isActive && !expanded && (
-                <div className="absolute -right-px top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-l-full bg-primary" />
-              )}
-            </button>
-          );
-        })}
+      <div className="flex-1 relative overflow-hidden">
+        <nav
+          ref={navRef}
+          onScroll={handleScroll}
+          className="h-full py-2 px-3 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent"
+        >
+          {navItems.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNav(item.path)}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
+                  isActive
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <item.icon className={`h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 ${!isActive ? "group-hover:scale-110" : ""}`} />
+                {expanded && (
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+                    {item.label}
+                  </motion.span>
+                )}
+                {isActive && !expanded && (
+                  <div className="absolute -right-px top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-l-full bg-primary" />
+                )}
+              </button>
+            );
+          })}
 
-        {isSuperAdmin && (
-          <>
-            {expanded && (
-              <div className="px-2 pt-5 pb-2">
-                <span className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-[0.15em]">Administração</span>
-              </div>
-            )}
-            {!expanded && <div className="my-3 mx-2 h-px bg-sidebar-border" />}
-            <button
-              onClick={() => handleNav("/empresas")}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/empresas"
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Building2 className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-              {expanded && <span>Empresas</span>}
-            </button>
-            <button
-              onClick={() => handleNav("/admin")}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/admin"
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Shield className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-              {expanded && <span>Gerenciar Usuários</span>}
-            </button>
-            <button
-              onClick={() => handleNav("/personalizacao")}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/personalizacao"
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Palette className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-              {expanded && <span>Personalização</span>}
-            </button>
-            <button
-              onClick={() => handleNav("/logs-fechaduras")}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/logs-fechaduras"
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Unlock className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-              {expanded && <span>Logs Fechaduras</span>}
-            </button>
-            <button
-              onClick={() => handleNav("/status")}
-              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/status"
-                  ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Activity className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
-              {expanded && <span>Status Conexão</span>}
-            </button>
-          </>
-        )}
-      </nav>
+          {isSuperAdmin && (
+            <>
+              {expanded && (
+                <div className="px-2 pt-5 pb-2">
+                  <span className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-[0.15em]">Administração</span>
+                </div>
+              )}
+              {!expanded && <div className="my-3 mx-2 h-px bg-sidebar-border" />}
+              <button
+                onClick={() => handleNav("/empresas")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/empresas"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Building2 className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {expanded && <span>Empresas</span>}
+              </button>
+              <button
+                onClick={() => handleNav("/admin")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/admin"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Shield className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {expanded && <span>Gerenciar Usuários</span>}
+              </button>
+              <button
+                onClick={() => handleNav("/personalizacao")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/personalizacao"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Palette className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {expanded && <span>Personalização</span>}
+              </button>
+              <button
+                onClick={() => handleNav("/logs-fechaduras")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/logs-fechaduras"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Unlock className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {expanded && <span>Logs Fechaduras</span>}
+              </button>
+              <button
+                onClick={() => handleNav("/status")}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/status"
+                    ? "gradient-primary text-primary-foreground shadow-md shadow-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Activity className="h-[18px] w-[18px] flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+                {expanded && <span>Status Conexão</span>}
+              </button>
+            </>
+          )}
+        </nav>
+
+        {/* Scroll indicator - fade gradient at bottom */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 h-8 pointer-events-none transition-opacity duration-300 ${
+            showScrollIndicator ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            background: "linear-gradient(to bottom, transparent, hsl(var(--sidebar-background)))",
+          }}
+        />
+      </div>
 
       {/* User section */}
       <div className="p-3">
