@@ -118,9 +118,12 @@ export default function LogsFechaduras() {
         (l.person_matricula?.toLowerCase().includes(search.toLowerCase()));
       const matchStatus = statusFilter === "all" || l.status === statusFilter;
       const matchOrigem = origemFilter === "all" || l.origem === origemFilter;
-      return matchSearch && matchStatus && matchOrigem;
+      const logDate = new Date(l.criado_em);
+      const matchDateFrom = !dateFrom || logDate >= dateFrom;
+      const matchDateTo = !dateTo || logDate <= new Date(dateTo.getTime() + 86400000 - 1);
+      return matchSearch && matchStatus && matchOrigem && matchDateFrom && matchDateTo;
     });
-  }, [logs, search, statusFilter, origemFilter]);
+  }, [logs, search, statusFilter, origemFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
