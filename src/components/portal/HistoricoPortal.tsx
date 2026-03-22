@@ -154,9 +154,9 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
       // Fetch lock commands
       if (lockIds.length > 0) {
         try {
-          const cmdRes = await api.get("/fechaduras/historico");
+          const cmdRes = await api.get("/fechaduras/meu-historico");
           const allCommands: LockCommand[] = cmdRes.data?.data || cmdRes.data || [];
-          setLockCommands(allCommands.filter(c => lockIds.includes(c.lock_id)));
+          setLockCommands(allCommands);
         } catch {
           // API may not be available
         }

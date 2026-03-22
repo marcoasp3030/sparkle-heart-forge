@@ -77,6 +77,68 @@ router.post("/abrir-admin", authMiddleware, validate(abrirAdminSchema), async (r
   }
 });
 
+// ============================================
+// GET /api/fechaduras/meu-historico  (JWT auth — histórico do usuário logado)
+// ============================================
+router.get("/meu-historico", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+
+    // Buscar lock_ids das portas ocupadas pelo usuário
+    const { rows: doors } = await pool.query(
+      `SELECT ld.lock_id FROM locker_doors ld
+       JOIN funcionarios_clientes fc ON fc.id = ld.occupied_by_person
+       WHERE fc.user_id = $1 AND ld.lock_id IS NOT NULL`,
+      [userId]
+    );
+
+    if (doors.length === 0) {
+      return res.json([]);
+    }
+
+    const lockIds = doors.map(d => d.lock_id);
+    const placeholders = lockIds.map((_, i) => `$${i + 1}`).join(", ");
+
+    const { rows } = await pool.query(
+      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
+       FROM comandos_fechadura
+       WHERE lock_id IN (${placeholders})
+       ORDER BY criado_em DESC
+       LIMIT 100`,
+      lockIds
+    );
+
+    res.json(rows);
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro ao buscar histórico do usuário:", err);
+    res.status(500).json({ error: "Erro ao buscar histórico" });
+  }
+});
+
+// ============================================
+// GET /api/fechaduras/historico-admin  (JWT auth — todos os comandos para admin/superadmin)
+// ============================================
+router.get("/historico-admin", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const role = req.user?.role;
+    if (!role || !["admin", "superadmin"].includes(role)) {
+      return res.status(403).json({ error: "Acesso restrito a administradores." });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
+       FROM comandos_fechadura
+       ORDER BY criado_em DESC
+       LIMIT 500`
+    );
+
+    res.json(rows);
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro ao listar histórico (admin):", err);
+    res.status(500).json({ error: "Erro ao listar histórico" });
+  }
+});
+
 // Demais rotas de fechaduras passam pelo middleware de API Key (agente IoT)
 router.use(apiKeyMiddleware);
 
