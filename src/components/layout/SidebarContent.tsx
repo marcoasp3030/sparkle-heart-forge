@@ -43,6 +43,24 @@ export default function SidebarContent({ collapsed = false, onNavigate }: Sideba
   const { settings, effectiveSettings } = usePlatform();
   const navigate = useNavigate();
   const location = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const hasMore = el.scrollHeight - el.scrollTop - el.clientHeight > 8;
+    setShowScrollIndicator(hasMore);
+  }, []);
+
+  useEffect(() => {
+    handleScroll();
+    const el = navRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(handleScroll);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleScroll]);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
