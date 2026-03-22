@@ -7,6 +7,43 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
+async function enqueueOpenCommand(lockId: number, origem: string, personId: string | null) {
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
+       VALUES ('abrir', $1, 'pendente', $2, $3)
+       RETURNING id`,
+      [lockId, origem, personId]
+    );
+    return rows[0].id;
+  } catch (err: any) {
+    const message = String(err?.message || "");
+    const missingPersonIdColumn =
+      /column\s+"?person_id"?\s+of\s+relation\s+"?comandos_fechadura"?\s+does\s+not\s+exist/i.test(
+        message
+      );
+
+    if (missingPersonIdColumn) {
+      const { rows } = await pool.query(
+        `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+         VALUES ('abrir', $1, 'pendente', $2)
+         RETURNING id`,
+        [lockId, origem]
+      );
+      return rows[0].id;
+    }
+
+    throw err;
+  }
+}
+
 // ============================================
 // POST /api/fechaduras/abrir-portal  (JWT auth — usado pelo portal do usuário)
 // ============================================
@@ -32,15 +69,9 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
     }
 
     const personId = personRows[0].id;
+    const commandId = await enqueueOpenCommand(lock_id, origem || "portal", personId);
 
-    const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
-       VALUES ('abrir', $1, 'pendente', $2, $3)
-       RETURNING id`,
-      [lock_id, origem || "portal", personId]
-    );
-
-    res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
+    res.status(201).json({ success: true, message: "Comando enviado", id: commandId });
   } catch (err: any) {
     console.error("[FECHADURAS] Erro ao criar comando (portal):", err);
     res.status(500).json({ success: false, error: "Erro ao criar comando" });
@@ -64,21 +95,28 @@ router.post("/abrir-admin", authMiddleware, validate(abrirAdminSchema), async (r
       return res.status(403).json({ success: false, error: "Acesso restrito a administradores." });
     }
 
-    // Buscar person_id do ocupante da porta para registro no log
+    // Buscar ocupante atual da porta para persistir no log
     const { rows: doorRows } = await pool.query(
-      `SELECT occupied_by_person FROM locker_doors WHERE lock_id = $1 LIMIT 1`,
+      `SELECT occupied_by_person
+       FROM locker_doors
+       WHERE lock_id = $1 AND occupied_by_person IS NOT NULL
+       ORDER BY occupied_at DESC NULLS LAST, updated_at DESC
+       LIMIT 1`,
       [lock_id]
     );
-    const personId = doorRows[0]?.occupied_by_person || null;
 
-    const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
-       VALUES ('abrir', $1, 'pendente', $2, $3)
-       RETURNING id`,
-      [lock_id, origem || "painel", personId]
-    );
+    const rawPersonId = doorRows[0]?.occupied_by_person ?? null;
+    const personId = isUuid(rawPersonId) ? rawPersonId : null;
 
-    res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
+    if (rawPersonId && !personId) {
+      console.warn(
+        `[FECHADURAS] occupied_by_person inválido para lock_id=${lock_id}. Registrando comando sem person_id.`
+      );
+    }
+
+    const commandId = await enqueueOpenCommand(lock_id, origem || "painel", personId);
+
+    res.status(201).json({ success: true, message: "Comando enviado", id: commandId });
   } catch (err: any) {
     console.error("[FECHADURAS] Erro ao criar comando (admin):", err);
     res.status(500).json({ success: false, error: "Erro ao criar comando" });
