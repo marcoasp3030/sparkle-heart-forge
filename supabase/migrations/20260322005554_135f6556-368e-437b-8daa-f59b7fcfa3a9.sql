@@ -1,0 +1,1 @@
+ALTER TABLE public.comandos_fechadura ADD COLUMN IF NOT EXISTS person_id UUID NULL;
