@@ -3,10 +3,50 @@ import { z } from "zod";
 import { validate } from "../middleware/validate";
 import { pool } from "../config/database";
 import { apiKeyMiddleware } from "../middleware/apikey";
+import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
-// Todas as rotas de fechaduras passam pelo middleware de API Key
+// ============================================
+// POST /api/fechaduras/abrir-portal  (JWT auth — usado pelo portal do usuário)
+// ============================================
+const abrirPortalSchema = z.object({
+  lock_id: z.number().int().positive(),
+  origem: z.string().max(30).optional().default("portal"),
+});
+
+router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async (req: Request, res: Response) => {
+  const { lock_id, origem } = req.body;
+
+  try {
+    // Verificar se o usuário tem uma porta vinculada com esse lock_id
+    const userId = (req as any).userId;
+    const { rows: personRows } = await pool.query(
+      `SELECT fc.id FROM funcionarios_clientes fc
+       JOIN locker_doors ld ON ld.occupied_by_person = fc.id
+       WHERE fc.user_id = $1 AND ld.lock_id = $2 AND ld.status = 'occupied'`,
+      [userId, lock_id]
+    );
+
+    if (personRows.length === 0) {
+      return res.status(403).json({ success: false, error: "Você não tem permissão para abrir esta fechadura." });
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+       VALUES ('abrir', $1, 'pendente', $2)
+       RETURNING id`,
+      [lock_id, origem || "portal"]
+    );
+
+    res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro ao criar comando (portal):", err);
+    res.status(500).json({ success: false, error: "Erro ao criar comando" });
+  }
+});
+
+// Demais rotas de fechaduras passam pelo middleware de API Key (agente IoT)
 router.use(apiKeyMiddleware);
 
 // ============================================
