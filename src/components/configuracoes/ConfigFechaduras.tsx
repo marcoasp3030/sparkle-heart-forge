@@ -137,7 +137,7 @@ export default function ConfigFechaduras() {
 
     setLoading(true);
     try {
-      const res = await api.post("/fechaduras/abrir", { lock_id: id, origem: origem || "web" });
+      const res = await api.post("/fechaduras/abrir-admin", { lock_id: id, origem: origem || "web" });
       setUltimoComando({ id: res.data.id, status: "pendente" });
       toast({ title: "Comando enviado!", description: `ID: ${res.data.id} — Lock: ${id}` });
     } catch (err: any) {
