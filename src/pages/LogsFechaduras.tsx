@@ -120,7 +120,7 @@ export default function LogsFechaduras() {
   const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
   const handleExportCSV = () => {
-    const headers = ["ID", "Armário", "Localização", "Porta", "Pessoa", "Tipo", "Ação", "Status", "Origem", "Enviado em", "Executado em", "Tempo", "Resposta"];
+    const headers = ["ID", "Armário", "Localização", "Porta", "Pessoa", "Tipo", "Ação", "Status", "Origem", "Enviado em", "Executado em", "Tempo"];
     const rows = filtered.map(l => [
       l.id,
       l.locker_name || `Lock #${l.lock_id}`,
