@@ -133,11 +133,14 @@ router.get("/historico-admin", authMiddleware, async (req: Request, res: Respons
         cf.id, cf.acao, cf.lock_id, cf.status, cf.resposta, cf.origem, cf.criado_em, cf.executado_em,
         ld.door_number, ld.label AS door_label,
         l.name AS locker_name, l.location AS locker_location, l.company_id,
-        fc.nome AS person_name, fc.tipo AS person_type, fc.matricula AS person_matricula
+        COALESCE(fc_cmd.nome, fc_door.nome) AS person_name,
+        COALESCE(fc_cmd.tipo, fc_door.tipo) AS person_type,
+        COALESCE(fc_cmd.matricula, fc_door.matricula) AS person_matricula
       FROM comandos_fechadura cf
       LEFT JOIN locker_doors ld ON ld.lock_id = cf.lock_id
       LEFT JOIN lockers l ON l.id = ld.locker_id
-      LEFT JOIN funcionarios_clientes fc ON fc.id = ld.occupied_by_person
+      LEFT JOIN funcionarios_clientes fc_cmd ON fc_cmd.id = cf.person_id
+      LEFT JOIN funcionarios_clientes fc_door ON fc_door.id = ld.occupied_by_person
     `;
     const params: any[] = [];
 
