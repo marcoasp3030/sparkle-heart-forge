@@ -30,6 +30,7 @@ import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import Changelog from "./pages/Changelog";
+import LogsFechaduras from "./pages/LogsFechaduras";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ function RotasAnimadas() {
         <Route path="/historico" element={protectedRoute(<HistoricoPortas />)} />
         <Route path="/renovacoes" element={protectedRoute(<Renovacoes />)} />
         <Route path="/auditoria" element={protectedRoute(<Auditoria />)} />
+        <Route path="/logs-fechaduras" element={protectedRoute(<LogsFechaduras />)} />
         <Route path="/empresas" element={protectedRoute(<Empresas />)} />
         <Route path="/departamentos" element={protectedRoute(<Departamentos />)} />
         <Route path="/setores" element={protectedRoute(<Setores />)} />
