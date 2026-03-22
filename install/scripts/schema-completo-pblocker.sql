@@ -833,6 +833,7 @@ CREATE TABLE IF NOT EXISTS comandos_fechadura (
     status VARCHAR(20) NOT NULL DEFAULT 'pendente',
     resposta TEXT,
     origem VARCHAR(30) DEFAULT 'web',
+    person_id UUID,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     executado_em TIMESTAMPTZ
 );
