@@ -4,7 +4,7 @@ import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
   CheckCircle2, AlertCircle, Lock, Shield, RefreshCw, Unlock,
   Building2, Eye, EyeOff, Loader2,
-  ClockArrowUp, Hourglass
+  ClockArrowUp, Hourglass, Bell, ListOrdered
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase-compat";
