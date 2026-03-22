@@ -30,6 +30,7 @@ import StatusConexao from "./pages/StatusConexao";
 import NaoEncontrada from "./pages/NaoEncontrada";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import Changelog from "./pages/Changelog";
+import LogsFechaduras from "./pages/LogsFechaduras";
 
 const queryClient = new QueryClient();
 
