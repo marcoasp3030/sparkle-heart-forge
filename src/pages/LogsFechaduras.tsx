@@ -76,6 +76,8 @@ export default function LogsFechaduras() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [origemFilter, setOrigemFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
 
   useEffect(() => {
