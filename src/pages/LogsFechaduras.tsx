@@ -134,7 +134,6 @@ export default function LogsFechaduras() {
       formatDateTime(l.criado_em),
       l.executado_em ? formatDateTime(l.executado_em) : "—",
       formatExecutionTime(l.criado_em, l.executado_em),
-      l.resposta || "—",
     ]);
     const csv = [headers, ...rows].map(r => r.join(";")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
