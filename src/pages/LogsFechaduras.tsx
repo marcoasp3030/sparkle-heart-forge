@@ -120,7 +120,7 @@ export default function LogsFechaduras() {
   const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
   const handleExportCSV = () => {
-    const headers = ["ID", "Armário", "Localização", "Porta", "Pessoa", "Tipo", "Ação", "Status", "Origem", "Enviado em", "Executado em", "Tempo", "Resposta"];
+    const headers = ["ID", "Armário", "Localização", "Porta", "Pessoa", "Tipo", "Ação", "Status", "Origem", "Enviado em", "Executado em", "Tempo"];
     const rows = filtered.map(l => [
       l.id,
       l.locker_name || `Lock #${l.lock_id}`,
@@ -134,7 +134,6 @@ export default function LogsFechaduras() {
       formatDateTime(l.criado_em),
       l.executado_em ? formatDateTime(l.executado_em) : "—",
       formatExecutionTime(l.criado_em, l.executado_em),
-      l.resposta || "—",
     ]);
     const csv = [headers, ...rows].map(r => r.join(";")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -261,7 +260,7 @@ export default function LogsFechaduras() {
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Origem</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Enviado em</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Tempo Exec.</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold">Resposta</TableHead>
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -329,22 +328,6 @@ export default function LogsFechaduras() {
                             {formatExecutionTime(l.criado_em, l.executado_em)}
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {l.resposta ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs text-muted-foreground max-w-[120px] truncate block cursor-help">
-                                {l.resposta}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-xs">
-                              <p className="text-xs break-all">{l.resposta}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
                       </TableCell>
                     </TableRow>
                   );
