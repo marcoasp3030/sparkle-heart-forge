@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Unlock, Search, Download, Clock, User, Calendar,
+  Unlock, Search, Download, Clock, User, Calendar, CalendarIcon,
   Filter, ChevronLeft, ChevronRight, Building2, MapPin,
-  CheckCircle2, AlertCircle, Loader2, TimerIcon, DoorOpen
+  CheckCircle2, AlertCircle, Loader2, TimerIcon, DoorOpen, X
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +76,8 @@ export default function LogsFechaduras() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [origemFilter, setOrigemFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -111,9 +118,12 @@ export default function LogsFechaduras() {
         (l.person_matricula?.toLowerCase().includes(search.toLowerCase()));
       const matchStatus = statusFilter === "all" || l.status === statusFilter;
       const matchOrigem = origemFilter === "all" || l.origem === origemFilter;
-      return matchSearch && matchStatus && matchOrigem;
+      const logDate = new Date(l.criado_em);
+      const matchDateFrom = !dateFrom || logDate >= dateFrom;
+      const matchDateTo = !dateTo || logDate <= new Date(dateTo.getTime() + 86400000 - 1);
+      return matchSearch && matchStatus && matchOrigem && matchDateFrom && matchDateTo;
     });
-  }, [logs, search, statusFilter, origemFilter]);
+  }, [logs, search, statusFilter, origemFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -197,42 +207,91 @@ export default function LogsFechaduras() {
       {/* Filters */}
       <Card className="border-border/40">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por pessoa, armário, lock_id..."
-                className="pl-9 h-9 bg-muted/40 border-border/30"
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-              />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por pessoa, armário, lock_id..."
+                  className="pl-9 h-9 bg-muted/40 border-border/30"
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="h-9 w-auto min-w-[140px] text-xs">
+                  <Filter className="h-3.5 w-3.5 mr-1.5" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">Todos os status</SelectItem>
+                  <SelectItem value="pendente" className="text-xs">Pendente</SelectItem>
+                  <SelectItem value="executando" className="text-xs">Executando</SelectItem>
+                  <SelectItem value="executado" className="text-xs">Executado</SelectItem>
+                  <SelectItem value="erro" className="text-xs">Erro</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={origemFilter} onValueChange={v => { setOrigemFilter(v); setPage(1); }}>
+                <SelectTrigger className="h-9 w-auto min-w-[140px] text-xs">
+                  <SelectValue placeholder="Origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">Todas origens</SelectItem>
+                  <SelectItem value="portal" className="text-xs">Portal Usuário</SelectItem>
+                  <SelectItem value="painel" className="text-xs">Painel Admin</SelectItem>
+                  <SelectItem value="web" className="text-xs">Web</SelectItem>
+                  <SelectItem value="api" className="text-xs">API Externa</SelectItem>
+                  <SelectItem value="agente" className="text-xs">Agente Local</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="h-9 w-auto min-w-[140px] text-xs">
-                <Filter className="h-3.5 w-3.5 mr-1.5" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">Todos os status</SelectItem>
-                <SelectItem value="pendente" className="text-xs">Pendente</SelectItem>
-                <SelectItem value="executando" className="text-xs">Executando</SelectItem>
-                <SelectItem value="executado" className="text-xs">Executado</SelectItem>
-                <SelectItem value="erro" className="text-xs">Erro</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={origemFilter} onValueChange={v => { setOrigemFilter(v); setPage(1); }}>
-              <SelectTrigger className="h-9 w-auto min-w-[140px] text-xs">
-                <SelectValue placeholder="Origem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">Todas origens</SelectItem>
-                <SelectItem value="portal" className="text-xs">Portal Usuário</SelectItem>
-                <SelectItem value="painel" className="text-xs">Painel Admin</SelectItem>
-                <SelectItem value="web" className="text-xs">Web</SelectItem>
-                <SelectItem value="api" className="text-xs">API Externa</SelectItem>
-                <SelectItem value="agente" className="text-xs">Agente Local</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Período:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 min-w-[150px] justify-start text-left text-xs font-normal", !dateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                    {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "Data início"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={(d) => { setDateFrom(d); setPage(1); }}
+                    disabled={(date) => date > new Date() || (dateTo ? date > dateTo : false)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 min-w-[150px] justify-start text-left text-xs font-normal", !dateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                    {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Data fim"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={(d) => { setDateTo(d); setPage(1); }}
+                    disabled={(date) => date > new Date() || (dateFrom ? date < dateFrom : false)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              {(dateFrom || dateTo) && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs gap-1 text-muted-foreground" onClick={() => { setDateFrom(undefined); setDateTo(undefined); setPage(1); }}>
+                  <X className="h-3.5 w-3.5" /> Limpar datas
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
