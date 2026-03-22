@@ -24,6 +24,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import HistoricoPortal from "@/components/portal/HistoricoPortal";
 import PerfilPortal from "@/components/portal/PerfilPortal";
+import NotificacoesPortal from "@/components/portal/NotificacoesPortal";
+import FilaEsperaPortal from "@/components/portal/FilaEsperaPortal";
 
 interface PersonInfo {
   id: string;
