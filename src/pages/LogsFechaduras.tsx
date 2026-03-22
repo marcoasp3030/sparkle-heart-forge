@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Unlock, Search, Download, Clock, User, Calendar,
+  Unlock, Search, Download, Clock, User, Calendar, CalendarIcon,
   Filter, ChevronLeft, ChevronRight, Building2, MapPin,
-  CheckCircle2, AlertCircle, Loader2, TimerIcon, DoorOpen
+  CheckCircle2, AlertCircle, Loader2, TimerIcon, DoorOpen, X
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
