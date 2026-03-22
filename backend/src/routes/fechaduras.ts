@@ -20,7 +20,7 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
 
   try {
     // Verificar se o usuário tem uma porta vinculada com esse lock_id
-    const userId = (req as any).userId;
+    const userId = req.user?.user_id;
     const { rows: personRows } = await pool.query(
       `SELECT fc.id FROM funcionarios_clientes fc
        JOIN locker_doors ld ON ld.occupied_by_person = fc.id
@@ -42,6 +42,37 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
     res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
   } catch (err: any) {
     console.error("[FECHADURAS] Erro ao criar comando (portal):", err);
+    res.status(500).json({ success: false, error: "Erro ao criar comando" });
+  }
+});
+
+// ============================================
+// POST /api/fechaduras/abrir-admin  (JWT auth — usado pelo painel admin)
+// ============================================
+const abrirAdminSchema = z.object({
+  lock_id: z.number().int().positive(),
+  origem: z.string().max(30).optional().default("painel"),
+});
+
+router.post("/abrir-admin", authMiddleware, validate(abrirAdminSchema), async (req: Request, res: Response) => {
+  const { lock_id, origem } = req.body;
+
+  try {
+    const role = req.user?.role;
+    if (!role || !["admin", "superadmin"].includes(role)) {
+      return res.status(403).json({ success: false, error: "Acesso restrito a administradores." });
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+       VALUES ('abrir', $1, 'pendente', $2)
+       RETURNING id`,
+      [lock_id, origem || "painel"]
+    );
+
+    res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro ao criar comando (admin):", err);
     res.status(500).json({ success: false, error: "Erro ao criar comando" });
   }
 });
