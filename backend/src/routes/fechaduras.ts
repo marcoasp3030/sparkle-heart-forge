@@ -20,7 +20,7 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
 
   try {
     // Verificar se o usuário tem uma porta vinculada com esse lock_id
-    const userId = (req as any).userId;
+    const userId = req.user?.user_id;
     const { rows: personRows } = await pool.query(
       `SELECT fc.id FROM funcionarios_clientes fc
        JOIN locker_doors ld ON ld.occupied_by_person = fc.id
