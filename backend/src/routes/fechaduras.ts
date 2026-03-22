@@ -64,11 +64,18 @@ router.post("/abrir-admin", authMiddleware, validate(abrirAdminSchema), async (r
       return res.status(403).json({ success: false, error: "Acesso restrito a administradores." });
     }
 
+    // Buscar person_id do ocupante da porta para registro no log
+    const { rows: doorRows } = await pool.query(
+      `SELECT occupied_by_person FROM locker_doors WHERE lock_id = $1 LIMIT 1`,
+      [lock_id]
+    );
+    const personId = doorRows[0]?.occupied_by_person || null;
+
     const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
-       VALUES ('abrir', $1, 'pendente', $2)
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
+       VALUES ('abrir', $1, 'pendente', $2, $3)
        RETURNING id`,
-      [lock_id, origem || "painel"]
+      [lock_id, origem || "painel", personId]
     );
 
     res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
