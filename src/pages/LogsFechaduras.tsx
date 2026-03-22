@@ -247,6 +247,29 @@ export default function LogsFechaduras() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
               <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Período:</span>
+              <div className="flex gap-1">
+                {[
+                  { label: "Hoje", days: 0 },
+                  { label: "7 dias", days: 7 },
+                  { label: "30 dias", days: 30 },
+                ].map(({ label, days }) => {
+                  const from = new Date();
+                  from.setHours(0, 0, 0, 0);
+                  if (days > 0) from.setDate(from.getDate() - days);
+                  const isActive = dateFrom?.getTime() === from.getTime() && dateTo === undefined;
+                  return (
+                    <Button
+                      key={label}
+                      variant={isActive ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-[11px] px-2.5"
+                      onClick={() => { setDateFrom(from); setDateTo(undefined); setPage(1); }}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("h-9 min-w-[150px] justify-start text-left text-xs font-normal", !dateFrom && "text-muted-foreground")}>
