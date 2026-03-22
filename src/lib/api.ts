@@ -9,16 +9,22 @@ import axios from "axios";
  */
 const resolveApiBaseUrl = () => {
   const rawBase = String(import.meta.env.VITE_API_URL || "").trim();
-  if (!rawBase) return "/api";
+  if (rawBase) {
+    const normalized = rawBase.replace(/\/+$/, "");
+    const hasApiSegment = /(^|\/)api(\/|$)/i.test(normalized);
+    if (hasApiSegment) return normalized;
+    const withApi = `${normalized}/api`;
+    console.warn(`[API] VITE_API_URL sem '/api'. Ajustando automaticamente para: ${withApi}`);
+    return withApi;
+  }
 
-  const normalized = rawBase.replace(/\/+$/, "");
-  const hasApiSegment = /(^|\/)api(\/|$)/i.test(normalized);
+  // No preview do Lovable, o proxy do Vite não funciona — usar URL absoluta
+  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  if (!isLocalhost) {
+    return "https://pblocker.sistembr.com.br/api";
+  }
 
-  if (hasApiSegment) return normalized;
-
-  const withApi = `${normalized}/api`;
-  console.warn(`[API] VITE_API_URL sem '/api'. Ajustando automaticamente para: ${withApi}`);
-  return withApi;
+  return "/api";
 };
 
 const api = axios.create({
