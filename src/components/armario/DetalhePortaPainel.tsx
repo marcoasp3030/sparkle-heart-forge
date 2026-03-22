@@ -446,8 +446,10 @@ export default function DetalhePortaPainel({ door, open, onOpenChange, onReserve
               </div>
             )}
 
-            {/* Open lock button - visible to assigned user or admin when lock is bound */}
-            {door.lock_id && (door.status === "occupied") && (isCurrentUser || isAdmin) && (
+            {/* Open lock button - admin/superadmin can always open if lock is bound */}
+            {door.lock_id && (
+              (door.status === "occupied" && (isCurrentUser || isAdmin)) || isAdmin
+            ) && (
               <Button
                 onClick={handleOpenLock}
                 disabled={openingLock}
