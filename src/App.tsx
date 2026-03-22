@@ -20,7 +20,7 @@ import Empresas from "./pages/Empresas";
 import Departamentos from "./pages/Departamentos";
 import Setores from "./pages/Setores";
 import Pessoas from "./pages/Pessoas";
-import PersonalizacaoEmpresa from "./pages/PersonalizacaoEmpresa";
+
 import Configuracoes from "./pages/Configuracoes";
 import HistoricoPortas from "./pages/HistoricoPortas";
 import Renovacoes from "./pages/Renovacoes";
