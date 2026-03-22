@@ -19,7 +19,6 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
   const { lock_id, origem } = req.body;
 
   try {
-    // Verificar se o usuário tem uma porta vinculada com esse lock_id
     const userId = req.user?.user_id;
     const { rows: personRows } = await pool.query(
       `SELECT fc.id FROM funcionarios_clientes fc
@@ -32,11 +31,13 @@ router.post("/abrir-portal", authMiddleware, validate(abrirPortalSchema), async 
       return res.status(403).json({ success: false, error: "Você não tem permissão para abrir esta fechadura." });
     }
 
+    const personId = personRows[0].id;
+
     const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
-       VALUES ('abrir', $1, 'pendente', $2)
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
+       VALUES ('abrir', $1, 'pendente', $2, $3)
        RETURNING id`,
-      [lock_id, origem || "portal"]
+      [lock_id, origem || "portal", personId]
     );
 
     res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
@@ -132,11 +133,14 @@ router.get("/historico-admin", authMiddleware, async (req: Request, res: Respons
         cf.id, cf.acao, cf.lock_id, cf.status, cf.resposta, cf.origem, cf.criado_em, cf.executado_em,
         ld.door_number, ld.label AS door_label,
         l.name AS locker_name, l.location AS locker_location, l.company_id,
-        fc.nome AS person_name, fc.tipo AS person_type, fc.matricula AS person_matricula
+        COALESCE(fc_cmd.nome, fc_door.nome) AS person_name,
+        COALESCE(fc_cmd.tipo, fc_door.tipo) AS person_type,
+        COALESCE(fc_cmd.matricula, fc_door.matricula) AS person_matricula
       FROM comandos_fechadura cf
       LEFT JOIN locker_doors ld ON ld.lock_id = cf.lock_id
       LEFT JOIN lockers l ON l.id = ld.locker_id
-      LEFT JOIN funcionarios_clientes fc ON fc.id = ld.occupied_by_person
+      LEFT JOIN funcionarios_clientes fc_cmd ON fc_cmd.id = cf.person_id
+      LEFT JOIN funcionarios_clientes fc_door ON fc_door.id = ld.occupied_by_person
     `;
     const params: any[] = [];
 

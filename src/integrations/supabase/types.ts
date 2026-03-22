@@ -72,6 +72,7 @@ export type Database = {
           id: number
           lock_id: number
           origem: string | null
+          person_id: string | null
           resposta: string | null
           status: string
         }
@@ -82,6 +83,7 @@ export type Database = {
           id?: number
           lock_id: number
           origem?: string | null
+          person_id?: string | null
           resposta?: string | null
           status?: string
         }
@@ -92,6 +94,7 @@ export type Database = {
           id?: number
           lock_id?: number
           origem?: string | null
+          person_id?: string | null
           resposta?: string | null
           status?: string
         }
