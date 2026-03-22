@@ -135,9 +135,9 @@ export default function LogsFechaduras() {
 
     // 4. Map and filter by company if selected
     const mapped: CommandLog[] = commands.map(c => {
-      const door = doorByLockId.get(c.lock_id);
-      const locker = door ? lockerMap.get(door.locker_id) : null;
-      const person = door?.occupied_by_person ? personMap.get(door.occupied_by_person) : null;
+      const door: any = doorByLockId.get(c.lock_id);
+      const locker: any = door ? lockerMap.get(door.locker_id) : null;
+      const person: any = door?.occupied_by_person ? personMap.get(door.occupied_by_person) : null;
 
       return {
         ...c,
