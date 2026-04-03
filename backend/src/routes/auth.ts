@@ -15,8 +15,8 @@ import rateLimit from "express-rate-limit";
 const router = Router();
 
 const loginLimiter = rateLimit({
-  windowMs: 30 * 60 * 1000, // 30 min
-  max: 10,
+  windowMs: 5 * 60 * 1000, // 5 min
+  max: 30,
   message: { error: "Muitas tentativas de login. Tente novamente mais tarde." },
   standardHeaders: true,
   legacyHeaders: false,
