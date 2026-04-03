@@ -666,7 +666,7 @@ export default function Portal() {
                         {/* Action buttons row */}
                         <div className="grid grid-cols-3 gap-2">
                           {/* Renewal */}
-                          {door.expires_at && (
+                          {featureEnabled("renovacao") && door.expires_at && (
                             getPendingRenewal(door.id) ? (
                               <Button variant="outline" size="sm" className="text-xs gap-1 h-9 col-span-1" disabled>
                                 <Hourglass className="h-3.5 w-3.5" />
