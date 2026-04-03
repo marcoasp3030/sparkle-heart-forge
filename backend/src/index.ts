@@ -91,6 +91,9 @@ app.use("/api/changelog", changelogRouter);
 // Fechaduras IoT - sem auth na fase inicial (agente Python consulta)
 app.use("/api/fechaduras", fechadurasRouter);
 
+// Mobile API (JWT auth handled internally)
+app.use("/api/mobile", mobileRouter);
+
 // ============================================
 // Protected Routes
 // ============================================

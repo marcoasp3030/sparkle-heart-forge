@@ -121,6 +121,11 @@ export default function Configuracoes() {
           </TabsContent>
         )}
         {isSuperAdmin && (
+          <TabsContent value="app-mobile">
+            <ConfigAppMobile />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
           <TabsContent value="atualizacoes">
             <ConfigAtualizacoes />
           </TabsContent>
