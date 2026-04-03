@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, Archive, MapPin, CheckCircle2, Loader2, XCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase-compat";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import api from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface WaitlistEntry {
@@ -27,7 +27,6 @@ interface LockerOption {
   id: string;
   name: string;
   location: string;
-  company_id: string;
 }
 
 interface FilaEsperaPortalProps {
@@ -60,30 +59,14 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
-    const [waitlistRes, lockersRes] = await Promise.all([
-      supabase
-        .from("locker_waitlist")
-        .select("*")
-        .eq("person_id", personId)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("lockers")
-        .select("id, name, location, company_id")
-        .eq("company_id", companyId),
-    ]);
-
-    if (lockersRes.data) setLockers(lockersRes.data as LockerOption[]);
-
-    if (waitlistRes.data && lockersRes.data) {
-      const lockerMap = new Map((lockersRes.data as LockerOption[]).map(l => [l.id, l]));
-      const enriched = (waitlistRes.data as any[]).map(e => ({
-        ...e,
-        locker_name: lockerMap.get(e.locker_id)?.name || "—",
-        locker_location: lockerMap.get(e.locker_id)?.location || "",
-      }));
-      setEntries(enriched);
+    try {
+      const res = await api.get("/mobile/fila");
+      const data = res.data?.data || {};
+      setEntries(data.entries || []);
+      setLockers(data.lockers || []);
+    } catch {
+      // silent
     }
-
     setLoading(false);
   };
 
@@ -97,7 +80,6 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
       return;
     }
 
-    // Check if already in waitlist for this locker
     const existing = entries.find(e => e.locker_id === selectedLocker && e.status === "waiting");
     if (existing) {
       toast.error("Você já está na fila de espera deste armário");
@@ -106,14 +88,10 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("locker_waitlist").insert({
+      await api.post("/mobile/fila", {
         locker_id: selectedLocker,
-        person_id: personId,
-        company_id: companyId,
-        requested_by: userId,
-        preferred_size: preferredSize === "any" ? null : preferredSize,
+        preferred_size: preferredSize === "any" ? undefined : preferredSize,
       });
-      if (error) throw error;
 
       toast.success("Você entrou na fila de espera! Será notificado quando uma porta estiver disponível.");
       setShowDialog(false);
@@ -121,7 +99,8 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
       setPreferredSize("any");
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao entrar na fila");
+      const msg = err.response?.data?.error || err.message || "Erro ao entrar na fila";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -129,15 +108,12 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
 
   const handleCancelEntry = async (entryId: string) => {
     try {
-      const { error } = await supabase
-        .from("locker_waitlist")
-        .update({ status: "cancelled" })
-        .eq("id", entryId);
-      if (error) throw error;
+      await api.put(`/mobile/fila/${entryId}/cancelar`);
       toast.success("Saiu da fila de espera");
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao cancelar");
+      const msg = err.response?.data?.error || err.message || "Erro ao cancelar";
+      toast.error(msg);
     }
   };
 
@@ -154,16 +130,11 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
 
   return (
     <div className="space-y-4">
-      {/* Join waitlist button */}
-      <Button
-        className="w-full gap-2"
-        onClick={() => setShowDialog(true)}
-      >
+      <Button className="w-full gap-2" onClick={() => setShowDialog(true)}>
         <Clock className="h-4 w-4" />
         Entrar na Fila de Espera
       </Button>
 
-      {/* Active entries */}
       {activeEntries.length > 0 && (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -226,7 +197,6 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
         </>
       )}
 
-      {/* Past entries */}
       {pastEntries.length > 0 && (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2 mt-4">
@@ -267,7 +237,6 @@ export default function FilaEsperaPortal({ personId, companyId, userId }: FilaEs
         </Card>
       )}
 
-      {/* Join Waitlist Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>

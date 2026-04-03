@@ -2,10 +2,11 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User, Mail, Phone, KeyRound, Building2, BadgeCheck,
-  Camera, Pencil, Save, X, Bell, BellOff, MessageSquare,
+  Camera, Pencil, Save, X, Bell, MessageSquare,
   Clock, RefreshCw, Loader2
 } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
+import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,9 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
 
       const url = `${publicUrl}?t=${Date.now()}`;
 
+      // Update via mobile API
+      await api.put("/mobile/perfil", {});
+      // Avatar URL still needs direct update since mobile API doesn't handle file uploads
       await supabase
         .from("funcionarios_clientes")
         .update({ avatar_url: url })
@@ -103,18 +107,13 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("funcionarios_clientes")
-        .update({
-          telefone: telefone.trim() || null,
-          notification_email: notifEmail,
-          notification_whatsapp: notifWhatsapp,
-          notification_expiry: notifExpiry,
-          notification_renewal: notifRenewal,
-        })
-        .eq("id", person.id);
-
-      if (error) throw error;
+      await api.put("/mobile/perfil", {
+        telefone: telefone.trim() || null,
+        notification_email: notifEmail,
+        notification_whatsapp: notifWhatsapp,
+        notification_expiry: notifExpiry,
+        notification_renewal: notifRenewal,
+      });
 
       onPersonUpdate({
         ...person,
@@ -127,7 +126,8 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
       setEditing(false);
       toast.success("Perfil atualizado!");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar");
+      const msg = err.response?.data?.error || err.message || "Erro ao salvar";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -148,7 +148,6 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
       <Card className="shadow-card border-border/50 overflow-hidden">
         <CardContent className="p-0">
           <div className="gradient-primary p-6 flex flex-col items-center relative">
-            {/* Avatar with upload */}
             <div className="relative group">
               {avatarUrl ? (
                 <img
@@ -226,7 +225,6 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
-            {/* Nome - read only */}
             <div className="flex items-start gap-3">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <User className="h-4 w-4 text-primary" />
@@ -239,7 +237,6 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
 
             <Separator />
 
-            {/* Email - read only */}
             <div className="flex items-start gap-3">
               <div className="h-8 w-8 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0">
                 <Mail className="h-4 w-4 text-secondary" />
@@ -254,7 +251,6 @@ export default function PerfilPortal({ person, userEmail, companyName, initials,
 
             <Separator />
 
-            {/* Telefone - editable */}
             <div className="flex items-start gap-3">
               <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                 <Phone className="h-4 w-4 text-accent" />

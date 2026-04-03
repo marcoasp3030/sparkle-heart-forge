@@ -498,4 +498,191 @@ router.get("/config", async (req: Request, res: Response) => {
   }
 });
 
+// ============================================
+// GET /api/mobile/reservas — Histórico de reservas do usuário
+// ============================================
+router.get("/reservas", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+
+    const { rows: personRows } = await pool.query(
+      `SELECT id FROM funcionarios_clientes WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (!personRows[0]) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const personId = personRows[0].id;
+
+    const { rows } = await pool.query(
+      `SELECT lr.id, lr.starts_at, lr.expires_at, lr.released_at, lr.status, lr.usage_type,
+              lr.renewed_count, lr.notes, lr.created_at, lr.door_id, lr.locker_id,
+              ld.door_number, ld.label AS door_label, ld.size AS door_size,
+              l.name AS locker_name, l.location AS locker_location
+       FROM locker_reservations lr
+       LEFT JOIN locker_doors ld ON ld.id = lr.door_id
+       LEFT JOIN lockers l ON l.id = lr.locker_id
+       WHERE lr.person_id = $1
+       ORDER BY lr.created_at DESC
+       LIMIT 100`,
+      [personId]
+    );
+
+    res.json({ success: true, data: rows });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao buscar reservas:", err);
+    res.status(500).json({ success: false, error: "Erro ao buscar reservas" });
+  }
+});
+
+// ============================================
+// PUT /api/mobile/notificacoes/ler-todas — Marcar todas como lidas
+// ============================================
+router.put("/notificacoes/ler-todas", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+
+    await pool.query(
+      `UPDATE notifications SET read = true WHERE user_id = $1 AND read = false`,
+      [userId]
+    );
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao marcar notificações:", err);
+    res.status(500).json({ success: false, error: "Erro ao marcar notificações" });
+  }
+});
+
+// ============================================
+// GET /api/mobile/fila — Entradas na fila de espera do usuário
+// ============================================
+router.get("/fila", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+
+    const { rows: personRows } = await pool.query(
+      `SELECT id, company_id FROM funcionarios_clientes WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (!personRows[0]) {
+      return res.json({ success: true, data: { entries: [], lockers: [] } });
+    }
+
+    const { id: personId, company_id } = personRows[0];
+
+    const [entriesRes, lockersRes] = await Promise.all([
+      pool.query(
+        `SELECT lw.id, lw.locker_id, lw.preferred_size, lw.status, lw.created_at, lw.notified_at,
+                l.name AS locker_name, l.location AS locker_location
+         FROM locker_waitlist lw
+         LEFT JOIN lockers l ON l.id = lw.locker_id
+         WHERE lw.person_id = $1
+         ORDER BY lw.created_at DESC`,
+        [personId]
+      ),
+      pool.query(
+        `SELECT id, name, location FROM lockers WHERE company_id = $1`,
+        [company_id]
+      ),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        entries: entriesRes.rows,
+        lockers: lockersRes.rows,
+      },
+    });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao buscar fila:", err);
+    res.status(500).json({ success: false, error: "Erro ao buscar fila" });
+  }
+});
+
+// ============================================
+// POST /api/mobile/fila — Entrar na fila de espera
+// ============================================
+const filaSchema = z.object({
+  locker_id: z.string().uuid(),
+  preferred_size: z.string().optional(),
+});
+
+router.post("/fila", validate(filaSchema), async (req: Request, res: Response) => {
+  const { locker_id, preferred_size } = req.body;
+
+  try {
+    const userId = req.user?.user_id;
+
+    const { rows: personRows } = await pool.query(
+      `SELECT id, company_id FROM funcionarios_clientes WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (!personRows[0]) {
+      return res.status(404).json({ success: false, error: "Perfil não encontrado" });
+    }
+
+    const { id: personId, company_id } = personRows[0];
+
+    // Check if already waiting
+    const { rows: existing } = await pool.query(
+      `SELECT id FROM locker_waitlist WHERE person_id = $1 AND locker_id = $2 AND status = 'waiting'`,
+      [personId, locker_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, error: "Você já está na fila de espera deste armário." });
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO locker_waitlist (locker_id, person_id, company_id, requested_by, preferred_size)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [locker_id, personId, company_id, userId, preferred_size || null]
+    );
+
+    res.status(201).json({ success: true, message: "Entrou na fila de espera", id: rows[0].id });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao entrar na fila:", err);
+    res.status(500).json({ success: false, error: "Erro ao entrar na fila" });
+  }
+});
+
+// ============================================
+// PUT /api/mobile/fila/:id/cancelar — Sair da fila de espera
+// ============================================
+router.put("/fila/:id/cancelar", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+    const { id } = req.params;
+
+    const { rows: personRows } = await pool.query(
+      `SELECT id FROM funcionarios_clientes WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (!personRows[0]) {
+      return res.status(404).json({ success: false, error: "Perfil não encontrado" });
+    }
+
+    const { rowCount } = await pool.query(
+      `UPDATE locker_waitlist SET status = 'cancelled', updated_at = NOW()
+       WHERE id = $1 AND person_id = $2 AND status = 'waiting'`,
+      [id, personRows[0].id]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ success: false, error: "Entrada não encontrada ou já cancelada" });
+    }
+
+    res.json({ success: true, message: "Saiu da fila de espera" });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao cancelar fila:", err);
+    res.status(500).json({ success: false, error: "Erro ao cancelar fila" });
+  }
+});
+
 export { router as mobileRouter };
