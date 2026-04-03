@@ -448,14 +448,8 @@ const PainelDeControle = () => {
         </motion.div>
       )}
 
-      {/* Activity Feed + Charts side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <FeedAtividades />
-        </div>
-        <div className="lg:col-span-2">
-          <GraficosDashboard />
-        </div>
+      {/* Charts & Metrics */}
+      <GraficosDashboard />
       </div>
 
       {/* Door List */}
