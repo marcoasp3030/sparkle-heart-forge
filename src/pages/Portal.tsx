@@ -269,33 +269,15 @@ export default function Portal() {
     if (!releaseDoor || !person) return;
     setReleasingDoor(releaseDoor.id);
     try {
-      const { error } = await supabase
-        .from("locker_doors")
-        .update({
-          status: "available",
-          occupied_by: null,
-          occupied_by_person: null,
-          occupied_at: null,
-          expires_at: null,
-          usage_type: "temporary",
-        })
-        .eq("id", releaseDoor.id);
-      if (error) throw error;
-
-      // Also update active reservation to released
-      await supabase
-        .from("locker_reservations")
-        .update({ status: "released", released_at: new Date().toISOString() })
-        .eq("person_id", person.id)
-        .eq("door_id", releaseDoor.id)
-        .eq("status", "active");
+      await api.post("/mobile/liberar", { door_id: releaseDoor.id });
 
       setDoors(prev => prev.filter(d => d.id !== releaseDoor.id));
       setShowReleaseDialog(false);
       setReleaseDoor(null);
       toast.success("Porta liberada com sucesso!");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao liberar porta");
+      const msg = err.response?.data?.error || err.message || "Erro ao liberar porta";
+      toast.error(msg);
     } finally {
       setReleasingDoor(null);
     }
