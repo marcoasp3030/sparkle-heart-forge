@@ -225,9 +225,11 @@ router.get("/status/:id", authMiddleware, async (req: Request, res: Response) =>
     );
 
     if (!rows[0]) {
+      console.warn(`[FECHADURAS] Status polling: comando #${id} não encontrado (user=${req.user?.user_id})`);
       return res.status(404).json({ error: "Comando não encontrado" });
     }
 
+    console.log(`[FECHADURAS] Status polling: cmd=#${id} status=${rows[0].status} lock_id=${rows[0].lock_id} (user=${req.user?.user_id})`);
     res.json(rows[0]);
   } catch (err: any) {
     console.error("[FECHADURAS] Erro ao consultar status:", err);
