@@ -467,6 +467,8 @@ export default function LockersPage() {
     { label: "Disponíveis", value: doorCounts.available, icon: Unlock, accent: "success" },
     { label: "Ocupados", value: doorCounts.occupied, icon: Lock, accent: "primary" },
     { label: "Manutenção", value: doorCounts.maintenance, icon: Wrench, accent: "accent" },
+    { label: "Higienização", value: doorCounts.hygienizing, icon: Droplets, accent: "cyan" },
+    { label: "Agendados", value: doorCounts.scheduled, icon: CalendarClock, accent: "violet" },
   ];
 
   return (
