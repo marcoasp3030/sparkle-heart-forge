@@ -255,6 +255,18 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         {door.label || `${door.door_number}`}
       </span>
 
+      {/* Status badge */}
+      <div className={cn(
+        "absolute bottom-1.5 left-1/2 -translate-x-1/2 px-1.5 py-[1px] rounded-full text-[7px] font-bold uppercase tracking-wider whitespace-nowrap",
+        door.status === "available" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+        door.status === "occupied" && "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+        door.status === "maintenance" && "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+        door.status === "reserved" && "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+        door.status === "hygienizing" && "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+      )}>
+        {config.label}
+      </div>
+
       {/* Scheduled reservation badge */}
       {hasSchedule && (
         <div className="absolute top-1.5 left-6 flex items-center gap-0.5">
