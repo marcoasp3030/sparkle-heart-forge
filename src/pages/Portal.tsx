@@ -83,6 +83,7 @@ interface AppFeatures {
   renovacao: boolean;
   liberar_porta: boolean;
   perfil_edicao: boolean;
+  fila_espera: boolean;
   branding_personalizado: boolean;
 }
 
@@ -93,6 +94,7 @@ const DEFAULT_APP_FEATURES: AppFeatures = {
   renovacao: true,
   liberar_porta: true,
   perfil_edicao: true,
+  fila_espera: true,
   branding_personalizado: false,
 };
 
@@ -428,10 +430,12 @@ export default function Portal() {
               <Archive className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Armários</span>
             </TabsTrigger>
-            <TabsTrigger value="fila" className="text-xs flex-1">
-              <ListOrdered className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Fila</span>
-            </TabsTrigger>
+            {featureEnabled("fila_espera") && (
+              <TabsTrigger value="fila" className="text-xs flex-1">
+                <ListOrdered className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Fila</span>
+              </TabsTrigger>
+            )}
             {featureEnabled("historico_comandos") && (
               <TabsTrigger value="historico" className="text-xs flex-1">
                 <Clock className="h-4 w-4 sm:mr-1" />
@@ -822,15 +826,17 @@ export default function Portal() {
           </TabsContent>
 
           {/* === FILA DE ESPERA TAB === */}
-          <TabsContent value="fila" className="space-y-4 mt-4">
-            {person && (
-              <FilaEsperaPortal
-                personId={person.id}
-                companyId={person.company_id}
-                userId={user!.id}
-              />
-            )}
-          </TabsContent>
+          {featureEnabled("fila_espera") && (
+            <TabsContent value="fila" className="space-y-4 mt-4">
+              {person && (
+                <FilaEsperaPortal
+                  personId={person.id}
+                  companyId={person.company_id}
+                  userId={user!.id}
+                />
+              )}
+            </TabsContent>
+          )}
 
           {/* === HISTÓRICO TAB === */}
           <TabsContent value="historico" className="space-y-4 mt-4">
