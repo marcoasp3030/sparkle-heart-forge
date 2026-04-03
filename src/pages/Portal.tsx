@@ -273,17 +273,23 @@ export default function Portal() {
   };
 
   const handleOpenLock = async (door: DoorInfo) => {
-    if (!door.lock_id) return;
+    if (!door.lock_id) {
+      toast.error("Esta porta não possui fechadura vinculada.");
+      return;
+    }
     setOpeningLockId(door.id);
     try {
+      console.log("[PORTAL] Enviando comando abrir-portal", { lock_id: door.lock_id, origem: "portal" });
       const res = await api.post("/fechaduras/abrir-portal", { lock_id: door.lock_id, origem: "portal" });
+      console.log("[PORTAL] Resposta abrir-portal", res.data);
       const data = res.data?.data || res.data;
       if (data?.success) {
         toast.success(`Comando de abertura enviado para ${door.label || "Porta " + door.door_number} — ${door.locker.name}`);
       } else {
-        toast.error("Erro ao enviar comando de abertura");
+        toast.error(data?.error || "Erro ao enviar comando de abertura");
       }
     } catch (err: any) {
+      console.error("[PORTAL] Erro abrir-portal", err);
       toast.error(err.message || "Erro ao abrir fechadura");
     } finally {
       setOpeningLockId(null);
