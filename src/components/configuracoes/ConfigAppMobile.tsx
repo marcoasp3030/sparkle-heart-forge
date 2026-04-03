@@ -24,6 +24,7 @@ interface AppFeatures {
   renovacao: boolean;
   liberar_porta: boolean;
   perfil_edicao: boolean;
+  fila_espera: boolean;
   branding_personalizado: boolean;
 }
 
@@ -34,6 +35,7 @@ const DEFAULT_FEATURES: AppFeatures = {
   renovacao: true,
   liberar_porta: true,
   perfil_edicao: true,
+  fila_espera: true,
   branding_personalizado: false,
 };
 
