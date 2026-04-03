@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Archive, Clock, MapPin, User, LogOut, Sun, Moon, KeyRound,
   CheckCircle2, AlertCircle, Lock, Shield, RefreshCw, Unlock,
   Building2, Eye, EyeOff, Loader2,
-  ClockArrowUp, Hourglass, Bell, ListOrdered
+  ClockArrowUp, Hourglass, Bell, ListOrdered,
+  DoorOpen, History, ChevronDown, ChevronUp, Package, Zap
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase-compat";
