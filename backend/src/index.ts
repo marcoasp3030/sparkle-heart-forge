@@ -36,6 +36,7 @@ import { waitlistNotifyRouter } from "./routes/waitlist-notify";
 import { systemUpdateRouter } from "./routes/system-update";
 import { changelogRouter } from "./routes/changelog";
 import { fechadurasRouter } from "./routes/fechaduras";
+import { mobileRouter } from "./routes/mobile";
 
 const app = express();
 app.set("trust proxy", 1);
