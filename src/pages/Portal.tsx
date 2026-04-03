@@ -123,60 +123,38 @@ export default function Portal() {
         setShowPasswordDialog(true);
       }
 
-      const { data: personData } = await supabase
-        .from("funcionarios_clientes")
-        .select("id, nome, cargo, tipo, company_id, email, telefone, matricula, avatar_url, notification_email, notification_whatsapp, notification_expiry, notification_renewal")
-        .eq("user_id", user.id)
-        .single();
+      try {
+        // Use mobile API for all data
+        const meRes = await api.get("/mobile/me");
+        const meData = meRes.data?.data;
 
-      if (!personData) {
-        setLoading(false);
-        return;
-      }
-      setPerson(personData as PersonInfo);
+        if (!meData?.person) {
+          setLoading(false);
+          return;
+        }
+        setPerson(meData.person as PersonInfo);
+        setCompanyName(meData.person.company_name || "");
 
-      const { data: company } = await supabase
-        .from("companies")
-        .select("name")
-        .eq("id", personData.company_id)
-        .single();
-      if (company) setCompanyName(company.name);
+        // Fetch doors, reservations and renewals in parallel via mobile API
+        const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
+          api.get("/mobile/portas"),
+          api.get("/mobile/reservas"),
+          api.get("/mobile/renovacoes"),
+        ]);
 
-      const { data: doorsData } = await supabase
-        .from("locker_doors")
-        .select("id, door_number, label, size, status, expires_at, occupied_at, locker_id, usage_type, lock_id")
-        .eq("occupied_by_person", personData.id);
-
-      if (doorsData && doorsData.length > 0) {
-        const lockerIds = [...new Set(doorsData.map(d => d.locker_id))];
-        const { data: lockers } = await supabase
-          .from("lockers")
-          .select("id, name, location")
-          .in("id", lockerIds);
-
-        const lockersMap = new Map(lockers?.map(l => [l.id, l]) || []);
-        const enriched = doorsData.map(d => ({
+        const doorsData = doorsRes.data?.data || [];
+        setDoors(doorsData.map((d: any) => ({
           ...d,
-          locker: lockersMap.get(d.locker_id) || { name: "—", location: "—" },
-        }));
-        setDoors(enriched as DoorInfo[]);
+          locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
+        })));
+
+        const resData = reservasRes.data?.data || [];
+        setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
+
+        setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
+      } catch (err) {
+        console.error("[PORTAL] Erro ao carregar dados via API:", err);
       }
-
-      const { data: resData } = await supabase
-        .from("locker_reservations")
-        .select("id, starts_at, expires_at, status, usage_type, renewed_count")
-        .eq("person_id", personData.id)
-        .eq("status", "active")
-        .order("starts_at", { ascending: false });
-      if (resData) setReservations(resData as ReservationInfo[]);
-
-      // Load renewal requests
-      const { data: renewalData } = await supabase
-        .from("renewal_requests")
-        .select("id, door_id, status, requested_hours, created_at")
-        .eq("person_id", personData.id)
-        .order("created_at", { ascending: false });
-      if (renewalData) setRenewalRequests(renewalData as RenewalRequest[]);
 
       setLoading(false);
     };
