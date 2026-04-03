@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import { Button } from "@/components/ui/button";
@@ -717,6 +718,61 @@ export default function LockersPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Status Legend + Distribution Summary */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
+        {/* Legend bar */}
+        <Card className="shadow-card border-border/50">
+          <CardContent className="p-3 md:p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Legenda de Status</p>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { label: "Livre", color: "bg-emerald-500", textColor: "text-emerald-700 dark:text-emerald-300", icon: Unlock },
+                { label: "Ocupado", color: "bg-rose-500", textColor: "text-rose-700 dark:text-rose-300", icon: Lock },
+                { label: "Manutenção", color: "bg-amber-500", textColor: "text-amber-700 dark:text-amber-300", icon: Wrench },
+                { label: "Higienização", color: "bg-cyan-500", textColor: "text-cyan-700 dark:text-cyan-300", icon: Droplets },
+                { label: "Agendado", color: "bg-violet-500", textColor: "text-violet-700 dark:text-violet-300", icon: CalendarClock },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-1.5">
+                  <div className={cn("h-2.5 w-2.5 rounded-full", item.color)} />
+                  <item.icon className={cn("h-3.5 w-3.5", item.textColor)} />
+                  <span className={cn("text-xs font-medium", item.textColor)}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mini distribution chart */}
+        {allDoors.length > 0 && (
+          <Card className="shadow-card border-border/50 min-w-[220px]">
+            <CardContent className="p-3 md:p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Distribuição</p>
+              <div className="space-y-2">
+                {[
+                  { label: "Livre", count: doorCounts.available, color: "bg-emerald-500", pct: Math.round((doorCounts.available / allDoors.length) * 100) },
+                  { label: "Ocupado", count: doorCounts.occupied, color: "bg-rose-500", pct: Math.round((doorCounts.occupied / allDoors.length) * 100) },
+                  { label: "Manutenção", count: doorCounts.maintenance, color: "bg-amber-500", pct: Math.round((doorCounts.maintenance / allDoors.length) * 100) },
+                  { label: "Higienização", count: doorCounts.hygienizing, color: "bg-cyan-500", pct: Math.round((doorCounts.hygienizing / allDoors.length) * 100) },
+                ].filter(s => s.count > 0).map((s) => (
+                  <div key={s.label} className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium text-muted-foreground w-16 truncate">{s.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.pct}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className={cn("h-full rounded-full", s.color)}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-foreground/70 w-8 text-right">{s.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </motion.div>
 
       {/* Lockers Grid */}
       {loading ? (
