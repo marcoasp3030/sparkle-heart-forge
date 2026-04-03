@@ -253,14 +253,17 @@ export default function Portal() {
     }
     setChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      await api.post("/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
 
       // Mark password as changed in profile
-      await supabase
-        .from("profiles")
-        .update({ password_changed: true })
-        .eq("user_id", user!.id);
+      await api.put("/compat/profiles", {
+        password_changed: true,
+      }, {
+        params: { user_id: `eq.${user!.id}` }
+      });
 
       setMustChangePassword(false);
       toast.success("Senha alterada com sucesso!");
@@ -269,7 +272,7 @@ export default function Portal() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao alterar senha");
+      toast.error(err.response?.data?.error || err.message || "Erro ao alterar senha");
     } finally {
       setChangingPassword(false);
     }
