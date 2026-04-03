@@ -467,6 +467,8 @@ export default function LockersPage() {
     { label: "Disponíveis", value: doorCounts.available, icon: Unlock, accent: "success" },
     { label: "Ocupados", value: doorCounts.occupied, icon: Lock, accent: "primary" },
     { label: "Manutenção", value: doorCounts.maintenance, icon: Wrench, accent: "accent" },
+    { label: "Higienização", value: doorCounts.hygienizing, icon: Droplets, accent: "cyan" },
+    { label: "Agendados", value: doorCounts.scheduled, icon: CalendarClock, accent: "violet" },
   ];
 
   return (
@@ -688,7 +690,7 @@ export default function LockersPage() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         {stats.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
             <Card className="shadow-card hover:shadow-elevated transition-shadow border-border/50">
@@ -696,12 +698,16 @@ export default function LockersPage() {
                 <div className={`rounded-lg p-1.5 md:p-2 w-fit mb-2 md:mb-3 ${
                   stat.accent === "success" ? "bg-success/10" :
                   stat.accent === "primary" ? "bg-primary/10" :
-                  stat.accent === "accent" ? "bg-accent/10" : "bg-muted"
+                  stat.accent === "accent" ? "bg-accent/10" :
+                  stat.accent === "cyan" ? "bg-cyan-500/10" :
+                  stat.accent === "violet" ? "bg-violet-500/10" : "bg-muted"
                 }`}>
                   <stat.icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${
                     stat.accent === "success" ? "text-success" :
                     stat.accent === "primary" ? "text-primary" :
-                    stat.accent === "accent" ? "text-accent" : "text-muted-foreground"
+                    stat.accent === "accent" ? "text-accent" :
+                    stat.accent === "cyan" ? "text-cyan-600" :
+                    stat.accent === "violet" ? "text-violet-600" : "text-muted-foreground"
                   }`} />
                 </div>
                 <p className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
