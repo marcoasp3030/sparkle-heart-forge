@@ -6,7 +6,32 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
-// Todas as rotas mobile exigem JWT
+// ============================================
+// GET /api/mobile/version — Versão da API (público, sem auth)
+// ============================================
+const API_VERSION = {
+  api_version: "1.0.0",
+  min_app_version: "1.0.0",
+  force_update: false,
+  changelog: "Versão inicial da API mobile",
+  updated_at: "2026-04-03",
+};
+
+router.get("/version", async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'mobile_api_version' LIMIT 1`
+    );
+
+    const config = rows[0]?.value || API_VERSION;
+
+    res.json({ success: true, data: config });
+  } catch {
+    res.json({ success: true, data: API_VERSION });
+  }
+});
+
+// Todas as rotas abaixo exigem JWT
 router.use(authMiddleware);
 
 // ============================================
