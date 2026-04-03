@@ -430,10 +430,12 @@ export default function Portal() {
               <Archive className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Armários</span>
             </TabsTrigger>
-            <TabsTrigger value="fila" className="text-xs flex-1">
-              <ListOrdered className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Fila</span>
-            </TabsTrigger>
+            {featureEnabled("fila_espera") && (
+              <TabsTrigger value="fila" className="text-xs flex-1">
+                <ListOrdered className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Fila</span>
+              </TabsTrigger>
+            )}
             {featureEnabled("historico_comandos") && (
               <TabsTrigger value="historico" className="text-xs flex-1">
                 <Clock className="h-4 w-4 sm:mr-1" />

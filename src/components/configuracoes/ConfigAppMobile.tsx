@@ -46,6 +46,7 @@ const FEATURE_INFO: Record<keyof AppFeatures, { label: string; description: stri
   renovacao: { label: "Solicitar Renovação", description: "Solicitar renovação de prazo pelo app", icon: RefreshCw },
   liberar_porta: { label: "Liberar Porta", description: "Devolver porta temporária pelo app", icon: DoorOpen },
   perfil_edicao: { label: "Editar Perfil", description: "Alterar telefone e preferências de notificação", icon: User },
+  fila_espera: { label: "Fila de Espera", description: "Permitir entrada na fila de espera por uma porta", icon: History },
   branding_personalizado: { label: "Branding Personalizado", description: "Usar logo e cores da empresa no app", icon: Settings2 },
 };
 
