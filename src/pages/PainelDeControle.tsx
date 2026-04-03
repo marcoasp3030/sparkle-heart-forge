@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
-import FeedAtividades from "@/components/dashboard/FeedAtividades";
+
 import FiltrosDashboard, { type DashboardFilters } from "@/components/dashboard/FiltrosDashboard";
 import CountdownPorta from "@/components/armario/CountdownPorta";
 
@@ -448,15 +448,8 @@ const PainelDeControle = () => {
         </motion.div>
       )}
 
-      {/* Activity Feed + Charts side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <FeedAtividades />
-        </div>
-        <div className="lg:col-span-2">
-          <GraficosDashboard />
-        </div>
-      </div>
+      {/* Charts & Metrics */}
+      <GraficosDashboard />
 
       {/* Door List */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }}>
