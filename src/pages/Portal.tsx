@@ -593,24 +593,107 @@ export default function Portal() {
                       <div className="p-4 space-y-3">
 
                         {/* Open lock button - PROMINENT */}
-                        <Button
-                          className="w-full gap-2 h-12 text-base font-semibold shadow-md"
-                          onClick={() => handleOpenLock(door)}
-                          disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
-                        >
-                          {openingLockId === door.id ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <Unlock className="h-5 w-5" />
-                          )}
-                          {openingLockId === door.id
-                            ? "Enviando comando..."
-                            : !door.lock_id
-                            ? "Sem fechadura vinculada"
-                            : isExpired(door.expires_at)
-                            ? "Prazo expirado"
-                            : "Abrir Fechadura"}
-                        </Button>
+                        {!commandStatus[door.id] || commandStatus[door.id].status === "erro" || commandStatus[door.id].status === "timeout" ? (
+                          <Button
+                            className="w-full gap-2 h-12 text-base font-semibold shadow-md"
+                            onClick={() => handleOpenLock(door)}
+                            disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
+                          >
+                            {openingLockId === door.id ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Unlock className="h-5 w-5" />
+                            )}
+                            {openingLockId === door.id
+                              ? "Enviando..."
+                              : !door.lock_id
+                              ? "Sem fechadura vinculada"
+                              : isExpired(door.expires_at)
+                              ? "Prazo expirado"
+                              : "Abrir Fechadura"}
+                          </Button>
+                        ) : (
+                          <div className="space-y-2">
+                            {/* Status tracker */}
+                            <div className="flex items-center gap-2 rounded-lg border p-3 bg-muted/30">
+                              {/* Step indicators */}
+                              <div className="flex items-center gap-1.5 flex-1">
+                                {/* Pendente */}
+                                <div className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
+                                  commandStatus[door.id].status === "pendente"
+                                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse"
+                                    : "bg-primary/20 text-primary"
+                                }`}>
+                                  {commandStatus[door.id].status === "pendente" ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  )}
+                                  <span>Enfileirado</span>
+                                </div>
+
+                                <ChevronDown className="h-3 w-3 text-muted-foreground rotate-[-90deg]" />
+
+                                {/* Executando */}
+                                <div className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
+                                  commandStatus[door.id].status === "executando"
+                                    ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 animate-pulse"
+                                    : commandStatus[door.id].status === "executado"
+                                    ? "bg-primary/20 text-primary"
+                                    : "bg-muted text-muted-foreground"
+                                }`}>
+                                  {commandStatus[door.id].status === "executando" ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : commandStatus[door.id].status === "executado" ? (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  ) : (
+                                    <Clock className="h-3 w-3" />
+                                  )}
+                                  <span>Processando</span>
+                                </div>
+
+                                <ChevronDown className="h-3 w-3 text-muted-foreground rotate-[-90deg]" />
+
+                                {/* Executado */}
+                                <div className={`flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 ${
+                                  commandStatus[door.id].status === "executado"
+                                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-muted text-muted-foreground"
+                                }`}>
+                                  {commandStatus[door.id].status === "executado" ? (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  ) : (
+                                    <Lock className="h-3 w-3" />
+                                  )}
+                                  <span>Aberta</span>
+                                </div>
+                              </div>
+
+                              {/* Command ID */}
+                              {commandStatus[door.id].id > 0 && (
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  #{commandStatus[door.id].id}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Error/timeout message */}
+                            {(commandStatus[door.id].status === "erro" || commandStatus[door.id].status === "timeout") && commandStatus[door.id].resposta && (
+                              <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-md p-2">
+                                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span>{commandStatus[door.id].resposta}</span>
+                              </div>
+                            )}
+
+                            {/* Success response */}
+                            {commandStatus[door.id].status === "executado" && commandStatus[door.id].resposta && (
+                              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-md p-2">
+                                <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span>{commandStatus[door.id].resposta}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
