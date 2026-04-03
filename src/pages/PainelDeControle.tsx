@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/lib/supabase-compat";
 import { useCompany } from "@/contexts/ContextoEmpresa";
 import GraficosDashboard from "@/components/dashboard/GraficosDashboard";
-import FeedAtividades from "@/components/dashboard/FeedAtividades";
+
 import FiltrosDashboard, { type DashboardFilters } from "@/components/dashboard/FiltrosDashboard";
 import CountdownPorta from "@/components/armario/CountdownPorta";
 
