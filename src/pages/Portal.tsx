@@ -101,6 +101,12 @@ export default function Portal() {
   const [renewalLoading, setRenewalLoading] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [openingLockId, setOpeningLockId] = useState<string | null>(null);
+  const [expandedDoor, setExpandedDoor] = useState<string | null>(null);
+  const [doorHistory, setDoorHistory] = useState<Record<string, any[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+  const [releasingDoor, setReleasingDoor] = useState<string | null>(null);
+  const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const [releaseDoor, setReleaseDoor] = useState<DoorInfo | null>(null);
 
   useEffect(() => {
     if (!user) return;
