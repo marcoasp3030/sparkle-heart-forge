@@ -208,6 +208,33 @@ router.get("/historico-admin", authMiddleware, async (req: Request, res: Respons
   }
 });
 
+// ============================================
+// GET /api/fechaduras/status/:id  (JWT auth — usado pelo portal para polling)
+// ============================================
+router.get("/status/:id", authMiddleware, async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID inválido" });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
+       FROM comandos_fechadura WHERE id = $1`,
+      [id]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ error: "Comando não encontrado" });
+    }
+
+    res.json(rows[0]);
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro ao consultar status:", err);
+    res.status(500).json({ error: "Erro ao consultar status" });
+  }
+});
+
 // Demais rotas de fechaduras passam pelo middleware de API Key (agente IoT)
 router.use(apiKeyMiddleware);
 
@@ -302,33 +329,6 @@ router.post("/concluir", validate(concluirSchema), async (req: Request, res: Res
   }
 });
 
-// ============================================
-// GET /api/fechaduras/status/:id
-// Consulta status de um comando específico
-// ============================================
-router.get("/status/:id", async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID inválido" });
-  }
-
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
-       FROM comandos_fechadura WHERE id = $1`,
-      [id]
-    );
-
-    if (!rows[0]) {
-      return res.status(404).json({ error: "Comando não encontrado" });
-    }
-
-    res.json(rows[0]);
-  } catch (err: any) {
-    console.error("[FECHADURAS] Erro ao consultar status:", err);
-    res.status(500).json({ error: "Erro ao consultar status" });
-  }
-});
 
 // ============================================
 // GET /api/fechaduras/historico
