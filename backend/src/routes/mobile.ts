@@ -572,15 +572,41 @@ router.get("/config", async (req: Request, res: Response) => {
 
     // Buscar branding da empresa
     const { rows: branding } = await pool.query(
-      `SELECT logo_url, platform_name, theme_colors FROM company_branding WHERE company_id = $1 LIMIT 1`,
+      `SELECT logo_url, sidebar_logo_url, favicon_url, platform_name, login_title, login_subtitle, login_bg_url, theme_colors FROM company_branding WHERE company_id = $1 LIMIT 1`,
       [companyId]
     );
+
+    // Buscar cores globais da plataforma
+    const { rows: globalColors } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'theme_colors' LIMIT 1`
+    );
+    const { rows: globalImages } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'images' LIMIT 1`
+    );
+    const { rows: globalBrand } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'branding' LIMIT 1`
+    );
+
+    const platformColors = globalColors[0]?.value || {};
+    const companyColors = branding[0]?.theme_colors || {};
+    const mergedColors = { ...platformColors, ...companyColors };
+    const globalImg = globalImages[0]?.value || {};
+    const globalBr = globalBrand[0]?.value || {};
+    const cb = branding[0] || {};
 
     res.json({
       success: true,
       data: {
         features: settings[0]?.value || {},
-        branding: branding[0] || {},
+        branding: {
+          logo_url: cb.logo_url || globalImg.logo_url || null,
+          sidebar_logo_url: cb.sidebar_logo_url || globalImg.sidebar_logo_url || null,
+          platform_name: cb.platform_name || globalBr.platform_name || "PBlocker",
+          theme_colors: mergedColors,
+          login_title: cb.login_title || globalBr.login_title || "",
+          login_subtitle: cb.login_subtitle || globalBr.login_subtitle || "",
+          login_bg_url: cb.login_bg_url || globalImg.login_bg_url || null,
+        },
       },
     });
   } catch (err: any) {
