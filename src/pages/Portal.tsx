@@ -704,7 +704,7 @@ export default function Portal() {
                           )}
 
                           {/* Release door */}
-                          {door.usage_type === "temporary" && (
+                          {featureEnabled("liberar_porta") && door.usage_type === "temporary" && (
                             <Button
                               variant="outline"
                               size="sm"
