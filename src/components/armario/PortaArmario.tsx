@@ -379,14 +379,68 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
           {doorContent}
         </motion.button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs max-w-[220px]">
+      <TooltipContent side="top" className="text-xs max-w-[250px]">
         <p className="font-semibold">{door.label || `Porta #${door.door_number}`}</p>
         <p className="text-muted-foreground">
           {config.label} • {door.size === "small" ? "P" : door.size === "medium" ? "M" : "G"}
-          {isTemporary && door.expires_at && ` • Expira ${new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
         </p>
+
+        {/* Occupied door details */}
+        {door.status === "occupied" && (
+          <div className="mt-1.5 pt-1.5 border-t border-border/50 space-y-0.5">
+            {door.person_name && (
+              <p className="font-medium flex items-center gap-1 text-foreground">
+                <User className="h-3 w-3 text-rose-500" />
+                {door.person_name}
+              </p>
+            )}
+            {door.usage_type && (
+              <p className="text-muted-foreground">
+                Tipo: {door.usage_type === "temporary" ? "Temporário" : door.usage_type === "permanent" ? "Permanente" : door.usage_type}
+              </p>
+            )}
+            {door.occupied_at && (
+              <p className="text-muted-foreground">
+                Desde: {new Date(door.occupied_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+            {isTemporary && door.expires_at && (
+              <p className="text-muted-foreground">
+                Expira: {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+            {isCurrentUser && (
+              <p className="text-primary font-medium mt-0.5">✦ Seu armário</p>
+            )}
+          </div>
+        )}
+
+        {/* Hygienizing details */}
+        {door.status === "hygienizing" && door.expires_at && (
+          <div className="mt-1.5 pt-1.5 border-t border-border/50">
+            <p className="text-cyan-600 dark:text-cyan-400 font-medium flex items-center gap-1">
+              <Droplets className="h-3 w-3" />
+              Em higienização
+            </p>
+            <p className="text-muted-foreground">
+              Libera às {new Date(door.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+        )}
+
+        {/* Maintenance info */}
+        {door.status === "maintenance" && (
+          <div className="mt-1.5 pt-1.5 border-t border-border/50">
+            <p className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+              <Wrench className="h-3 w-3" />
+              Em manutenção
+            </p>
+          </div>
+        )}
+
+        {/* Scheduled reservation */}
         {hasSchedule && door.scheduledReservation && (
-          <div className="mt-1 pt-1 border-t border-border/50 text-violet-600 dark:text-violet-400">
+          <div className="mt-1.5 pt-1.5 border-t border-border/50 text-violet-600 dark:text-violet-400">
             <p className="font-medium flex items-center gap-1">
               <CalendarClock className="h-3 w-3" />
               Agendamento
