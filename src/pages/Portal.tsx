@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,42 +151,82 @@ export default function Portal() {
         console.warn("[PORTAL] Erro ao verificar senha:", err);
       }
 
+      let personLoaded = false;
       try {
         // Load profile + features via mobile API
         const meRes = await api.get("/mobile/me");
         const meData = meRes.data?.data;
 
-        if (!meData?.person) {
-          setLoading(false);
-          return;
+        if (meData?.person) {
+          personLoaded = true;
+          setPerson(meData.person as PersonInfo);
+          setCompanyName(meData.person.company_name || "");
+
+          // Load app features from API response
+          if (meData.app_features && typeof meData.app_features === "object") {
+            setAppFeatures({ ...DEFAULT_APP_FEATURES, ...meData.app_features });
+          }
+
+          // Fetch doors, reservations and renewals in parallel via mobile API
+          const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
+            api.get("/mobile/portas"),
+            api.get("/mobile/reservas"),
+            api.get("/mobile/renovacoes"),
+          ]);
+
+          const doorsData = doorsRes.data?.data || [];
+          setDoors(doorsData.map((d: any) => ({
+            ...d,
+            locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
+          })));
+
+          const resData = reservasRes.data?.data || [];
+          setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
+
+          setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
         }
-        setPerson(meData.person as PersonInfo);
-        setCompanyName(meData.person.company_name || "");
-
-        // Load app features from API response
-        if (meData.app_features && typeof meData.app_features === "object") {
-          setAppFeatures({ ...DEFAULT_APP_FEATURES, ...meData.app_features });
-        }
-
-        // Fetch doors, reservations and renewals in parallel via mobile API
-        const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
-          api.get("/mobile/portas"),
-          api.get("/mobile/reservas"),
-          api.get("/mobile/renovacoes"),
-        ]);
-
-        const doorsData = doorsRes.data?.data || [];
-        setDoors(doorsData.map((d: any) => ({
-          ...d,
-          locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
-        })));
-
-        const resData = reservasRes.data?.data || [];
-        setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
-
-        setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
       } catch (err) {
         console.error("[PORTAL] Erro ao carregar dados via API:", err);
+      }
+
+      // Fallback: load app features directly from platform_settings if mobile API failed or didn't return them
+      if (!personLoaded) {
+        try {
+          // Try to get person from compat layer
+          const persRes = await api.get("/compat/funcionarios_clientes", {
+            params: { user_id: `eq.${user.id}`, select: "*", limit: 1 }
+          });
+          const personData = persRes.data?.data?.[0] || persRes.data?.[0];
+          if (personData) {
+            setPerson(personData as PersonInfo);
+            setCompanyName(personData.company_name || "");
+
+            // Load features from platform_settings
+            const featRes = await api.get("/compat/platform_settings", {
+              params: { key: `eq.app_features_${personData.company_id}`, select: "value", limit: 1 }
+            });
+            const featData = featRes.data?.data?.[0] || featRes.data?.[0];
+            if (featData?.value && typeof featData.value === "object") {
+              setAppFeatures({ ...DEFAULT_APP_FEATURES, ...(featData.value as Partial<AppFeatures>) });
+            }
+
+            // Load doors
+            try {
+              const doorsRes = await api.get("/compat/locker_doors", {
+                params: { occupied_by_person: `eq.${personData.id}`, select: "*,lockers(*)", status: "eq.occupied" }
+              });
+              const doorsData = doorsRes.data?.data || doorsRes.data || [];
+              setDoors(doorsData.map((d: any) => ({
+                ...d,
+                locker: d.lockers || { name: "—", location: "—" },
+              })));
+            } catch {
+              // silent
+            }
+          }
+        } catch (err) {
+          console.warn("[PORTAL] Fallback também falhou:", err);
+        }
       }
 
       setLoading(false);
