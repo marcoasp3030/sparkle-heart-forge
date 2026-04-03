@@ -11,7 +11,8 @@ import ConfigUazapi from "@/components/configuracoes/ConfigUazapi";
 import ConfigTemplatesNotificacoes from "@/components/configuracoes/ConfigTemplatesWhatsApp";
 import ConfigAtualizacoes from "@/components/configuracoes/ConfigAtualizacoes";
 import ConfigFechaduras from "@/components/configuracoes/ConfigFechaduras";
-import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText, ArrowUpCircle, Lock } from "lucide-react";
+import ConfigAppMobile from "@/components/configuracoes/ConfigAppMobile";
+import { User, Shield, Bell, Monitor, Mail, MessageSquare, FileText, ArrowUpCircle, Lock, Smartphone } from "lucide-react";
 
 export default function Configuracoes() {
   const { user } = useAuth();
@@ -72,6 +73,12 @@ export default function Configuracoes() {
             </TabsTrigger>
           )}
           {isSuperAdmin && (
+            <TabsTrigger value="app-mobile" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <Smartphone className="h-4 w-4" />
+              App Mobile
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
             <TabsTrigger value="atualizacoes" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <ArrowUpCircle className="h-4 w-4" />
               Atualizações
@@ -111,6 +118,11 @@ export default function Configuracoes() {
         {isAdmin && (
           <TabsContent value="sistema">
             <ConfigSistema />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="app-mobile">
+            <ConfigAppMobile />
           </TabsContent>
         )}
         {isSuperAdmin && (
