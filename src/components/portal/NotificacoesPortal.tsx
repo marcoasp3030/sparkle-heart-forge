@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, CheckCircle2, RefreshCw, AlertCircle, Archive, Clock, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/supabase-compat";
+import { Bell, CheckCircle2, RefreshCw, AlertCircle, Archive, Clock } from "lucide-react";
+import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Notification {
@@ -36,15 +36,14 @@ export default function NotificacoesPortal({ userId, onUnreadCountChange }: Noti
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) {
+    try {
+      const res = await api.get("/mobile/notificacoes");
+      const data = res.data?.data || [];
+      const unread = res.data?.unread_count || 0;
       setNotifications(data as Notification[]);
-      onUnreadCountChange?.(data.filter((n: any) => !n.read).length);
+      onUnreadCountChange?.(unread);
+    } catch {
+      // silent
     }
     setLoading(false);
   };
@@ -56,19 +55,25 @@ export default function NotificacoesPortal({ userId, onUnreadCountChange }: Noti
   }, [userId]);
 
   const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    onUnreadCountChange?.(notifications.filter(n => !n.read && n.id !== id).length);
+    try {
+      await api.put(`/mobile/notificacoes/${id}/lida`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      onUnreadCountChange?.(notifications.filter(n => !n.read && n.id !== id).length);
+    } catch {
+      // silent
+    }
   };
 
   const markAllAsRead = async () => {
     const unread = notifications.filter(n => !n.read);
     if (unread.length === 0) return;
-    for (const n of unread) {
-      await supabase.from("notifications").update({ read: true }).eq("id", n.id);
+    try {
+      await api.put("/mobile/notificacoes/ler-todas");
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      onUnreadCountChange?.(0);
+    } catch {
+      // silent
     }
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    onUnreadCountChange?.(0);
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
