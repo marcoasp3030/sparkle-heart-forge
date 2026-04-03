@@ -1083,6 +1083,46 @@ export default function Portal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Release Door Confirmation Dialog */}
+      <Dialog open={showReleaseDialog} onOpenChange={setShowReleaseDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DoorOpen className="h-5 w-5 text-destructive" />
+              Liberar Porta
+            </DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja liberar a porta <strong>{releaseDoor?.label || releaseDoor?.door_number}</strong> do armário <strong>{releaseDoor?.locker.name}</strong>? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-destructive">
+              Ao liberar, a porta ficará disponível para outros usuários e você perderá o acesso à fechadura vinculada.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReleaseDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReleaseDoor}
+              disabled={releasingDoor === releaseDoor?.id}
+            >
+              {releasingDoor === releaseDoor?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <DoorOpen className="h-4 w-4 mr-2" />
+              )}
+              {releasingDoor === releaseDoor?.id ? "Liberando..." : "Confirmar Liberação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
