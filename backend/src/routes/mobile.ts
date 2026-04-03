@@ -31,6 +31,97 @@ router.get("/version", async (_req: Request, res: Response) => {
   }
 });
 
+// ============================================
+// GET /api/mobile/theme/:companyId — Tema/cores da empresa (público, sem auth)
+// Usado pelo app Flutter na tela de login e inicialização
+// ============================================
+router.get("/theme/:companyId", async (req: Request, res: Response) => {
+  try {
+    const { companyId } = req.params;
+
+    // 1. Cores globais da plataforma (platform_settings)
+    const { rows: globalColors } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'theme_colors' LIMIT 1`
+    );
+
+    // 2. Branding específico da empresa (company_branding)
+    const { rows: companyBranding } = await pool.query(
+      `SELECT logo_url, sidebar_logo_url, favicon_url, platform_name, login_title, login_subtitle, login_bg_url, theme_colors
+       FROM company_branding WHERE company_id = $1 LIMIT 1`,
+      [companyId]
+    );
+
+    // 3. Imagens globais (logo, favicon, login_bg)
+    const { rows: globalImages } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'images' LIMIT 1`
+    );
+
+    // 4. Branding global (platform_name, login_title, etc.)
+    const { rows: globalBranding } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'branding' LIMIT 1`
+    );
+
+    const platformColors = globalColors[0]?.value || {};
+    const companyColors = companyBranding[0]?.theme_colors || {};
+
+    // Mesclar: empresa sobrescreve plataforma
+    const mergedColors = { ...platformColors, ...companyColors };
+
+    const cb = companyBranding[0] || {};
+    const globalImg = globalImages[0]?.value || {};
+    const globalBrand = globalBranding[0]?.value || {};
+
+    res.json({
+      success: true,
+      data: {
+        theme_colors: mergedColors,
+        logo_url: cb.logo_url || globalImg.logo_url || null,
+        sidebar_logo_url: cb.sidebar_logo_url || globalImg.sidebar_logo_url || null,
+        favicon_url: cb.favicon_url || globalImg.favicon_url || null,
+        login_bg_url: cb.login_bg_url || globalImg.login_bg_url || null,
+        platform_name: cb.platform_name || globalBrand.platform_name || "PBlocker",
+        login_title: cb.login_title || globalBrand.login_title || "",
+        login_subtitle: cb.login_subtitle || globalBrand.login_subtitle || "",
+      },
+    });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao buscar tema:", err);
+    res.status(500).json({ success: false, error: "Erro ao buscar tema" });
+  }
+});
+
+// ============================================
+// GET /api/mobile/theme — Tema global da plataforma (público, sem auth)
+// Usado quando o app não sabe o company_id ainda
+// ============================================
+router.get("/theme", async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT key, value FROM platform_settings WHERE key IN ('theme_colors', 'branding', 'images')`
+    );
+
+    const result: Record<string, any> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        theme_colors: result.theme_colors || {},
+        logo_url: result.images?.logo_url || null,
+        platform_name: result.branding?.platform_name || "PBlocker",
+        login_title: result.branding?.login_title || "",
+        login_subtitle: result.branding?.login_subtitle || "",
+        login_bg_url: result.images?.login_bg_url || null,
+      },
+    });
+  } catch (err: any) {
+    console.error("[MOBILE] Erro ao buscar tema global:", err);
+    res.status(500).json({ success: false, error: "Erro ao buscar tema" });
+  }
+});
+
 // Todas as rotas abaixo exigem JWT
 router.use(authMiddleware);
 
@@ -481,15 +572,41 @@ router.get("/config", async (req: Request, res: Response) => {
 
     // Buscar branding da empresa
     const { rows: branding } = await pool.query(
-      `SELECT logo_url, platform_name, theme_colors FROM company_branding WHERE company_id = $1 LIMIT 1`,
+      `SELECT logo_url, sidebar_logo_url, favicon_url, platform_name, login_title, login_subtitle, login_bg_url, theme_colors FROM company_branding WHERE company_id = $1 LIMIT 1`,
       [companyId]
     );
+
+    // Buscar cores globais da plataforma
+    const { rows: globalColors } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'theme_colors' LIMIT 1`
+    );
+    const { rows: globalImages } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'images' LIMIT 1`
+    );
+    const { rows: globalBrand } = await pool.query(
+      `SELECT value FROM platform_settings WHERE key = 'branding' LIMIT 1`
+    );
+
+    const platformColors = globalColors[0]?.value || {};
+    const companyColors = branding[0]?.theme_colors || {};
+    const mergedColors = { ...platformColors, ...companyColors };
+    const globalImg = globalImages[0]?.value || {};
+    const globalBr = globalBrand[0]?.value || {};
+    const cb = branding[0] || {};
 
     res.json({
       success: true,
       data: {
         features: settings[0]?.value || {},
-        branding: branding[0] || {},
+        branding: {
+          logo_url: cb.logo_url || globalImg.logo_url || null,
+          sidebar_logo_url: cb.sidebar_logo_url || globalImg.sidebar_logo_url || null,
+          platform_name: cb.platform_name || globalBr.platform_name || "PBlocker",
+          theme_colors: mergedColors,
+          login_title: cb.login_title || globalBr.login_title || "",
+          login_subtitle: cb.login_subtitle || globalBr.login_subtitle || "",
+          login_bg_url: cb.login_bg_url || globalImg.login_bg_url || null,
+        },
       },
     });
   } catch (err: any) {
