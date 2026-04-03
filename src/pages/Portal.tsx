@@ -273,17 +273,23 @@ export default function Portal() {
   };
 
   const handleOpenLock = async (door: DoorInfo) => {
-    if (!door.lock_id) return;
+    if (!door.lock_id) {
+      toast.error("Esta porta não possui fechadura vinculada.");
+      return;
+    }
     setOpeningLockId(door.id);
     try {
+      console.log("[PORTAL] Enviando comando abrir-portal", { lock_id: door.lock_id, origem: "portal" });
       const res = await api.post("/fechaduras/abrir-portal", { lock_id: door.lock_id, origem: "portal" });
+      console.log("[PORTAL] Resposta abrir-portal", res.data);
       const data = res.data?.data || res.data;
       if (data?.success) {
         toast.success(`Comando de abertura enviado para ${door.label || "Porta " + door.door_number} — ${door.locker.name}`);
       } else {
-        toast.error("Erro ao enviar comando de abertura");
+        toast.error(data?.error || "Erro ao enviar comando de abertura");
       }
     } catch (err: any) {
+      console.error("[PORTAL] Erro abrir-portal", err);
       toast.error(err.message || "Erro ao abrir fechadura");
     } finally {
       setOpeningLockId(null);
@@ -548,20 +554,24 @@ export default function Portal() {
                       <div className="p-4 space-y-3">
 
                         {/* Open lock button - PROMINENT */}
-                        {door.lock_id && !isExpired(door.expires_at) && (
-                          <Button
-                            className="w-full gap-2 h-12 text-base font-semibold shadow-md"
-                            onClick={() => handleOpenLock(door)}
-                            disabled={openingLockId === door.id}
-                          >
-                            {openingLockId === door.id ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <Unlock className="h-5 w-5" />
-                            )}
-                            {openingLockId === door.id ? "Enviando comando..." : "Abrir Fechadura"}
-                          </Button>
-                        )}
+                        <Button
+                          className="w-full gap-2 h-12 text-base font-semibold shadow-md"
+                          onClick={() => handleOpenLock(door)}
+                          disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
+                        >
+                          {openingLockId === door.id ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Unlock className="h-5 w-5" />
+                          )}
+                          {openingLockId === door.id
+                            ? "Enviando comando..."
+                            : !door.lock_id
+                            ? "Sem fechadura vinculada"
+                            : isExpired(door.expires_at)
+                            ? "Prazo expirado"
+                            : "Abrir Fechadura"}
+                        </Button>
 
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
