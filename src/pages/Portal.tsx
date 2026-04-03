@@ -690,16 +690,18 @@ export default function Portal() {
                           )}
 
                           {/* History toggle */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs gap-1 h-9"
-                            onClick={() => toggleDoorExpand(door)}
-                          >
-                            <History className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Histórico</span>
-                            {expandedDoor === door.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </Button>
+                          {featureEnabled("historico_comandos") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs gap-1 h-9"
+                              onClick={() => toggleDoorExpand(door)}
+                            >
+                              <History className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Histórico</span>
+                              {expandedDoor === door.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </Button>
+                          )}
 
                           {/* Release door */}
                           {door.usage_type === "temporary" && (
