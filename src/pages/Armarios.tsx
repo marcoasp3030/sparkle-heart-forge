@@ -110,6 +110,18 @@ export default function LockersPage() {
       }
     }
 
+    // Fetch person names for occupied doors
+    let occupiedPersonMap: Record<string, string> = {};
+    if (doorsData) {
+      const occupiedPersonIds = [...new Set(doorsData.map((d: any) => d.occupied_by_person).filter(Boolean))];
+      if (occupiedPersonIds.length > 0) {
+        const { data: occupiedPersons } = await supabase.from("funcionarios_clientes").select("id, nome").in("id", occupiedPersonIds);
+        if (occupiedPersons) {
+          occupiedPersonMap = Object.fromEntries(occupiedPersons.map((p: any) => [p.id, p.nome]));
+        }
+      }
+    }
+
     if (lockersData && doorsData) {
       const merged: LockerWithDoors[] = lockersData.map((l: any) => ({
         ...l,
@@ -117,6 +129,7 @@ export default function LockersPage() {
           .filter((d: any) => d.locker_id === l.id)
           .map((d: any) => ({
             ...d,
+            person_name: d.occupied_by_person ? occupiedPersonMap[d.occupied_by_person] || null : null,
             scheduledReservation: scheduledByDoor[d.id] || null,
           })),
       }));
