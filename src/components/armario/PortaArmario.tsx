@@ -21,6 +21,8 @@ export interface LockerDoorData {
   size: "small" | "medium" | "large";
   status: "available" | "occupied" | "maintenance" | "reserved" | "hygienizing";
   occupied_by: string | null;
+  occupied_by_person?: string | null;
+  person_name?: string | null;
   usage_type?: string;
   expires_at?: string | null;
   occupied_at?: string | null;
