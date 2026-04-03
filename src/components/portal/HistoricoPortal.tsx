@@ -89,79 +89,39 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
 
   useEffect(() => {
     const load = async () => {
-      const [resResult, renewalResult] = await Promise.all([
-        supabase
-          .from("locker_reservations")
-          .select("id, starts_at, expires_at, released_at, status, usage_type, renewed_count, notes, created_at, door_id, locker_id")
-          .eq("person_id", personId)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("renewal_requests")
-          .select("id, door_id, status, requested_hours, created_at, reviewed_at, admin_notes")
-          .eq("person_id", personId)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      // Collect all door IDs from reservations + current occupied doors
-      const resDoorIds = resResult.data?.map(r => r.door_id) || [];
-      const resLockerIds = resResult.data?.map(r => r.locker_id) || [];
-
-      const { data: currentDoors } = await supabase
-        .from("locker_doors")
-        .select("id, door_number, label, size, lock_id, locker_id")
-        .eq("occupied_by_person", personId);
-
-      const allDoorIds = [...new Set([...resDoorIds, ...(currentDoors?.map(d => d.id) || [])])];
-      const allLockerIds = [...new Set([...resLockerIds, ...(currentDoors?.map(d => d.locker_id) || [])])];
-
-      let doorsMap = new Map<string, any>();
-      let lockersMap = new Map<string, any>();
-
-      if (allDoorIds.length > 0) {
-        const [doorsRes, lockersRes] = await Promise.all([
-          supabase.from("locker_doors").select("id, door_number, label, size, lock_id").in("id", allDoorIds),
-          allLockerIds.length > 0
-            ? supabase.from("lockers").select("id, name, location").in("id", allLockerIds)
-            : Promise.resolve({ data: [] }),
+      try {
+        // Use mobile API for all data
+        const [reservasRes, renewalsRes, historicoRes] = await Promise.all([
+          api.get("/mobile/reservas"),
+          api.get("/mobile/renovacoes"),
+          api.get("/mobile/historico?limit=200"),
         ]);
-        doorsMap = new Map(doorsRes.data?.map(d => [d.id, d]) || []);
-        lockersMap = new Map(lockersRes.data?.map(l => [l.id, l]) || []);
-      }
 
-      // Enrich reservations
-      if (resResult.data && resResult.data.length > 0) {
-        const enriched: ReservationHistory[] = resResult.data.map(r => ({
+        const resData = reservasRes.data?.data || [];
+        const enriched: ReservationHistory[] = resData.map((r: any) => ({
           ...r,
-          door: doorsMap.get(r.door_id) || null,
-          locker: lockersMap.get(r.locker_id) || null,
+          door: r.door_number != null ? { door_number: r.door_number, label: r.door_label, size: r.door_size } : null,
+          locker: r.locker_name ? { name: r.locker_name, location: r.locker_location } : null,
         }));
         setReservations(enriched);
+
+        const renewalData = renewalsRes.data?.data || [];
+        setRenewals(renewalData as RenewalHistory[]);
+
+        const cmdsData = historicoRes.data?.data || [];
+        setLockCommands(cmdsData as LockCommand[]);
+
+        // Build lock_id -> door label map from reservations door data
+        const ldMap = new Map<number, string>();
+        enriched.forEach((r: any) => {
+          if (r.door && r.door.lock_id && !ldMap.has(r.door.lock_id)) {
+            ldMap.set(r.door.lock_id, r.door.label || `Porta ${r.door.door_number}`);
+          }
+        });
+        setLockDoorsMap(ldMap);
+      } catch (err) {
+        console.error("[HISTORICO] Erro ao carregar:", err);
       }
-
-      // Build lock_id -> door label map
-      const ldMap = new Map<number, string>();
-      const allDoorsArr = [...doorsMap.values(), ...(currentDoors || [])];
-      const lockIds: number[] = [];
-      allDoorsArr.forEach((d: any) => {
-        if (d.lock_id != null && !ldMap.has(d.lock_id)) {
-          ldMap.set(d.lock_id, d.label || `Porta ${d.door_number}`);
-          lockIds.push(d.lock_id);
-        }
-      });
-      setLockDoorsMap(ldMap);
-
-      // Fetch lock commands
-      if (lockIds.length > 0) {
-        try {
-          const cmdRes = await api.get("/fechaduras/meu-historico");
-          const allCommands: LockCommand[] = cmdRes.data?.data || cmdRes.data || [];
-          setLockCommands(allCommands);
-        } catch {
-          // API may not be available
-        }
-      }
-
-      if (renewalResult.data) setRenewals(renewalResult.data as RenewalHistory[]);
       setLoading(false);
     };
     load();
