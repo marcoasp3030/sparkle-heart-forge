@@ -278,61 +278,20 @@ export default function Portal() {
       return;
     }
     setOpeningLockId(door.id);
-    setCommandStatus(prev => ({ ...prev, [door.id]: { id: 0, status: "enviando" } }));
     try {
       const res = await api.post("/fechaduras/abrir-portal", { lock_id: door.lock_id, origem: "portal" });
       const data = res.data?.data || res.data;
-      if (data?.success && data?.id) {
-        setCommandStatus(prev => ({ ...prev, [door.id]: { id: data.id, status: "pendente" } }));
-        toast.info(`Comando #${data.id} enfileirado — aguardando execução...`);
-        pollCommandStatus(door.id, data.id);
+      if (data?.success) {
+        toast.success(`Comando de abertura enviado para ${door.label || "Porta " + door.door_number}`);
       } else {
-        setCommandStatus(prev => ({ ...prev, [door.id]: { id: 0, status: "erro", resposta: data?.error || "Erro desconhecido" } }));
         toast.error(data?.error || "Erro ao enviar comando de abertura");
-        setOpeningLockId(null);
       }
     } catch (err: any) {
-      setCommandStatus(prev => ({ ...prev, [door.id]: { id: 0, status: "erro", resposta: err.message } }));
       toast.error(err.message || "Erro ao abrir fechadura");
+    } finally {
       setOpeningLockId(null);
     }
   };
-
-  const pollCommandStatus = useCallback((doorId: string, commandId: number) => {
-    let attempts = 0;
-    const maxAttempts = 30;
-    const interval = setInterval(async () => {
-      attempts++;
-      try {
-        const res = await api.get(`/fechaduras/status/${commandId}`);
-        const cmd = res.data?.data || res.data;
-        if (cmd?.status === "executando") {
-          setCommandStatus(prev => ({ ...prev, [doorId]: { id: commandId, status: "executando" } }));
-        } else if (cmd?.status === "executado") {
-          clearInterval(interval);
-          setCommandStatus(prev => ({ ...prev, [doorId]: { id: commandId, status: "executado", resposta: cmd.resposta } }));
-          toast.success("Fechadura aberta com sucesso!");
-          setOpeningLockId(null);
-          setTimeout(() => setCommandStatus(prev => { const n = { ...prev }; delete n[doorId]; return n; }), 5000);
-        } else if (cmd?.status === "erro") {
-          clearInterval(interval);
-          setCommandStatus(prev => ({ ...prev, [doorId]: { id: commandId, status: "erro", resposta: cmd.resposta } }));
-          toast.error(`Erro na execução: ${cmd.resposta || "falha no hardware"}`);
-          setOpeningLockId(null);
-          setTimeout(() => setCommandStatus(prev => { const n = { ...prev }; delete n[doorId]; return n; }), 8000);
-        }
-      } catch {
-        // ignore polling errors
-      }
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-        setCommandStatus(prev => ({ ...prev, [doorId]: { id: commandId, status: "timeout", resposta: "Tempo limite excedido" } }));
-        toast.warning("Tempo limite excedido — verifique se o agente está ativo.");
-        setOpeningLockId(null);
-        setTimeout(() => setCommandStatus(prev => { const n = { ...prev }; delete n[doorId]; return n; }), 8000);
-      }
-    }, 1000);
-  }, []);
 
   const handleReleaseDoor = async () => {
     if (!releaseDoor || !person) return;
