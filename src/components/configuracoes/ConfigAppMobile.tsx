@@ -48,19 +48,25 @@ const FEATURE_INFO: Record<keyof AppFeatures, { label: string; description: stri
 };
 
 const API_ENDPOINTS = [
+  { method: "GET", path: "/api/mobile/version", description: "Versão da API e flag de atualização obrigatória", body: null, response: '{ "success": true, "data": { "api_version": "1.0.0", "min_app_version": "1.0.0", "force_update": false } }', auth: false },
   { method: "POST", path: "/api/auth/login", description: "Autenticação do usuário", body: '{ "email": "user@email.com", "password": "senha123" }', response: '{ "token": "jwt...", "user": { "id": "uuid", "email": "..." } }', auth: false },
   { method: "GET", path: "/api/mobile/me", description: "Perfil completo do usuário + features habilitadas", body: null, response: '{ "success": true, "data": { "person": {...}, "app_features": {...} } }', auth: true },
   { method: "GET", path: "/api/mobile/portas", description: "Portas vinculadas ao usuário", body: null, response: '{ "success": true, "data": [{ "id": "...", "lock_id": 1, "locker_name": "..." }] }', auth: true },
   { method: "POST", path: "/api/mobile/abrir", description: "Enviar comando de abertura da fechadura", body: '{ "lock_id": 1 }', response: '{ "success": true, "id": 42, "message": "Comando enviado" }', auth: true },
   { method: "GET", path: "/api/mobile/comando/:id", description: "Consultar status de um comando", body: null, response: '{ "success": true, "data": { "id": 42, "status": "executado", "resposta": "board=0x0E lock=2" } }', auth: true },
   { method: "GET", path: "/api/mobile/historico", description: "Histórico de comandos com paginação", body: null, response: '{ "success": true, "data": [...], "total": 150 }', auth: true },
+  { method: "GET", path: "/api/mobile/reservas", description: "Histórico completo de reservas do usuário", body: null, response: '{ "success": true, "data": [{ "id": "...", "status": "active", "locker_name": "..." }] }', auth: true },
   { method: "GET", path: "/api/mobile/notificacoes", description: "Notificações do usuário", body: null, response: '{ "success": true, "data": [...], "unread_count": 3 }', auth: true },
   { method: "PUT", path: "/api/mobile/notificacoes/:id/lida", description: "Marcar notificação como lida", body: null, response: '{ "success": true }', auth: true },
+  { method: "PUT", path: "/api/mobile/notificacoes/ler-todas", description: "Marcar todas notificações como lidas", body: null, response: '{ "success": true }', auth: true },
   { method: "POST", path: "/api/mobile/renovacao", description: "Solicitar renovação de prazo", body: '{ "door_id": "uuid", "requested_hours": 24 }', response: '{ "success": true, "id": "uuid" }', auth: true },
   { method: "GET", path: "/api/mobile/renovacoes", description: "Listar solicitações de renovação", body: null, response: '{ "success": true, "data": [...] }', auth: true },
   { method: "POST", path: "/api/mobile/liberar", description: "Devolver/liberar porta temporária", body: '{ "door_id": "uuid" }', response: '{ "success": true, "message": "Porta liberada" }', auth: true },
   { method: "PUT", path: "/api/mobile/perfil", description: "Atualizar dados do perfil", body: '{ "telefone": "(11) 99999-0000", "notification_whatsapp": true }', response: '{ "success": true }', auth: true },
   { method: "GET", path: "/api/mobile/config", description: "Configurações e branding do app", body: null, response: '{ "success": true, "data": { "features": {...}, "branding": {...} } }', auth: true },
+  { method: "GET", path: "/api/mobile/fila", description: "Entradas na fila de espera + armários disponíveis", body: null, response: '{ "success": true, "data": { "entries": [...], "lockers": [...] } }', auth: true },
+  { method: "POST", path: "/api/mobile/fila", description: "Entrar na fila de espera de um armário", body: '{ "locker_id": "uuid", "preferred_size": "medium" }', response: '{ "success": true, "id": "uuid" }', auth: true },
+  { method: "PUT", path: "/api/mobile/fila/:id/cancelar", description: "Cancelar/sair da fila de espera", body: null, response: '{ "success": true }', auth: true },
 ];
 
 export default function ConfigAppMobile() {
