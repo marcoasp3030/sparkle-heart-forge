@@ -279,8 +279,8 @@ export default function PortaArmario({ door, index, onSelect, onQuickReserve, on
         </div>
       )}
 
-      {/* Ventilation */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
+      {/* Ventilation - moved up to avoid badge overlap */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-[2px]">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="w-5 h-[1.5px] rounded-full bg-foreground/[0.06] dark:bg-foreground/[0.08]" />
         ))}
