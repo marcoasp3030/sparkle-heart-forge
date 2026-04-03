@@ -290,6 +290,67 @@ export default function Portal() {
     }
   };
 
+  const handleReleaseDoor = async () => {
+    if (!releaseDoor || !person) return;
+    setReleasingDoor(releaseDoor.id);
+    try {
+      const { error } = await supabase
+        .from("locker_doors")
+        .update({
+          status: "available",
+          occupied_by: null,
+          occupied_by_person: null,
+          occupied_at: null,
+          expires_at: null,
+          usage_type: "temporary",
+        })
+        .eq("id", releaseDoor.id);
+      if (error) throw error;
+
+      // Also update active reservation to released
+      await supabase
+        .from("locker_reservations")
+        .update({ status: "released", released_at: new Date().toISOString() })
+        .eq("person_id", person.id)
+        .eq("door_id", releaseDoor.id)
+        .eq("status", "active");
+
+      setDoors(prev => prev.filter(d => d.id !== releaseDoor.id));
+      setShowReleaseDialog(false);
+      setReleaseDoor(null);
+      toast.success("Porta liberada com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao liberar porta");
+    } finally {
+      setReleasingDoor(null);
+    }
+  };
+
+  const loadDoorHistory = useCallback(async (doorId: string, lockId: number | null) => {
+    if (doorHistory[doorId]) return;
+    if (!lockId) return;
+    setLoadingHistory(doorId);
+    try {
+      const res = await api.get("/fechaduras/meu-historico");
+      const data = res.data?.data || res.data || [];
+      const filtered = Array.isArray(data) ? data.filter((c: any) => c.lock_id === lockId).slice(0, 10) : [];
+      setDoorHistory(prev => ({ ...prev, [doorId]: filtered }));
+    } catch {
+      setDoorHistory(prev => ({ ...prev, [doorId]: [] }));
+    } finally {
+      setLoadingHistory(null);
+    }
+  }, [doorHistory]);
+
+  const toggleDoorExpand = (door: DoorInfo) => {
+    if (expandedDoor === door.id) {
+      setExpandedDoor(null);
+    } else {
+      setExpandedDoor(door.id);
+      if (door.lock_id) loadDoorHistory(door.id, door.lock_id);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
