@@ -73,6 +73,12 @@ export default function Configuracoes() {
             </TabsTrigger>
           )}
           {isSuperAdmin && (
+            <TabsTrigger value="app-mobile" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
+              <Smartphone className="h-4 w-4" />
+              App Mobile
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
             <TabsTrigger value="atualizacoes" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm">
               <ArrowUpCircle className="h-4 w-4" />
               Atualizações
