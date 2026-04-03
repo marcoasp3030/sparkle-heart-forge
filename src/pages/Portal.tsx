@@ -547,6 +547,22 @@ export default function Portal() {
                       {/* Door details */}
                       <div className="p-4 space-y-3">
 
+                        {/* Open lock button - PROMINENT */}
+                        {door.lock_id && !isExpired(door.expires_at) && (
+                          <Button
+                            className="w-full gap-2 h-12 text-base font-semibold shadow-md"
+                            onClick={() => handleOpenLock(door)}
+                            disabled={openingLockId === door.id}
+                          >
+                            {openingLockId === door.id ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Unlock className="h-5 w-5" />
+                            )}
+                            {openingLockId === door.id ? "Enviando comando..." : "Abrir Fechadura"}
+                          </Button>
+                        )}
+
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -587,6 +603,62 @@ export default function Portal() {
 
                         <Separator />
 
+                        {/* Action buttons row */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {/* Renewal */}
+                          {door.expires_at && (
+                            getPendingRenewal(door.id) ? (
+                              <Button variant="outline" size="sm" className="text-xs gap-1 h-9 col-span-1" disabled>
+                                <Hourglass className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Pendente</span>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs gap-1 h-9"
+                                onClick={() => {
+                                  setRenewalDoor(door);
+                                  setRenewalHours("1");
+                                  setShowRenewalDialog(true);
+                                }}
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Renovar</span>
+                              </Button>
+                            )
+                          )}
+
+                          {/* History toggle */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1 h-9"
+                            onClick={() => toggleDoorExpand(door)}
+                          >
+                            <History className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Histórico</span>
+                            {expandedDoor === door.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          </Button>
+
+                          {/* Release door */}
+                          {door.usage_type === "temporary" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs gap-1 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setReleaseDoor(door);
+                                setShowReleaseDialog(true);
+                              }}
+                            >
+                              <DoorOpen className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Liberar</span>
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Status indicator */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-sm">
                             {isExpired(door.expires_at) ? (
@@ -596,55 +668,63 @@ export default function Portal() {
                               </>
                             ) : (
                               <>
-                                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                <span className="text-green-600 font-medium">Ativo</span>
+                                <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="text-primary font-medium">Ativo</span>
                               </>
                             )}
                           </div>
-
-                          {/* Renewal request button */}
-                          {door.expires_at && (
-                            getPendingRenewal(door.id) ? (
-                              <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/20 gap-1">
-                                <Hourglass className="h-3 w-3" />
-                                Renovação solicitada
-                              </Badge>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-xs gap-1.5 h-7"
-                                onClick={() => {
-                                  setRenewalDoor(door);
-                                  setRenewalHours("1");
-                                  setShowRenewalDialog(true);
-                                }}
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                Solicitar Renovação
-                              </Button>
-                            )
+                          {door.lock_id && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Zap className="h-3 w-3" />
+                              Fechadura #{door.lock_id}
+                            </Badge>
                           )}
                         </div>
 
-                        {/* Open lock button */}
-                        {door.lock_id && !isExpired(door.expires_at) && (
-                          <>
-                            <Separator />
-                            <Button
-                              className="w-full gap-2"
-                              onClick={() => handleOpenLock(door)}
-                              disabled={openingLockId === door.id}
+                        {/* Expandable history */}
+                        <AnimatePresence>
+                          {expandedDoor === door.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
                             >
-                              {openingLockId === door.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                              <Separator className="mb-3" />
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <History className="h-3 w-3" />
+                                Últimos Comandos
+                              </p>
+                              {loadingHistory === door.id ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                </div>
+                              ) : (doorHistory[door.id] || []).length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-3">Nenhum comando registrado</p>
                               ) : (
-                                <Unlock className="h-4 w-4" />
+                                <div className="space-y-1.5">
+                                  {(doorHistory[door.id] || []).map((cmd: any) => (
+                                    <div key={cmd.id} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`h-2 w-2 rounded-full ${
+                                          cmd.status === "executado" ? "bg-primary" : cmd.status === "erro" ? "bg-destructive" : "bg-accent"
+                                        }`} />
+                                        <span className="text-xs text-foreground capitalize">{cmd.acao}</span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          via {cmd.origem || "—"}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {cmd.criado_em ? format(new Date(cmd.criado_em), "dd/MM HH:mm", { locale: ptBR }) : "—"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
-                              {openingLockId === door.id ? "Enviando..." : "Abrir Fechadura"}
-                            </Button>
-                          </>
-                        )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </CardContent>
                   </Card>
