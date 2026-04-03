@@ -77,6 +77,26 @@ interface RenewalRequest {
   created_at: string;
 }
 
+interface AppFeatures {
+  abrir_fechadura: boolean;
+  historico_comandos: boolean;
+  notificacoes: boolean;
+  renovacao: boolean;
+  liberar_porta: boolean;
+  perfil_edicao: boolean;
+  branding_personalizado: boolean;
+}
+
+const DEFAULT_APP_FEATURES: AppFeatures = {
+  abrir_fechadura: true,
+  historico_comandos: true,
+  notificacoes: true,
+  renovacao: true,
+  liberar_porta: true,
+  perfil_edicao: true,
+  branding_personalizado: false,
+};
+
 export default function Portal() {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -107,6 +127,10 @@ export default function Portal() {
   const [releasingDoor, setReleasingDoor] = useState<string | null>(null);
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
   const [releaseDoor, setReleaseDoor] = useState<DoorInfo | null>(null);
+  const [appFeatures, setAppFeatures] = useState<AppFeatures>(DEFAULT_APP_FEATURES);
+
+  // Helper to check if a feature is enabled
+  const featureEnabled = (key: keyof AppFeatures) => appFeatures[key];
 
   useEffect(() => {
     if (!user) return;
@@ -114,7 +138,7 @@ export default function Portal() {
       // Check if password change is required
       const { data: profile } = await supabase
         .from("profiles")
-        .select("password_changed")
+        .select("password_changed, company_id")
         .eq("user_id", user.id)
         .single();
 
@@ -123,37 +147,110 @@ export default function Portal() {
         setShowPasswordDialog(true);
       }
 
+      let loadedViaApi = false;
+
       try {
-        // Use mobile API for all data
+        // Try mobile API first
         const meRes = await api.get("/mobile/me");
         const meData = meRes.data?.data;
 
-        if (!meData?.person) {
-          setLoading(false);
-          return;
+        if (meData?.person) {
+          setPerson(meData.person as PersonInfo);
+          setCompanyName(meData.person.company_name || "");
+
+          // Load app features from API response
+          if (meData.app_features && typeof meData.app_features === "object") {
+            setAppFeatures({ ...DEFAULT_APP_FEATURES, ...meData.app_features });
+          }
+
+          // Fetch doors, reservations and renewals in parallel via mobile API
+          const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
+            api.get("/mobile/portas"),
+            api.get("/mobile/reservas"),
+            api.get("/mobile/renovacoes"),
+          ]);
+
+          const doorsData = doorsRes.data?.data || [];
+          setDoors(doorsData.map((d: any) => ({
+            ...d,
+            locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
+          })));
+
+          const resData = reservasRes.data?.data || [];
+          setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
+
+          setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
+          loadedViaApi = true;
         }
-        setPerson(meData.person as PersonInfo);
-        setCompanyName(meData.person.company_name || "");
-
-        // Fetch doors, reservations and renewals in parallel via mobile API
-        const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
-          api.get("/mobile/portas"),
-          api.get("/mobile/reservas"),
-          api.get("/mobile/renovacoes"),
-        ]);
-
-        const doorsData = doorsRes.data?.data || [];
-        setDoors(doorsData.map((d: any) => ({
-          ...d,
-          locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
-        })));
-
-        const resData = reservasRes.data?.data || [];
-        setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
-
-        setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
       } catch (err) {
-        console.error("[PORTAL] Erro ao carregar dados via API:", err);
+        console.warn("[PORTAL] API mobile indisponível, usando fallback Supabase:", err);
+      }
+
+      // Fallback: load directly from Supabase if API failed
+      if (!loadedViaApi) {
+        try {
+          // Get person record
+          const { data: personData } = await supabase
+            .from("funcionarios_clientes")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+
+          if (personData) {
+            setPerson(personData as PersonInfo);
+
+            // Get company name
+            const { data: companyData } = await supabase
+              .from("companies")
+              .select("name")
+              .eq("id", personData.company_id)
+              .single();
+            setCompanyName(companyData?.name || "");
+
+            // Load app features from platform_settings
+            const { data: featuresData } = await supabase
+              .from("platform_settings")
+              .select("value")
+              .eq("key", `app_features_${personData.company_id}`)
+              .single();
+
+            if (featuresData?.value && typeof featuresData.value === "object") {
+              setAppFeatures({ ...DEFAULT_APP_FEATURES, ...(featuresData.value as Partial<AppFeatures>) });
+            }
+
+            // Load doors assigned to this person
+            const { data: doorsData } = await supabase
+              .from("locker_doors")
+              .select("*, lockers(name, location)")
+              .eq("occupied_by_person", personData.id)
+              .in("status", ["occupied", "expiring"]);
+
+            if (doorsData) {
+              setDoors(doorsData.map((d: any) => ({
+                ...d,
+                locker: { name: d.lockers?.name || "—", location: d.lockers?.location || "—" },
+              })));
+            }
+
+            // Load reservations
+            const { data: resData } = await supabase
+              .from("locker_reservations")
+              .select("*")
+              .eq("person_id", personData.id)
+              .eq("status", "active");
+            setReservations((resData || []) as ReservationInfo[]);
+
+            // Load renewal requests
+            const { data: renewalsData } = await supabase
+              .from("renewal_requests")
+              .select("*")
+              .eq("person_id", personData.id)
+              .order("created_at", { ascending: false });
+            setRenewalRequests((renewalsData || []) as RenewalRequest[]);
+          }
+        } catch (err) {
+          console.error("[PORTAL] Erro no fallback Supabase:", err);
+        }
       }
 
       setLoading(false);
@@ -390,33 +487,39 @@ export default function Portal() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-6">
-            <TabsTrigger value="armarios" className="text-xs">
+          <TabsList className="w-full flex">
+            <TabsTrigger value="armarios" className="text-xs flex-1">
               <Archive className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Armários</span>
             </TabsTrigger>
-            <TabsTrigger value="fila" className="text-xs">
+            <TabsTrigger value="fila" className="text-xs flex-1">
               <ListOrdered className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Fila</span>
             </TabsTrigger>
-            <TabsTrigger value="historico" className="text-xs">
-              <Clock className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Histórico</span>
-            </TabsTrigger>
-            <TabsTrigger value="notificacoes" className="text-xs relative">
-              <Bell className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Avisos</span>
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="perfil" className="text-xs">
-              <User className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Perfil</span>
-            </TabsTrigger>
-            <TabsTrigger value="seguranca" className="text-xs">
+            {featureEnabled("historico_comandos") && (
+              <TabsTrigger value="historico" className="text-xs flex-1">
+                <Clock className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+              </TabsTrigger>
+            )}
+            {featureEnabled("notificacoes") && (
+              <TabsTrigger value="notificacoes" className="text-xs relative flex-1">
+                <Bell className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Avisos</span>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
+            {featureEnabled("perfil_edicao") && (
+              <TabsTrigger value="perfil" className="text-xs flex-1">
+                <User className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Perfil</span>
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="seguranca" className="text-xs flex-1">
               <Shield className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Segurança</span>
             </TabsTrigger>
@@ -505,24 +608,26 @@ export default function Portal() {
                       <div className="p-4 space-y-3">
 
                         {/* Open lock button - PROMINENT */}
-                        <Button
-                          className="w-full gap-2 h-12 text-base font-semibold shadow-md"
-                          onClick={() => handleOpenLock(door)}
-                          disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
-                        >
-                          {openingLockId === door.id ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <Unlock className="h-5 w-5" />
-                          )}
-                          {openingLockId === door.id
-                            ? "Enviando..."
-                            : !door.lock_id
-                            ? "Sem fechadura vinculada"
-                            : isExpired(door.expires_at)
-                            ? "Prazo expirado"
-                            : "Abrir Fechadura"}
-                        </Button>
+                        {featureEnabled("abrir_fechadura") && (
+                          <Button
+                            className="w-full gap-2 h-12 text-base font-semibold shadow-md"
+                            onClick={() => handleOpenLock(door)}
+                            disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
+                          >
+                            {openingLockId === door.id ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Unlock className="h-5 w-5" />
+                            )}
+                            {openingLockId === door.id
+                              ? "Enviando..."
+                              : !door.lock_id
+                              ? "Sem fechadura vinculada"
+                              : isExpired(door.expires_at)
+                              ? "Prazo expirado"
+                              : "Abrir Fechadura"}
+                          </Button>
+                        )}
 
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
@@ -567,7 +672,7 @@ export default function Portal() {
                         {/* Action buttons row */}
                         <div className="grid grid-cols-3 gap-2">
                           {/* Renewal */}
-                          {door.expires_at && (
+                          {featureEnabled("renovacao") && door.expires_at && (
                             getPendingRenewal(door.id) ? (
                               <Button variant="outline" size="sm" className="text-xs gap-1 h-9 col-span-1" disabled>
                                 <Hourglass className="h-3.5 w-3.5" />
@@ -591,19 +696,21 @@ export default function Portal() {
                           )}
 
                           {/* History toggle */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs gap-1 h-9"
-                            onClick={() => toggleDoorExpand(door)}
-                          >
-                            <History className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Histórico</span>
-                            {expandedDoor === door.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </Button>
+                          {featureEnabled("historico_comandos") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs gap-1 h-9"
+                              onClick={() => toggleDoorExpand(door)}
+                            >
+                              <History className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Histórico</span>
+                              {expandedDoor === door.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </Button>
+                          )}
 
                           {/* Release door */}
-                          {door.usage_type === "temporary" && (
+                          {featureEnabled("liberar_porta") && door.usage_type === "temporary" && (
                             <Button
                               variant="outline"
                               size="sm"
