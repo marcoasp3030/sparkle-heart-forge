@@ -191,27 +191,21 @@ export default function Portal() {
     if (!renewalDoor || !person) return;
     setRenewalLoading(true);
     try {
-      const { error } = await supabase.from("renewal_requests").insert({
+      await api.post("/mobile/renovacao", {
         door_id: renewalDoor.id,
-        person_id: person.id,
-        company_id: person.company_id,
         requested_hours: parseInt(renewalHours),
       });
-      if (error) throw error;
 
-      // Refresh requests
-      const { data } = await supabase
-        .from("renewal_requests")
-        .select("id, door_id, status, requested_hours, created_at")
-        .eq("person_id", person.id)
-        .order("created_at", { ascending: false });
-      if (data) setRenewalRequests(data as RenewalRequest[]);
+      // Refresh requests via mobile API
+      const { data: renewalsRes } = await api.get("/mobile/renovacoes");
+      setRenewalRequests((renewalsRes?.data || []) as RenewalRequest[]);
 
       toast.success("Solicitação de renovação enviada! O administrador será notificado.");
       setShowRenewalDialog(false);
       setRenewalDoor(null);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao solicitar renovação");
+      const msg = err.response?.data?.error || err.message || "Erro ao solicitar renovação";
+      toast.error(msg);
     } finally {
       setRenewalLoading(false);
     }
