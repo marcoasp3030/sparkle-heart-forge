@@ -826,15 +826,17 @@ export default function Portal() {
           </TabsContent>
 
           {/* === FILA DE ESPERA TAB === */}
-          <TabsContent value="fila" className="space-y-4 mt-4">
-            {person && (
-              <FilaEsperaPortal
-                personId={person.id}
-                companyId={person.company_id}
-                userId={user!.id}
-              />
-            )}
-          </TabsContent>
+          {featureEnabled("fila_espera") && (
+            <TabsContent value="fila" className="space-y-4 mt-4">
+              {person && (
+                <FilaEsperaPortal
+                  personId={person.id}
+                  companyId={person.company_id}
+                  userId={user!.id}
+                />
+              )}
+            </TabsContent>
+          )}
 
           {/* === HISTÓRICO TAB === */}
           <TabsContent value="historico" className="space-y-4 mt-4">
