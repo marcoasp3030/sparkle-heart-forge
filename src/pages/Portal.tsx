@@ -554,20 +554,24 @@ export default function Portal() {
                       <div className="p-4 space-y-3">
 
                         {/* Open lock button - PROMINENT */}
-                        {door.lock_id && !isExpired(door.expires_at) && (
-                          <Button
-                            className="w-full gap-2 h-12 text-base font-semibold shadow-md"
-                            onClick={() => handleOpenLock(door)}
-                            disabled={openingLockId === door.id}
-                          >
-                            {openingLockId === door.id ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <Unlock className="h-5 w-5" />
-                            )}
-                            {openingLockId === door.id ? "Enviando comando..." : "Abrir Fechadura"}
-                          </Button>
-                        )}
+                        <Button
+                          className="w-full gap-2 h-12 text-base font-semibold shadow-md"
+                          onClick={() => handleOpenLock(door)}
+                          disabled={openingLockId === door.id || !door.lock_id || isExpired(door.expires_at)}
+                        >
+                          {openingLockId === door.id ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Unlock className="h-5 w-5" />
+                          )}
+                          {openingLockId === door.id
+                            ? "Enviando comando..."
+                            : !door.lock_id
+                            ? "Sem fechadura vinculada"
+                            : isExpired(door.expires_at)
+                            ? "Prazo expirado"
+                            : "Abrir Fechadura"}
+                        </Button>
 
                         {door.occupied_at && (
                           <div className="flex items-center gap-2.5 text-sm">
