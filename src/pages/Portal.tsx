@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { supabase } from "@/lib/supabase-compat";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
