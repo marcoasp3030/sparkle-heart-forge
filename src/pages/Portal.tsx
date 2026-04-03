@@ -135,122 +135,56 @@ export default function Portal() {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      // Check if password change is required
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("password_changed, company_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile && profile.password_changed === false) {
-        setMustChangePassword(true);
-        setShowPasswordDialog(true);
+      // Check if password change is required via API
+      try {
+        const profileRes = await api.get("/compat/profiles", {
+          params: { user_id: `eq.${user.id}`, select: "password_changed", limit: 1 }
+        });
+        const profileData = profileRes.data?.data?.[0] || profileRes.data?.[0];
+        if (profileData && profileData.password_changed === false) {
+          setMustChangePassword(true);
+          setShowPasswordDialog(true);
+        }
+      } catch (err) {
+        console.warn("[PORTAL] Erro ao verificar senha:", err);
       }
 
-      let loadedViaApi = false;
-
       try {
-        // Try mobile API first
+        // Load profile + features via mobile API
         const meRes = await api.get("/mobile/me");
         const meData = meRes.data?.data;
 
-        if (meData?.person) {
-          setPerson(meData.person as PersonInfo);
-          setCompanyName(meData.person.company_name || "");
-
-          // Load app features from API response
-          if (meData.app_features && typeof meData.app_features === "object") {
-            setAppFeatures({ ...DEFAULT_APP_FEATURES, ...meData.app_features });
-          }
-
-          // Fetch doors, reservations and renewals in parallel via mobile API
-          const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
-            api.get("/mobile/portas"),
-            api.get("/mobile/reservas"),
-            api.get("/mobile/renovacoes"),
-          ]);
-
-          const doorsData = doorsRes.data?.data || [];
-          setDoors(doorsData.map((d: any) => ({
-            ...d,
-            locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
-          })));
-
-          const resData = reservasRes.data?.data || [];
-          setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
-
-          setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
-          loadedViaApi = true;
+        if (!meData?.person) {
+          setLoading(false);
+          return;
         }
+        setPerson(meData.person as PersonInfo);
+        setCompanyName(meData.person.company_name || "");
+
+        // Load app features from API response
+        if (meData.app_features && typeof meData.app_features === "object") {
+          setAppFeatures({ ...DEFAULT_APP_FEATURES, ...meData.app_features });
+        }
+
+        // Fetch doors, reservations and renewals in parallel via mobile API
+        const [doorsRes, reservasRes, renewalsRes] = await Promise.all([
+          api.get("/mobile/portas"),
+          api.get("/mobile/reservas"),
+          api.get("/mobile/renovacoes"),
+        ]);
+
+        const doorsData = doorsRes.data?.data || [];
+        setDoors(doorsData.map((d: any) => ({
+          ...d,
+          locker: { name: d.locker_name || "—", location: d.locker_location || "—" },
+        })));
+
+        const resData = reservasRes.data?.data || [];
+        setReservations(resData.filter((r: any) => r.status === "active") as ReservationInfo[]);
+
+        setRenewalRequests((renewalsRes.data?.data || []) as RenewalRequest[]);
       } catch (err) {
-        console.warn("[PORTAL] API mobile indisponível, usando fallback Supabase:", err);
-      }
-
-      // Fallback: load directly from Supabase if API failed
-      if (!loadedViaApi) {
-        try {
-          // Get person record
-          const { data: personData } = await supabase
-            .from("funcionarios_clientes")
-            .select("*")
-            .eq("user_id", user.id)
-            .single();
-
-          if (personData) {
-            setPerson(personData as PersonInfo);
-
-            // Get company name
-            const { data: companyData } = await supabase
-              .from("companies")
-              .select("name")
-              .eq("id", personData.company_id)
-              .single();
-            setCompanyName(companyData?.name || "");
-
-            // Load app features from platform_settings
-            const { data: featuresData } = await supabase
-              .from("platform_settings")
-              .select("value")
-              .eq("key", `app_features_${personData.company_id}`)
-              .single();
-
-            if (featuresData?.value && typeof featuresData.value === "object") {
-              setAppFeatures({ ...DEFAULT_APP_FEATURES, ...(featuresData.value as Partial<AppFeatures>) });
-            }
-
-            // Load doors assigned to this person
-            const { data: doorsData } = await supabase
-              .from("locker_doors")
-              .select("*, lockers(name, location)")
-              .eq("occupied_by_person", personData.id)
-              .in("status", ["occupied", "expiring"]);
-
-            if (doorsData) {
-              setDoors(doorsData.map((d: any) => ({
-                ...d,
-                locker: { name: d.lockers?.name || "—", location: d.lockers?.location || "—" },
-              })));
-            }
-
-            // Load reservations
-            const { data: resData } = await supabase
-              .from("locker_reservations")
-              .select("*")
-              .eq("person_id", personData.id)
-              .eq("status", "active");
-            setReservations((resData || []) as ReservationInfo[]);
-
-            // Load renewal requests
-            const { data: renewalsData } = await supabase
-              .from("renewal_requests")
-              .select("*")
-              .eq("person_id", personData.id)
-              .order("created_at", { ascending: false });
-            setRenewalRequests((renewalsData || []) as RenewalRequest[]);
-          }
-        } catch (err) {
-          console.error("[PORTAL] Erro no fallback Supabase:", err);
-        }
+        console.error("[PORTAL] Erro ao carregar dados via API:", err);
       }
 
       setLoading(false);
