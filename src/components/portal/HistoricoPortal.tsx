@@ -95,21 +95,6 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
 
   return (
     <div className="space-y-3">
-      {/* Stats */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-2">
-        <Card className="border-border/50">
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-primary">{lockCommands.length}</p>
-            <p className="text-[10px] text-muted-foreground">Total de Comandos</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-secondary">{lockCommands.filter(c => c.status === "executado").length}</p>
-            <p className="text-[10px] text-muted-foreground">Executados</p>
-          </CardContent>
-        </Card>
-      </motion.div>
 
       {/* Lock commands list */}
       <div className="space-y-2">
