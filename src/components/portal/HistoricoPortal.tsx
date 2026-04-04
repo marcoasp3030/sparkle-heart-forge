@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Clock, Archive, Unlock, Timer, RefreshCw,
-  ChevronDown, CalendarDays,
-  CheckCircle2, AlertCircle, Ban, Lock, Loader2, Zap
+  Clock, ChevronDown,
+  CheckCircle2, AlertCircle, Lock, Loader2, Zap
 } from "lucide-react";
 import api from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, differenceInMinutes, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
