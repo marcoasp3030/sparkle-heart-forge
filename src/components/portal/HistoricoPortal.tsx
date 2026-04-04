@@ -86,35 +86,9 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
   useEffect(() => {
     const load = async () => {
       try {
-        // Use mobile API for all data
-        const [reservasRes, renewalsRes, historicoRes] = await Promise.all([
-          api.get("/mobile/reservas"),
-          api.get("/mobile/renovacoes"),
-          api.get("/mobile/historico?limit=200"),
-        ]);
-
-        const resData = reservasRes.data?.data || [];
-        const enriched: ReservationHistory[] = resData.map((r: any) => ({
-          ...r,
-          door: r.door_number != null ? { door_number: r.door_number, label: r.door_label, size: r.door_size } : null,
-          locker: r.locker_name ? { name: r.locker_name, location: r.locker_location } : null,
-        }));
-        setReservations(enriched);
-
-        const renewalData = renewalsRes.data?.data || [];
-        setRenewals(renewalData as RenewalHistory[]);
-
+        const historicoRes = await api.get("/mobile/historico?limit=200");
         const cmdsData = historicoRes.data?.data || [];
         setLockCommands(cmdsData as LockCommand[]);
-
-        // Build lock_id -> door label map from reservations door data
-        const ldMap = new Map<number, string>();
-        enriched.forEach((r: any) => {
-          if (r.door && r.door.lock_id && !ldMap.has(r.door.lock_id)) {
-            ldMap.set(r.door.lock_id, r.door.label || `Porta ${r.door.door_number}`);
-          }
-        });
-        setLockDoorsMap(ldMap);
       } catch (err) {
         console.error("[HISTORICO] Erro ao carregar:", err);
       }
@@ -123,16 +97,6 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
     load();
   }, [personId]);
 
-  type TimelineItem =
-    | { type: "reservation"; data: ReservationHistory; date: Date }
-    | { type: "renewal"; data: RenewalHistory; date: Date };
-
-  const timeline: TimelineItem[] = [
-    ...reservations.map(r => ({ type: "reservation" as const, data: r, date: new Date(r.created_at) })),
-    ...renewals.map(r => ({ type: "renewal" as const, data: r, date: new Date(r.created_at) })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-  const visibleTimeline = showAll ? timeline : timeline.slice(0, INITIAL_COUNT);
   const visibleCommands = showAllCommands ? lockCommands : lockCommands.slice(0, INITIAL_COUNT);
 
   if (loading) {
@@ -144,19 +108,18 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
   }
 
   const hasCommands = lockCommands.length > 0;
-  const hasTimeline = timeline.length > 0;
 
-  if (!hasTimeline && !hasCommands) {
+  if (!hasCommands) {
     return (
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="shadow-card border-border/50">
           <CardContent className="p-10 text-center">
             <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Clock className="h-8 w-8 text-muted-foreground" />
+              <Lock className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="font-semibold text-foreground mb-1">Nenhum histórico</h3>
             <p className="text-sm text-muted-foreground">
-              Quando você utilizar armários, o histórico aparecerá aqui.
+              Quando você abrir fechaduras, o histórico aparecerá aqui.
             </p>
           </CardContent>
         </Card>
@@ -167,143 +130,42 @@ export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
   return (
     <div className="space-y-3">
       {/* Stats */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-2">
-        <Card className="border-border/50">
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-primary">{reservations.length}</p>
-            <p className="text-[10px] text-muted-foreground">Reservas</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-secondary">{reservations.filter(r => r.status === "released").length}</p>
-            <p className="text-[10px] text-muted-foreground">Liberadas</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold text-accent">{renewals.filter(r => r.status === "approved").length}</p>
-            <p className="text-[10px] text-muted-foreground">Renovações</p>
-          </CardContent>
-        </Card>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-2">
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xl font-bold text-primary">{lockCommands.length}</p>
-            <p className="text-[10px] text-muted-foreground">Aberturas</p>
+            <p className="text-[10px] text-muted-foreground">Total de Comandos</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-3 text-center">
+            <p className="text-xl font-bold text-secondary">{lockCommands.filter(c => c.status === "executado").length}</p>
+            <p className="text-[10px] text-muted-foreground">Executados</p>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Sub-tabs */}
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="w-full grid grid-cols-2">
-          <TabsTrigger value="tudo" className="text-xs">
-            <Clock className="h-3.5 w-3.5 mr-1.5" />
-            Reservas
-          </TabsTrigger>
-          <TabsTrigger value="fechaduras" className="text-xs">
-            <Lock className="h-3.5 w-3.5 mr-1.5" />
-            Fechaduras
-            {hasCommands && (
-              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
-                {lockCommands.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Reservations */}
-        <TabsContent value="tudo" className="mt-3">
-          {hasTimeline ? (
-            <div className="relative">
-              <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-border/60 rounded-full" />
-              <AnimatePresence>
-                {visibleTimeline.map((item, i) => (
-                  <motion.div
-                    key={`${item.type}-${item.data.id}`}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="relative flex gap-3 pb-4"
-                  >
-                    <div className="relative z-10 flex-shrink-0 mt-1">
-                      {item.type === "reservation" ? (
-                        <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${statusConfig[item.data.status]?.bg || "bg-muted border-border"}`}>
-                          {(() => {
-                            const cfg = statusConfig[item.data.status];
-                            const Icon = cfg?.icon || Archive;
-                            return <Icon className={`h-4 w-4 ${cfg?.color || "text-muted-foreground"}`} />;
-                          })()}
-                        </div>
-                      ) : (
-                        <div className="h-10 w-10 rounded-full border-2 bg-primary/10 border-primary/20 flex items-center justify-center">
-                          <RefreshCw className="h-4 w-4 text-primary" />
-                        </div>
-                      )}
-                    </div>
-                    <Card className="flex-1 shadow-sm border-border/50 overflow-hidden">
-                      <CardContent className="p-3">
-                        {item.type === "reservation" ? (
-                          <ReservationCard reservation={item.data} />
-                        ) : (
-                          <RenewalCard renewal={item.data} />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {timeline.length > INITIAL_COUNT && !showAll && (
-                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setShowAll(true)}>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Ver mais ({timeline.length - INITIAL_COUNT} restantes)
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Card className="shadow-card border-border/50">
-              <CardContent className="p-8 text-center">
-                <Archive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhuma reserva registrada</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Lock commands */}
-        <TabsContent value="fechaduras" className="mt-3">
-          {hasCommands ? (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {visibleCommands.map((cmd, i) => (
-                  <motion.div
-                    key={cmd.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                  >
-                    <LockCommandCard command={cmd} doorLabel={lockDoorsMap.get(cmd.lock_id) || `Lock #${cmd.lock_id}`} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {lockCommands.length > INITIAL_COUNT && !showAllCommands && (
-                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setShowAllCommands(true)}>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Ver mais ({lockCommands.length - INITIAL_COUNT} restantes)
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Card className="shadow-card border-border/50">
-              <CardContent className="p-8 text-center">
-                <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhum comando de fechadura registrado</p>
-                <p className="text-xs text-muted-foreground mt-1">Quando você abrir fechaduras, o histórico aparecerá aqui.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Lock commands list */}
+      <div className="space-y-2">
+        <AnimatePresence>
+          {visibleCommands.map((cmd, i) => (
+            <motion.div
+              key={cmd.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+            >
+              <LockCommandCard command={cmd} doorLabel={lockDoorsMap.get(cmd.lock_id) || `Lock #${cmd.lock_id}`} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {lockCommands.length > INITIAL_COUNT && !showAllCommands && (
+          <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setShowAllCommands(true)}>
+            <ChevronDown className="h-4 w-4 mr-1" />
+            Ver mais ({lockCommands.length - INITIAL_COUNT} restantes)
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
