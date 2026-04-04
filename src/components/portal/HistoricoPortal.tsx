@@ -26,14 +26,6 @@ interface HistoricoPortalProps {
   personId: string;
 }
 
-const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  active: { label: "Ativa", icon: CheckCircle2, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10 border-green-500/20" },
-  released: { label: "Liberada", icon: Unlock, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-  expired: { label: "Expirada", icon: Timer, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
-  cancelled: { label: "Cancelada", icon: Ban, color: "text-destructive", bg: "bg-destructive/10 border-destructive/20" },
-  scheduled: { label: "Agendada", icon: CalendarDays, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
-};
-
 const lockStatusConfig: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   pendente: { label: "Pendente", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
   executando: { label: "Executando", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", icon: Loader2 },
