@@ -299,10 +299,17 @@ router.get("/historico", async (req: Request, res: Response) => {
     const placeholders = lockIds.map((_, i) => `$${i + 1}`).join(", ");
 
     const { rows } = await pool.query(
-      `SELECT id, acao, lock_id, status, resposta, origem, criado_em, executado_em
-       FROM comandos_fechadura
-       WHERE lock_id IN (${placeholders})
-       ORDER BY criado_em DESC
+      `SELECT cf.id, cf.acao, cf.lock_id, cf.status, cf.resposta, cf.origem,
+              cf.criado_em, cf.executado_em,
+              COALESCE(ld.label, 'Porta ' || ld.door_number) AS door_label,
+              ld.door_number,
+              l.name AS locker_name,
+              l.location AS locker_location
+       FROM comandos_fechadura cf
+       LEFT JOIN locker_doors ld ON ld.lock_id = cf.lock_id
+       LEFT JOIN lockers l ON l.id = ld.locker_id
+       WHERE cf.lock_id IN (${placeholders})
+       ORDER BY cf.criado_em DESC
        LIMIT $${lockIds.length + 1} OFFSET $${lockIds.length + 2}`,
       [...lockIds, limit, offset]
     );
