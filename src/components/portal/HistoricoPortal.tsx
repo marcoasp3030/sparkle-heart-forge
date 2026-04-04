@@ -11,30 +11,6 @@ import { Button } from "@/components/ui/button";
 import { format, differenceInMinutes, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface ReservationHistory {
-  id: string;
-  starts_at: string;
-  expires_at: string | null;
-  released_at: string | null;
-  status: string;
-  usage_type: string;
-  renewed_count: number;
-  notes: string | null;
-  created_at: string;
-  door: { door_number: number; label: string | null; size: string } | null;
-  locker: { name: string; location: string } | null;
-}
-
-interface RenewalHistory {
-  id: string;
-  door_id: string;
-  status: string;
-  requested_hours: number;
-  created_at: string;
-  reviewed_at: string | null;
-  admin_notes: string | null;
-}
-
 interface LockCommand {
   id: number;
   acao: string;
