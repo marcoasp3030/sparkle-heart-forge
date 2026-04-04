@@ -77,14 +77,10 @@ function getDuration(startsAt: string, endsAt: string | null): string {
 }
 
 export default function HistoricoPortal({ personId }: HistoricoPortalProps) {
-  const [reservations, setReservations] = useState<ReservationHistory[]>([]);
-  const [renewals, setRenewals] = useState<RenewalHistory[]>([]);
   const [lockCommands, setLockCommands] = useState<LockCommand[]>([]);
   const [lockDoorsMap, setLockDoorsMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
   const [showAllCommands, setShowAllCommands] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState("tudo");
   const INITIAL_COUNT = 10;
 
   useEffect(() => {
