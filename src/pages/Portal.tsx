@@ -27,6 +27,7 @@ import HistoricoPortal from "@/components/portal/HistoricoPortal";
 import PerfilPortal from "@/components/portal/PerfilPortal";
 import NotificacoesPortal from "@/components/portal/NotificacoesPortal";
 import FilaEsperaPortal from "@/components/portal/FilaEsperaPortal";
+import PWAInstallBanner from "@/components/portal/PWAInstallBanner";
 
 interface PersonInfo {
   id: string;
@@ -430,6 +431,8 @@ export default function Portal() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* PWA Install Banner */}
+        <PWAInstallBanner />
         {/* Greeting + Stats */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-foreground">
