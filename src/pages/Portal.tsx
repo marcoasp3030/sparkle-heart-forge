@@ -27,6 +27,7 @@ import HistoricoPortal from "@/components/portal/HistoricoPortal";
 import PerfilPortal from "@/components/portal/PerfilPortal";
 import NotificacoesPortal from "@/components/portal/NotificacoesPortal";
 import FilaEsperaPortal from "@/components/portal/FilaEsperaPortal";
+import PWAInstallBanner from "@/components/portal/PWAInstallBanner";
 
 interface PersonInfo {
   id: string;
