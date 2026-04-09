@@ -183,6 +183,8 @@ CREATE TABLE IF NOT EXISTS lockers (
   rows INTEGER DEFAULT 4,
   columns INTEGER DEFAULT 1,
   orientation TEXT DEFAULT 'vertical',
+  board_address TEXT DEFAULT '',
+  board_port INTEGER DEFAULT 4370,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
