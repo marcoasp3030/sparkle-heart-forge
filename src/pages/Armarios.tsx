@@ -979,7 +979,20 @@ export default function LockersPage() {
               <Label>Localização</Label>
               <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
             </div>
-          </div>
+            <div className="border-t pt-4 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Placa Controladora</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-2">
+                  <Label>IP / Endereço</Label>
+                  <Input value={editBoardAddress} onChange={(e) => setEditBoardAddress(e.target.value)} placeholder="192.168.1.100" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Porta TCP</Label>
+                  <Input type="number" value={editBoardPort} onChange={(e) => setEditBoardPort(parseInt(e.target.value) || 4370)} placeholder="4370" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Endereço da placa que controla as fechaduras deste armário</p>
+            </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" className="rounded-xl">Cancelar</Button>
