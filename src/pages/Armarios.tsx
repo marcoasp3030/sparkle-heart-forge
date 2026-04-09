@@ -158,7 +158,7 @@ export default function LockersPage() {
 
     const { data: locker, error } = await supabase
       .from("lockers")
-      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows, company_id: selectedCompany?.id || null })
+      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows, company_id: selectedCompany?.id || null, board_address: newBoardAddress || null, board_port: newBoardPort })
       .select()
       .single();
 
