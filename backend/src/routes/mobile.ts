@@ -207,41 +207,111 @@ router.get("/portas", async (req: Request, res: Response) => {
 
 // ============================================
 // POST /api/mobile/abrir — Abrir fechadura vinculada
+// Aceita lock_id/lockId ou door_id/doorId para compatibilidade com apps Flutter
 // ============================================
 const abrirSchema = z.object({
-  lock_id: z.number().int().positive(),
+  lock_id: z.coerce.number().int().positive().optional(),
+  lockId: z.coerce.number().int().positive().optional(),
+  door_id: z.string().uuid().optional(),
+  doorId: z.string().uuid().optional(),
+  origem: z.string().trim().max(30).optional(),
+}).superRefine((data, ctx) => {
+  if (!data.lock_id && !data.lockId && !data.door_id && !data.doorId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Informe lock_id ou door_id para abrir a fechadura.",
+      path: ["lock_id"],
+    });
+  }
 });
 
+async function enqueueMobileOpenCommand(lockId: number, origem: string, personId: string | null) {
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
+       VALUES ('abrir', $1, 'pendente', $2, $3)
+       RETURNING id`,
+      [lockId, origem, personId]
+    );
+    return rows[0].id as number;
+  } catch (err: any) {
+    const message = String(err?.message || "");
+    const missingPersonIdColumn =
+      /column\s+"?person_id"?\s+of\s+relation\s+"?comandos_fechadura"?\s+does\s+not\s+exist/i.test(
+        message
+      );
+
+    if (missingPersonIdColumn) {
+      const { rows } = await pool.query(
+        `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+         VALUES ('abrir', $1, 'pendente', $2)
+         RETURNING id`,
+        [lockId, origem]
+      );
+      return rows[0].id as number;
+    }
+
+    throw err;
+  }
+}
+
 router.post("/abrir", validate(abrirSchema), async (req: Request, res: Response) => {
-  const { lock_id } = req.body;
+  const requestedLockId = req.body.lock_id ?? req.body.lockId ?? null;
+  const requestedDoorId = req.body.door_id ?? req.body.doorId ?? null;
+  const origem = req.body.origem?.trim() || "app";
+
   try {
     const userId = req.user?.user_id;
 
-    // Validar que o usuário tem vínculo com esta fechadura
     const { rows: personRows } = await pool.query(
-      `SELECT fc.id FROM funcionarios_clientes fc
+      `SELECT fc.id AS person_id, ld.id AS door_id, ld.lock_id, ld.status
+       FROM funcionarios_clientes fc
        JOIN locker_doors ld ON ld.occupied_by_person = fc.id
-       WHERE fc.user_id = $1 AND ld.lock_id = $2 AND ld.status = 'occupied'`,
-      [userId, lock_id]
+       WHERE fc.user_id = $1
+         AND (
+           ($2::uuid IS NOT NULL AND ld.id = $2::uuid)
+           OR ($3::int IS NOT NULL AND ld.lock_id = $3)
+         )
+       ORDER BY CASE
+         WHEN ld.status = 'occupied' THEN 0
+         WHEN ld.status = 'reserved' THEN 1
+         ELSE 2
+       END,
+       ld.updated_at DESC
+       LIMIT 1`,
+      [userId, requestedDoorId, requestedLockId]
     );
 
     if (personRows.length === 0) {
       return res.status(403).json({ success: false, error: "Você não tem permissão para abrir esta fechadura." });
     }
 
-    const personId = personRows[0].id;
+    const door = personRows[0];
 
-    // Enfileirar comando
-    const { rows } = await pool.query(
-      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem, person_id)
-       VALUES ('abrir', $1, 'pendente', 'app', $2)
-       RETURNING id`,
-      [lock_id, personId]
+    if (!door.lock_id) {
+      return res.status(422).json({ success: false, error: "Esta porta ainda não possui lock_id configurado." });
+    }
+
+    if (!["occupied", "reserved"].includes(door.status)) {
+      return res.status(409).json({
+        success: false,
+        error: `A porta vinculada não está disponível para abertura no momento (status: ${door.status}).`,
+      });
+    }
+
+    const commandId = await enqueueMobileOpenCommand(door.lock_id, origem, door.person_id);
+
+    console.log(
+      `[MOBILE] Comando de abertura criado: cmd=#${commandId} lock_id=${door.lock_id} door=${door.door_id} person=${door.person_id} origem=${origem}`
     );
 
-    console.log(`[MOBILE] Comando de abertura criado: cmd=#${rows[0].id} lock_id=${lock_id} person=${personId}`);
-
-    res.status(201).json({ success: true, message: "Comando enviado", id: rows[0].id });
+    res.status(201).json({
+      success: true,
+      message: "Comando enviado",
+      id: commandId,
+      lock_id: door.lock_id,
+      door_id: door.door_id,
+    });
   } catch (err: any) {
     console.error("[MOBILE] Erro ao criar comando:", err);
     res.status(500).json({ success: false, error: "Erro ao criar comando" });
