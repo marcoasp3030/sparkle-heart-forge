@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Lock, Send, RefreshCw, CheckCircle, Clock, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Lock, Send, RefreshCw, CheckCircle, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert } from "lucide-react";
 import api from "@/lib/api";
 
 interface Comando {
@@ -14,11 +14,18 @@ interface Comando {
   acao: string;
   lock_id: number;
   status: string;
-  resposta?: string;
-  origem?: string;
+  resposta?: string | null;
+  origem?: string | null;
   criado_em: string;
-  executado_em?: string;
+  executado_em?: string | null;
 }
+
+type UltimoComandoResumo = {
+  id: number;
+  status: string;
+  resposta?: string | null;
+  executado_em?: string | null;
+};
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "secondary" },
@@ -70,9 +77,9 @@ export default function ConfigFechaduras() {
   const [loading, setLoading] = useState(false);
   const [historico, setHistorico] = useState<Comando[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
-  const [ultimoComando, setUltimoComando] = useState<{ id: number; status: string } | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [ultimoComando, setUltimoComando] = useState<UltimoComandoResumo | null>(null);
 
-  // API Key state
   const [apiKey, setApiKey] = useState("");
   const [newApiKey, setNewApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
@@ -81,11 +88,25 @@ export default function ConfigFechaduras() {
   const [keyEnabled, setKeyEnabled] = useState(false);
 
   const baseUrl = String(import.meta.env.VITE_API_URL || window.location.origin).replace(/\/+$/, "");
+  const ultimoComandoStatus = ultimoComando
+    ? statusMap[ultimoComando.status] || { label: ultimoComando.status, variant: "secondary" as const }
+    : null;
 
-  // Carregar API Key atual
   useEffect(() => {
     loadApiKey();
   }, []);
+
+  useEffect(() => {
+    if (!ultimoComando || !["pendente", "executando"].includes(ultimoComando.status)) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void atualizarStatusComando(ultimoComando.id, true);
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [ultimoComando?.id, ultimoComando?.status]);
 
   const loadApiKey = async () => {
     setLoadingKey(true);
@@ -114,7 +135,10 @@ export default function ConfigFechaduras() {
       setApiKey(key);
       setNewApiKey("");
       setKeyEnabled(!!key);
-      toast({ title: key ? "API Key salva!" : "API Key removida", description: key ? "Os endpoints agora exigem autenticação." : "Os endpoints estão em modo aberto." });
+      toast({
+        title: key ? "API Key salva!" : "API Key removida",
+        description: key ? "Os endpoints agora exigem autenticação." : "Os endpoints estão em modo aberto.",
+      });
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message || "Falha ao salvar API Key", variant: "destructive" });
     } finally {
@@ -128,6 +152,40 @@ export default function ConfigFechaduras() {
     setShowKey(true);
   };
 
+  const atualizarStatusComando = async (commandId: number, silent = false): Promise<UltimoComandoResumo | null> => {
+    if (!silent) {
+      setLoadingStatus(true);
+    }
+
+    try {
+      const res = await api.get(`/fechaduras/status/${commandId}`);
+      const payload = res.data?.data || res.data;
+
+      if (!payload?.id) {
+        return null;
+      }
+
+      const nextCommand: UltimoComandoResumo = {
+        id: Number(payload.id),
+        status: String(payload.status || "pendente"),
+        resposta: payload.resposta || null,
+        executado_em: payload.executado_em || null,
+      };
+
+      setUltimoComando(nextCommand);
+      return nextCommand;
+    } catch (err: any) {
+      if (!silent) {
+        toast({ title: "Erro ao consultar status", description: err.message || "Falha ao consultar comando", variant: "destructive" });
+      }
+      return null;
+    } finally {
+      if (!silent) {
+        setLoadingStatus(false);
+      }
+    }
+  };
+
   const enviarComando = async () => {
     const id = parseInt(lockId);
     if (isNaN(id) || id <= 0) {
@@ -138,8 +196,10 @@ export default function ConfigFechaduras() {
     setLoading(true);
     try {
       const res = await api.post("/fechaduras/abrir-admin", { lock_id: id, origem: origem || "web" });
-      setUltimoComando({ id: res.data.id, status: "pendente" });
-      toast({ title: "Comando enviado!", description: `ID: ${res.data.id} — Lock: ${id}` });
+      const commandId = Number(res.data.id);
+      setUltimoComando({ id: commandId, status: "pendente", resposta: null, executado_em: null });
+      toast({ title: "Comando enviado!", description: `ID: ${commandId} — Lock: ${id}` });
+      void atualizarStatusComando(commandId, true);
     } catch (err: any) {
       toast({ title: "Erro ao enviar", description: err.message || "Falha na requisição", variant: "destructive" });
     } finally {
@@ -150,7 +210,7 @@ export default function ConfigFechaduras() {
   const buscarHistorico = async () => {
     setLoadingHistorico(true);
     try {
-      const { data } = await api.get("/fechaduras/historico");
+      const { data } = await api.get("/fechaduras/historico-admin");
       setHistorico(Array.isArray(data) ? data : []);
     } catch (err: any) {
       toast({ title: "Erro ao carregar histórico", description: err.message, variant: "destructive" });
@@ -159,16 +219,21 @@ export default function ConfigFechaduras() {
     }
   };
 
-  const buscarPendente = async () => {
-    try {
-      const { data } = await api.get("/fechaduras/comandos");
-      if (data.status === "vazio") {
-        toast({ title: "Nenhum comando pendente", description: "A fila está vazia." });
-      } else {
-        toast({ title: `Comando #${data.id}`, description: `Ação: ${data.acao} | Lock: ${data.lock_id} — marcado como executando` });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+  const verificarUltimoComando = async () => {
+    if (!ultimoComando) {
+      toast({ title: "Nenhum comando enviado", description: "Envie um comando de teste primeiro." });
+      return;
+    }
+
+    const statusAtual = await atualizarStatusComando(ultimoComando.id);
+    if (statusAtual) {
+      const statusInfo = statusMap[statusAtual.status] || { label: statusAtual.status, variant: "secondary" as const };
+      toast({
+        title: `Comando #${statusAtual.id}`,
+        description: statusAtual.resposta
+          ? `Status: ${statusInfo.label} — ${statusAtual.resposta}`
+          : `Status atual: ${statusInfo.label}`,
+      });
     }
   };
 
@@ -181,7 +246,6 @@ export default function ConfigFechaduras() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -226,7 +290,6 @@ export default function ConfigFechaduras() {
         </CardContent>
       </Card>
 
-      {/* API Key Management */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -245,7 +308,6 @@ export default function ConfigFechaduras() {
             </div>
           ) : (
             <>
-              {/* Current key display */}
               {apiKey && (
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Chave atual</Label>
@@ -263,7 +325,6 @@ export default function ConfigFechaduras() {
                 </div>
               )}
 
-              {/* Usage instructions */}
               {apiKey && (
                 <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Como usar no agente Python:</p>
@@ -279,7 +340,6 @@ requests.get(url, headers=headers)`}
 
               <Separator />
 
-              {/* Generate new key */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3 flex-wrap">
                   <Button variant="outline" onClick={gerarNovaChave} className="gap-2">
@@ -324,7 +384,6 @@ requests.get(url, headers=headers)`}
         </CardContent>
       </Card>
 
-      {/* Endpoints Reference */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Endpoints da API</CardTitle>
@@ -362,11 +421,10 @@ requests.get(url, headers=headers)`}
         </CardContent>
       </Card>
 
-      {/* Test Panel */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Painel de Teste</CardTitle>
-          <CardDescription>Envie comandos de teste diretamente para a API</CardDescription>
+          <CardDescription>Envie comandos de teste e acompanhe o status real sem consumir a fila do agente</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -388,12 +446,27 @@ requests.get(url, headers=headers)`}
               </div>
             </div>
 
-            {ultimoComando && (
-              <div className="p-3 rounded-lg bg-muted/50 flex items-center gap-3">
-                <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                <span className="text-sm">
-                  Último comando: <strong>#{ultimoComando.id}</strong> — Status: {ultimoComando.status}
-                </span>
+            {ultimoComando && ultimoComandoStatus && (
+              <div className="p-3 rounded-lg bg-muted/50 flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="text-sm">
+                      Último comando: <strong>#{ultimoComando.id}</strong> — Status: {ultimoComandoStatus.label}
+                    </span>
+                    {ultimoComando.resposta && (
+                      <p className="text-xs text-muted-foreground">Resposta: {ultimoComando.resposta}</p>
+                    )}
+                    {ultimoComando.status === "pendente" && (
+                      <p className="text-xs text-muted-foreground">
+                        Se continuar pendente, o agente Python/worker em produção não está consumindo a fila.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Badge variant={ultimoComandoStatus.variant} className="text-xs">
+                  {ultimoComandoStatus.label}
+                </Badge>
               </div>
             )}
           </div>
@@ -401,9 +474,9 @@ requests.get(url, headers=headers)`}
           <Separator />
 
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={buscarPendente} className="gap-2">
-              <Clock className="h-4 w-4" />
-              Buscar Próximo Pendente
+            <Button variant="outline" onClick={verificarUltimoComando} disabled={!ultimoComando || loadingStatus} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loadingStatus ? "animate-spin" : ""}`} />
+              Verificar Último Status
             </Button>
             <Button variant="outline" onClick={buscarHistorico} disabled={loadingHistorico} className="gap-2">
               <RefreshCw className={`h-4 w-4 ${loadingHistorico ? "animate-spin" : ""}`} />
@@ -413,7 +486,6 @@ requests.get(url, headers=headers)`}
         </CardContent>
       </Card>
 
-      {/* History */}
       {historico.length > 0 && (
         <Card>
           <CardHeader>
