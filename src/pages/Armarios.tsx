@@ -394,6 +394,8 @@ export default function LockersPage() {
     setEditLocker(locker);
     setEditName(locker.name);
     setEditLocation(locker.location);
+    setEditBoardAddress(locker.board_address || "");
+    setEditBoardPort(locker.board_port || 4370);
     setEditDialogOpen(true);
   };
 
@@ -402,7 +404,7 @@ export default function LockersPage() {
     setActionLoading(true);
     const { error } = await supabase
       .from("lockers")
-      .update({ name: editName, location: editLocation })
+      .update({ name: editName, location: editLocation, board_address: editBoardAddress, board_port: editBoardPort })
       .eq("id", editLocker.id);
 
     if (error) {
