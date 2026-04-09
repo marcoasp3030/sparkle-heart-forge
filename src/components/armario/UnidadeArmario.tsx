@@ -10,6 +10,8 @@ export interface LockerData {
   orientation: "vertical" | "horizontal";
   columns: number;
   rows: number;
+  board_address?: string;
+  board_port?: number;
 }
 
 interface LockerUnitProps {
