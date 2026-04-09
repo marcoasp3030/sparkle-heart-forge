@@ -62,6 +62,8 @@ export default function LockersPage() {
   const [newCols, setNewCols] = useState(2);
   const [newRows, setNewRows] = useState(4);
   const [newDoorSize, setNewDoorSize] = useState<"small" | "medium" | "large">("medium");
+  const [newBoardAddress, setNewBoardAddress] = useState("");
+  const [newBoardPort, setNewBoardPort] = useState(4370);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editLocker, setEditLocker] = useState<LockerData | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -156,7 +158,7 @@ export default function LockersPage() {
 
     const { data: locker, error } = await supabase
       .from("lockers")
-      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows, company_id: selectedCompany?.id || null })
+      .insert({ name: newName, location: newLocation, orientation: newOrientation, columns: newCols, rows: newRows, company_id: selectedCompany?.id || null, board_address: newBoardAddress || null, board_port: newBoardPort })
       .select()
       .single();
 
@@ -182,6 +184,8 @@ export default function LockersPage() {
       setCreateDialogOpen(false);
       setNewName("");
       setNewLocation("");
+      setNewBoardAddress("");
+      setNewBoardPort(4370);
       fetchLockers();
     }
     setActionLoading(false);
@@ -558,6 +562,20 @@ export default function LockersPage() {
                     <div className="space-y-2">
                       <Label>Linhas</Label>
                       <Input type="number" min={1} max={10} value={newRows} onChange={(e) => setNewRows(Number(e.target.value))} />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3">Placa Controladora</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Endereço IP</Label>
+                        <Input placeholder="Ex: 192.168.1.100" value={newBoardAddress} onChange={(e) => setNewBoardAddress(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Porta TCP</Label>
+                        <Input type="number" min={1} max={65535} value={newBoardPort} onChange={(e) => setNewBoardPort(Number(e.target.value))} />
+                      </div>
                     </div>
                   </div>
 
