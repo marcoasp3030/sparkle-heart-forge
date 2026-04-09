@@ -993,6 +993,7 @@ export default function LockersPage() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">Endereço da placa que controla as fechaduras deste armário</p>
             </div>
+          </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" className="rounded-xl">Cancelar</Button>
