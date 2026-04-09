@@ -565,6 +565,20 @@ export default function LockersPage() {
                     </div>
                   </div>
 
+                  <div className="border-t border-border/40 pt-4">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3">Placa Controladora</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Endereço IP</Label>
+                        <Input placeholder="Ex: 192.168.1.100" value={newBoardAddress} onChange={(e) => setNewBoardAddress(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Porta TCP</Label>
+                        <Input type="number" min={1} max={65535} value={newBoardPort} onChange={(e) => setNewBoardPort(Number(e.target.value))} />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Preview */}
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/40">
                     <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3">Prévia</p>
