@@ -62,6 +62,8 @@ export default function LockersPage() {
   const [newCols, setNewCols] = useState(2);
   const [newRows, setNewRows] = useState(4);
   const [newDoorSize, setNewDoorSize] = useState<"small" | "medium" | "large">("medium");
+  const [newBoardAddress, setNewBoardAddress] = useState("");
+  const [newBoardPort, setNewBoardPort] = useState(4370);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editLocker, setEditLocker] = useState<LockerData | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
