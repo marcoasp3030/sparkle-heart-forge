@@ -293,7 +293,23 @@ router.get("/comandos", async (_req: Request, res: Response) => {
       return res.json({ status: "vazio" });
     }
 
-    res.json(rows[0]);
+    // Enrich with board info from the locker
+    const cmd = rows[0];
+    const { rows: boardRows } = await pool.query(
+      `SELECT l.board_address, l.board_port
+       FROM locker_doors ld
+       JOIN lockers l ON l.id = ld.locker_id
+       WHERE ld.lock_id = $1
+       LIMIT 1`,
+      [cmd.lock_id]
+    );
+
+    if (boardRows[0]) {
+      cmd.board_address = boardRows[0].board_address || "";
+      cmd.board_port = boardRows[0].board_port || 4370;
+    }
+
+    res.json(cmd);
   } catch (err: any) {
     console.error("[FECHADURAS] Erro ao buscar comando:", err);
     res.status(500).json({ error: "Erro ao buscar comando pendente" });

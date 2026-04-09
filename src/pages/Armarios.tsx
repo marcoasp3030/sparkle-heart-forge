@@ -67,6 +67,8 @@ export default function LockersPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editBoardAddress, setEditBoardAddress] = useState("");
+  const [editBoardPort, setEditBoardPort] = useState(4370);
   const [deleteLocker, setDeleteLocker] = useState<LockerData | null>(null);
 
   const fetchLockers = useCallback(async () => {
