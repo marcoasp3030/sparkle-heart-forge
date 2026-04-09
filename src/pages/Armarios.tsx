@@ -184,6 +184,8 @@ export default function LockersPage() {
       setCreateDialogOpen(false);
       setNewName("");
       setNewLocation("");
+      setNewBoardAddress("");
+      setNewBoardPort(4370);
       fetchLockers();
     }
     setActionLoading(false);
