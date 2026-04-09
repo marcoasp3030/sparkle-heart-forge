@@ -67,6 +67,8 @@ export default function LockersPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editBoardAddress, setEditBoardAddress] = useState("");
+  const [editBoardPort, setEditBoardPort] = useState(4370);
   const [deleteLocker, setDeleteLocker] = useState<LockerData | null>(null);
 
   const fetchLockers = useCallback(async () => {
@@ -392,6 +394,8 @@ export default function LockersPage() {
     setEditLocker(locker);
     setEditName(locker.name);
     setEditLocation(locker.location);
+    setEditBoardAddress(locker.board_address || "");
+    setEditBoardPort(locker.board_port || 4370);
     setEditDialogOpen(true);
   };
 
@@ -400,7 +404,7 @@ export default function LockersPage() {
     setActionLoading(true);
     const { error } = await supabase
       .from("lockers")
-      .update({ name: editName, location: editLocation })
+      .update({ name: editName, location: editLocation, board_address: editBoardAddress, board_port: editBoardPort })
       .eq("id", editLocker.id);
 
     if (error) {
@@ -974,6 +978,20 @@ export default function LockersPage() {
             <div className="space-y-2">
               <Label>Localização</Label>
               <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+            </div>
+            <div className="border-t pt-4 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Placa Controladora</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-2">
+                  <Label>IP / Endereço</Label>
+                  <Input value={editBoardAddress} onChange={(e) => setEditBoardAddress(e.target.value)} placeholder="192.168.1.100" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Porta TCP</Label>
+                  <Input type="number" value={editBoardPort} onChange={(e) => setEditBoardPort(parseInt(e.target.value) || 4370)} placeholder="4370" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Endereço da placa que controla as fechaduras deste armário</p>
             </div>
           </div>
           <DialogFooter>
