@@ -509,44 +509,14 @@ export default function LockersPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-xl md:text-2xl font-bold text-foreground">Armários</h1>
-              {isAdmin && agentOnline !== null && (
-                <Badge
-                  variant={agentOnline ? "outline" : "destructive"}
-                  className={`text-[10px] gap-1 ${agentOnline ? "border-green-500/50 text-green-600" : ""}`}
-                >
-                  {agentOnline ? (
-                    <>
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
-                      </span>
-                      Agente Online
-                    </>
-                  ) : (
-                    <>
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
-                      </span>
-                      Agente Offline
-                    </>
-                  )}
-                </Badge>
-              )}
+              {isAdmin && <AgentStatusBadge />}
             </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2">
               {isSuperAdmin && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="gap-1.5 rounded-xl text-xs md:text-sm"
-                  onClick={() => setEmergencyDialogOpen(true)}
-                >
-                  <ShieldAlert className="h-4 w-4" />
-                  <span className="hidden sm:inline">Emergência</span>
-                </Button>
+                <BotaoEmergencia companyId={selectedCompany?.id} />
               )}
               <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
                 <FileBarChart className="h-4 w-4" />
