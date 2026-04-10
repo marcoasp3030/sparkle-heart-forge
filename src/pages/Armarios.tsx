@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets, ShieldAlert } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -52,6 +53,8 @@ export default function LockersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
   const { play: playSound } = useFeedbackSonoro();
 
@@ -436,6 +439,34 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  const handleEmergencyUnlock = async () => {
+    setEmergencyLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload: any = {};
+      if (selectedCompany) payload.company_id = selectedCompany.id;
+
+      const { data } = await api.post("/fechaduras/emergencia", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast({
+        title: "⚠️ Emergência Ativada",
+        description: data.message || `${data.total} fechadura(s) sendo abertas.`,
+      });
+      playSound("release");
+    } catch (err: any) {
+      toast({
+        title: "Erro na emergência",
+        description: err.response?.data?.error || "Não foi possível executar o comando.",
+        variant: "destructive",
+      });
+    } finally {
+      setEmergencyLoading(false);
+      setEmergencyDialogOpen(false);
+    }
+  };
+
   // Unique locations for filter
   const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
 
@@ -506,6 +537,17 @@ export default function LockersPage() {
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-1.5 rounded-xl text-xs md:text-sm"
+                  onClick={() => setEmergencyDialogOpen(true)}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  <span className="hidden sm:inline">Emergência</span>
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
                 <FileBarChart className="h-4 w-4" />
                 <span className="hidden sm:inline">Relatório</span>
@@ -1043,6 +1085,36 @@ export default function LockersPage() {
 
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
+
+      {/* Emergency Unlock Dialog */}
+      <AlertDialog open={emergencyDialogOpen} onOpenChange={setEmergencyDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="h-5 w-5" />
+              Abertura de Emergência
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block font-semibold">
+                Esta ação abrirá TODAS as fechaduras{selectedCompany ? ` da empresa "${selectedCompany.name}"` : ""} simultaneamente.
+              </span>
+              <span className="block">
+                Use apenas em situações reais de emergência. Esta ação será registrada nos logs de auditoria.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emergencyLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEmergencyUnlock}
+              disabled={emergencyLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {emergencyLoading ? "Abrindo..." : "Confirmar Emergência"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </>
   );

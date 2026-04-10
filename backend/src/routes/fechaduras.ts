@@ -237,6 +237,76 @@ router.get("/status/:id", authMiddleware, async (req: Request, res: Response) =>
   }
 });
 
+// ============================================
+// POST /api/fechaduras/emergencia  (JWT auth — superadmin abre TODAS as fechaduras)
+// ============================================
+router.post("/emergencia", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const role = req.user?.role;
+    if (role !== "superadmin") {
+      return res.status(403).json({ success: false, error: "Acesso restrito ao superadministrador." });
+    }
+
+    const companyId = req.body.company_id as string | undefined;
+
+    // Buscar todas as portas com lock_id configurado
+    let query = `
+      SELECT DISTINCT ld.lock_id, ld.id as door_id, ld.door_number, ld.label, 
+             ld.occupied_by_person, l.name as locker_name, l.company_id
+      FROM locker_doors ld
+      JOIN lockers l ON l.id = ld.locker_id
+      WHERE ld.lock_id IS NOT NULL
+    `;
+    const params: any[] = [];
+
+    if (companyId) {
+      params.push(companyId);
+      query += ` AND l.company_id = $${params.length}`;
+    }
+
+    const { rows: doors } = await pool.query(query, params);
+
+    if (doors.length === 0) {
+      return res.status(404).json({ success: false, error: "Nenhuma fechadura encontrada para abertura." });
+    }
+
+    // Criar comandos de abertura para todas as fechaduras
+    const commandIds: number[] = [];
+    for (const door of doors) {
+      const personId = isUuid(door.occupied_by_person) ? door.occupied_by_person : null;
+      const id = await enqueueOpenCommand(door.lock_id, "emergencia", personId);
+      commandIds.push(id);
+    }
+
+    // Log de auditoria
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, action, resource_type, category, details, company_id)
+       VALUES ($1, 'emergency_unlock_all', 'fechadura', 'seguranca', $2, $3)`,
+      [
+        req.user!.user_id,
+        JSON.stringify({
+          total_locks: doors.length,
+          command_ids: commandIds,
+          company_id: companyId || "all",
+        }),
+        companyId || null,
+      ]
+    );
+
+    console.warn(`[FECHADURAS] ⚠️ EMERGÊNCIA: Superadmin ${req.user!.email} abriu ${doors.length} fechaduras.`);
+
+    res.status(201).json({
+      success: true,
+      message: `Comando de emergência enviado para ${doors.length} fechadura(s).`,
+      total: doors.length,
+      command_ids: commandIds,
+    });
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro no comando de emergência:", err);
+    res.status(500).json({ success: false, error: "Erro ao executar comando de emergência" });
+  }
+});
+
 // Demais rotas de fechaduras passam pelo middleware de API Key (agente IoT)
 router.use(apiKeyMiddleware);
 
