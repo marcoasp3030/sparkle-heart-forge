@@ -440,58 +440,7 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const handleEmergencyUnlock = async () => {
-    setEmergencyLoading(true);
-    try {
-      const token = localStorage.getItem("auth_token");
-      console.log(`[EMERGENCIA] Disparando comando. Token presente: ${!!token}, tamanho: ${token?.length || 0}`);
-
-      const payload: any = {};
-      if (selectedCompany) payload.company_id = selectedCompany.id;
-
-      let emergencyApiKey = "";
-      try {
-        const { data: settingsData } = await api.get("/settings", {
-          params: { key: "fechaduras_api_key" },
-        });
-        const rows = Array.isArray(settingsData) ? settingsData : settingsData?.data || [];
-        const setting = rows.find?.((s: any) => s.key === "fechaduras_api_key");
-        emergencyApiKey =
-          typeof setting?.value === "string"
-            ? setting.value
-            : setting?.value?.key || "";
-
-        console.log(
-          `[EMERGENCIA] API key fallback presente: ${!!emergencyApiKey}, tamanho: ${emergencyApiKey.length}`
-        );
-      } catch (settingsErr) {
-        console.warn("[EMERGENCIA] Não foi possível carregar API key de fallback:", settingsErr);
-      }
-
-      const { data } = await api.post("/fechaduras/emergencia", payload, {
-        headers: emergencyApiKey ? { "X-API-Key": emergencyApiKey } : undefined,
-      });
-
-      console.log("[EMERGENCIA] Resposta OK:", data);
-
-      toast({
-        title: "⚠️ Emergência Ativada",
-        description: data.message || `${data.total} fechadura(s) sendo abertas.`,
-      });
-      playSound("release");
-    } catch (err: any) {
-      console.error("[EMERGENCIA] Erro completo:", err);
-      console.error("[EMERGENCIA] Status:", err.status, "Mensagem:", err.message);
-      toast({
-        title: "Erro na emergência",
-        description: `${err.message || "Erro desconhecido"} (status: ${err.status || "?"})`,
-        variant: "destructive",
-      });
-    } finally {
-      setEmergencyLoading(false);
-      setEmergencyDialogOpen(false);
-    }
-  };
+  // Emergência agora é gerenciada pelo componente BotaoEmergencia
 
   // Unique locations for filter
   const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
