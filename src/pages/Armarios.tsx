@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets, ShieldAlert } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
-import api from "@/lib/api";
+import api, { post } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -456,13 +456,10 @@ export default function LockersPage() {
   const handleEmergencyUnlock = async () => {
     setEmergencyLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const payload: any = {};
       if (selectedCompany) payload.company_id = selectedCompany.id;
 
-      const { data } = await api.post("/fechaduras/emergencia", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const data = await post("/fechaduras/emergencia", payload);
 
       toast({
         title: "⚠️ Emergência Ativada",
@@ -472,7 +469,7 @@ export default function LockersPage() {
     } catch (err: any) {
       toast({
         title: "Erro na emergência",
-        description: err.response?.data?.error || "Não foi possível executar o comando.",
+        description: err.message || "Não foi possível executar o comando.",
         variant: "destructive",
       });
     } finally {
