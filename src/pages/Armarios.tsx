@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets, ShieldAlert } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
-import api, { post } from "@/lib/api";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -1055,36 +1055,6 @@ export default function LockersPage() {
 
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
-
-      {/* Emergency Unlock Dialog */}
-      <AlertDialog open={emergencyDialogOpen} onOpenChange={setEmergencyDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <ShieldAlert className="h-5 w-5" />
-              Abertura de Emergência
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block font-semibold">
-                Esta ação abrirá TODAS as fechaduras{selectedCompany ? ` da empresa "${selectedCompany.name}"` : ""} simultaneamente.
-              </span>
-              <span className="block">
-                Use apenas em situações reais de emergência. Esta ação será registrada nos logs de auditoria.
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={emergencyLoading}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleEmergencyUnlock}
-              disabled={emergencyLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {emergencyLoading ? "Abrindo..." : "Confirmar Emergência"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
     </>
   );
