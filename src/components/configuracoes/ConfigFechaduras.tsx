@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Lock, Send, RefreshCw, CheckCircle, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Lock, Send, RefreshCw, CheckCircle, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert, Wifi, WifiOff } from "lucide-react";
 import api from "@/lib/api";
 
 interface Comando {
@@ -87,6 +87,13 @@ export default function ConfigFechaduras() {
   const [loadingKey, setLoadingKey] = useState(true);
   const [keyEnabled, setKeyEnabled] = useState(false);
 
+  const [agentStatus, setAgentStatus] = useState<{
+    online: boolean;
+    last_seen: string | null;
+    seconds_ago: number;
+    message: string;
+  } | null>(null);
+
   const baseUrl = String(import.meta.env.VITE_API_URL || window.location.origin).replace(/\/+$/, "");
   const ultimoComandoStatus = ultimoComando
     ? statusMap[ultimoComando.status] || { label: ultimoComando.status, variant: "secondary" as const }
@@ -94,6 +101,9 @@ export default function ConfigFechaduras() {
 
   useEffect(() => {
     loadApiKey();
+    fetchAgentStatus();
+    const interval = setInterval(fetchAgentStatus, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
