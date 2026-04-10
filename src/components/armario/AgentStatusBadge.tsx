@@ -1,24 +1,36 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Activity, XCircle } from "lucide-react";
-import api from "@/lib/api";
 
 interface AgentStatusBadgeProps {
   /** Intervalo de polling em ms (padrão: 5000) */
   pollInterval?: number;
-  /** Exibir apenas para admins? Se false, sempre exibe */
   className?: string;
 }
+
+const resolveBaseUrl = () => {
+  const raw = String(import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+  if (raw) return /(^|\/)api(\/|$)/i.test(raw) ? raw : `${raw}/api`;
+  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  return isLocal ? "/api" : "https://pblocker.sistembr.com.br/api";
+};
 
 export function AgentStatusBadge({ pollInterval = 5000, className }: AgentStatusBadgeProps) {
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    const baseUrl = resolveBaseUrl();
+
     const fetchStatus = async () => {
       try {
-        const { data } = await api.get("/fechaduras/agent-status");
-        // A API retorna { online: true/false } ou { status: "online"/"offline" }
+        const token = localStorage.getItem("auth_token") || "";
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(`${baseUrl}/fechaduras/agent-status`, { headers });
+        if (!res.ok) { setIsOnline(false); setLoading(false); return; }
+        const data = await res.json();
         setIsOnline(data.online === true || data.status === "online");
       } catch {
         setIsOnline(false);
