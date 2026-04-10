@@ -454,7 +454,7 @@ export default function LockersPage() {
         title: "⚠️ Emergência Ativada",
         description: data.message || `${data.total} fechadura(s) sendo abertas.`,
       });
-      playSound("success");
+      playSound("release");
     } catch (err: any) {
       toast({
         title: "Erro na emergência",
