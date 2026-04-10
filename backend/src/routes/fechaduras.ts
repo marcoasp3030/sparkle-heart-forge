@@ -241,9 +241,11 @@ router.get("/status/:id", authMiddleware, async (req: Request, res: Response) =>
 // POST /api/fechaduras/emergencia  (JWT auth — superadmin abre TODAS as fechaduras)
 // ============================================
 router.post("/emergencia", authMiddleware, async (req: Request, res: Response) => {
+  console.log(`[FECHADURAS] POST /emergencia — user: ${req.user?.email}, role: ${req.user?.role}, user_id: ${req.user?.user_id}`);
   try {
     const role = req.user?.role;
     if (role !== "superadmin") {
+      console.warn(`[FECHADURAS] /emergencia NEGADO — role=${role}, esperado=superadmin`);
       return res.status(403).json({ success: false, error: "Acesso restrito ao superadministrador." });
     }
 
