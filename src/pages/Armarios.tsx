@@ -53,6 +53,8 @@ export default function LockersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
   const { play: playSound } = useFeedbackSonoro();
 
