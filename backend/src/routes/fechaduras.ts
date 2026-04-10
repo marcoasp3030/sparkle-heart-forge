@@ -315,6 +315,51 @@ router.post("/emergencia", authMiddleware, async (req: Request, res: Response) =
 router.use(apiKeyMiddleware);
 
 // ============================================
+// POST /api/fechaduras/abrir-tudo  (API Key auth — abertura emergencial massiva)
+// Compatível com o protocolo do agente Python (acao: "abrir_tudo", lock_id: 0)
+// ============================================
+router.post("/abrir-tudo", async (req: Request, res: Response) => {
+  console.log(`[FECHADURAS] POST /abrir-tudo — autenticado via API Key`);
+  try {
+    // Contar portas afetadas
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(DISTINCT ld.lock_id) as total
+       FROM locker_doors ld
+       JOIN lockers l ON l.id = ld.locker_id
+       WHERE ld.lock_id IS NOT NULL`
+    );
+    const totalLocks = parseInt(countRows[0]?.total || "0", 10);
+
+    // Inserir UM ÚNICO comando "abrir_tudo" na fila
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+       VALUES ('abrir_tudo', 0, 'pendente', 'emergencia')
+       RETURNING id`
+    );
+    const commandId = rows[0].id;
+
+    // Log de auditoria
+    await pool.query(
+      `INSERT INTO audit_logs (action, resource_type, category, details)
+       VALUES ('emergency_unlock_all', 'fechadura', 'seguranca', $1)`,
+      [JSON.stringify({ total_locks: totalLocks, command_id: commandId, acao: "abrir_tudo", via: "api_key" })]
+    );
+
+    console.warn(`[FECHADURAS] ⚠️ EMERGÊNCIA via API Key: abrir_tudo (cmd #${commandId}, ~${totalLocks} fechaduras)`);
+
+    res.status(201).json({
+      success: true,
+      message: `Comando de emergência (abrir_tudo) enviado. ~${totalLocks} fechadura(s) serão abertas pelo agente.`,
+      total: totalLocks,
+      command_id: commandId,
+    });
+  } catch (err: any) {
+    console.error("[FECHADURAS] Erro no /abrir-tudo:", err);
+    res.status(500).json({ success: false, error: "Erro ao executar comando de emergência" });
+  }
+});
+
+// ============================================
 // POST /api/fechaduras/abrir
 // ============================================
 const abrirSchema = z.object({

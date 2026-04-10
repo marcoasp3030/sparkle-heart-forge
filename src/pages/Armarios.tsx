@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets, ShieldAlert } from "lucide-react";
+import { Plus, Lock, Unlock, Wrench, Package, Search, Trash2, LayoutGrid, List, Filter, ArrowUpDown, MapPin, ChevronDown, ChevronLeft, ChevronRight, FileBarChart, CalendarClock, Droplets } from "lucide-react";
 import { supabase } from "@/lib/supabase-compat";
-import api, { post } from "@/lib/api";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/ContextoAutenticacao";
 import { useCompany } from "@/contexts/ContextoEmpresa";
@@ -29,6 +29,8 @@ import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
 import { useFeedbackSonoro } from "@/hooks/useFeedbackSonoro";
+import { AgentStatusBadge } from "@/components/armario/AgentStatusBadge";
+import { BotaoEmergencia } from "@/components/armario/BotaoEmergencia";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
@@ -53,9 +55,6 @@ export default function LockersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
-  const [emergencyLoading, setEmergencyLoading] = useState(false);
-  const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
   const { play: playSound } = useFeedbackSonoro();
 
@@ -157,17 +156,7 @@ export default function LockersPage() {
   }, [user, fetchLockers, selectedCompany]);
 
   // Agent heartbeat polling
-  useEffect(() => {
-    if (!isAdmin) return;
-    const checkAgent = () => {
-      api.get("/fechaduras/agent-status")
-        .then(({ data }) => setAgentOnline(data.online))
-        .catch(() => setAgentOnline(false));
-    };
-    checkAgent();
-    const interval = setInterval(checkAgent, 15000);
-    return () => clearInterval(interval);
-  }, [isAdmin]);
+  // Agent heartbeat polling agora é feito pelo componente AgentStatusBadge
 
   const handleCreateLocker = async () => {
     if (!newName.trim()) return;
@@ -453,58 +442,7 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
-  const handleEmergencyUnlock = async () => {
-    setEmergencyLoading(true);
-    try {
-      const token = localStorage.getItem("auth_token");
-      console.log(`[EMERGENCIA] Disparando comando. Token presente: ${!!token}, tamanho: ${token?.length || 0}`);
-
-      const payload: any = {};
-      if (selectedCompany) payload.company_id = selectedCompany.id;
-
-      let emergencyApiKey = "";
-      try {
-        const { data: settingsData } = await api.get("/settings", {
-          params: { key: "fechaduras_api_key" },
-        });
-        const rows = Array.isArray(settingsData) ? settingsData : settingsData?.data || [];
-        const setting = rows.find?.((s: any) => s.key === "fechaduras_api_key");
-        emergencyApiKey =
-          typeof setting?.value === "string"
-            ? setting.value
-            : setting?.value?.key || "";
-
-        console.log(
-          `[EMERGENCIA] API key fallback presente: ${!!emergencyApiKey}, tamanho: ${emergencyApiKey.length}`
-        );
-      } catch (settingsErr) {
-        console.warn("[EMERGENCIA] Não foi possível carregar API key de fallback:", settingsErr);
-      }
-
-      const { data } = await api.post("/fechaduras/emergencia", payload, {
-        headers: emergencyApiKey ? { "X-API-Key": emergencyApiKey } : undefined,
-      });
-
-      console.log("[EMERGENCIA] Resposta OK:", data);
-
-      toast({
-        title: "⚠️ Emergência Ativada",
-        description: data.message || `${data.total} fechadura(s) sendo abertas.`,
-      });
-      playSound("release");
-    } catch (err: any) {
-      console.error("[EMERGENCIA] Erro completo:", err);
-      console.error("[EMERGENCIA] Status:", err.status, "Mensagem:", err.message);
-      toast({
-        title: "Erro na emergência",
-        description: `${err.message || "Erro desconhecido"} (status: ${err.status || "?"})`,
-        variant: "destructive",
-      });
-    } finally {
-      setEmergencyLoading(false);
-      setEmergencyDialogOpen(false);
-    }
-  };
+  // Emergência agora é gerenciada pelo componente BotaoEmergencia
 
   // Unique locations for filter
   const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
@@ -573,44 +511,14 @@ export default function LockersPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-xl md:text-2xl font-bold text-foreground">Armários</h1>
-              {isAdmin && agentOnline !== null && (
-                <Badge
-                  variant={agentOnline ? "outline" : "destructive"}
-                  className={`text-[10px] gap-1 ${agentOnline ? "border-green-500/50 text-green-600" : ""}`}
-                >
-                  {agentOnline ? (
-                    <>
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
-                      </span>
-                      Agente Online
-                    </>
-                  ) : (
-                    <>
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
-                      </span>
-                      Agente Offline
-                    </>
-                  )}
-                </Badge>
-              )}
+              {isAdmin && <AgentStatusBadge />}
             </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2">
               {isSuperAdmin && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="gap-1.5 rounded-xl text-xs md:text-sm"
-                  onClick={() => setEmergencyDialogOpen(true)}
-                >
-                  <ShieldAlert className="h-4 w-4" />
-                  <span className="hidden sm:inline">Emergência</span>
-                </Button>
+                <BotaoEmergencia companyId={selectedCompany?.id} />
               )}
               <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
                 <FileBarChart className="h-4 w-4" />
@@ -1149,36 +1057,6 @@ export default function LockersPage() {
 
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
-
-      {/* Emergency Unlock Dialog */}
-      <AlertDialog open={emergencyDialogOpen} onOpenChange={setEmergencyDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <ShieldAlert className="h-5 w-5" />
-              Abertura de Emergência
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block font-semibold">
-                Esta ação abrirá TODAS as fechaduras{selectedCompany ? ` da empresa "${selectedCompany.name}"` : ""} simultaneamente.
-              </span>
-              <span className="block">
-                Use apenas em situações reais de emergência. Esta ação será registrada nos logs de auditoria.
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={emergencyLoading}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleEmergencyUnlock}
-              disabled={emergencyLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {emergencyLoading ? "Abrindo..." : "Confirmar Emergência"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
     </>
   );
