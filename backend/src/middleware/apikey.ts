@@ -17,6 +17,11 @@ export async function apiKeyMiddleware(
   res: Response,
   next: NextFunction
 ) {
+  // Se já autenticado via JWT (authMiddleware), pular validação de API Key
+  if (req.user) {
+    return next();
+  }
+
   try {
     // Buscar a API key configurada
     const { rows } = await pool.query(
