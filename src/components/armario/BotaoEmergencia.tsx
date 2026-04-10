@@ -18,63 +18,216 @@ import api from "@/lib/api";
 interface BotaoEmergenciaProps {
   /** company_id para filtrar (opcional) */
   companyId?: string;
+  /** lock_ids já carregados na tela para fallback compatível com VPS legada */
+  lockIds?: number[];
   /** Callback após sucesso */
   onSuccess?: () => void;
   className?: string;
 }
 
-export function BotaoEmergencia({ companyId, onSuccess, className }: BotaoEmergenciaProps) {
+type EmergencyCommandResponse = {
+  success?: boolean;
+  message?: string;
+  total?: number;
+  command_id?: number;
+  sent?: number;
+  failed?: number;
+  fallback?: "abrir-admin";
+};
+
+type SettingsRow = {
+  key?: string;
+  value?: unknown;
+};
+
+const buildApiUrl = (path: string) => {
+  const baseUrl = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+  return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
+const getStoredToken = () => localStorage.getItem("auth_token")?.trim() || "";
+
+const extractSettingsRows = (payload: unknown): SettingsRow[] => {
+  if (Array.isArray(payload)) return payload as SettingsRow[];
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: SettingsRow[] }).data;
+  }
+  return [];
+};
+
+const extractApiKey = (payload: unknown) => {
+  const setting = extractSettingsRows(payload).find((row) => row.key === "fechaduras_api_key");
+  const rawValue = setting?.value;
+
+  if (typeof rawValue === "string") return rawValue;
+  if (rawValue && typeof rawValue === "object" && typeof (rawValue as { key?: unknown }).key === "string") {
+    return (rawValue as { key: string }).key;
+  }
+
+  return "";
+};
+
+const extractErrorMessage = (payload: unknown, fallback: string) => {
+  if (payload && typeof payload === "object") {
+    const data = payload as Record<string, unknown>;
+    if (typeof data.error === "string") return data.error;
+    if (typeof data.message === "string") return data.message;
+  }
+
+  if (typeof payload === "string" && payload.trim()) return payload;
+  return fallback;
+};
+
+const postCommand = async (
+  path: string,
+  body: Record<string, unknown>,
+  extraHeaders: Record<string, string> = {}
+) => {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    ...extraHeaders,
+  });
+
+  const token = getStoredToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(buildApiUrl(path), {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  const responseBody = contentType.includes("application/json")
+    ? await response.json().catch(() => null)
+    : await response.text().catch(() => "");
+
+  if (!response.ok) {
+    const error = new Error(
+      extractErrorMessage(responseBody, `Falha ao executar ${path}`)
+    ) as Error & { status?: number; body?: unknown };
+    error.status = response.status;
+    error.body = responseBody;
+    throw error;
+  }
+
+  return (responseBody || {}) as EmergencyCommandResponse;
+};
+
+const enqueueAdminFallback = async (lockIds: number[]) => {
+  const uniqueLockIds = [...new Set(lockIds.filter((lockId): lockId is number => Number.isInteger(lockId) && lockId > 0))];
+
+  if (!uniqueLockIds.length) {
+    throw new Error("Nenhuma fechadura com lock_id configurado foi encontrada para a abertura de emergência.");
+  }
+
+  let sent = 0;
+  const errors: string[] = [];
+  const chunkSize = 10;
+
+  for (let index = 0; index < uniqueLockIds.length; index += chunkSize) {
+    const chunk = uniqueLockIds.slice(index, index + chunkSize);
+    const results = await Promise.allSettled(
+      chunk.map((lockId) =>
+        postCommand("/fechaduras/abrir-admin", {
+          lock_id: lockId,
+          origem: "emergencia",
+        })
+      )
+    );
+
+    results.forEach((result, resultIndex) => {
+      if (result.status === "fulfilled") {
+        sent += 1;
+        return;
+      }
+
+      errors.push(`Lock ${chunk[resultIndex]}: ${result.reason?.message || "erro desconhecido"}`);
+    });
+  }
+
+  if (!sent) {
+    throw new Error(errors[0] || "Nenhum comando pôde ser enviado.");
+  }
+
+  return {
+    success: errors.length === 0,
+    message: errors.length
+      ? `Fallback enviado para ${sent} de ${uniqueLockIds.length} fechadura(s).`
+      : `Fallback enviado para ${uniqueLockIds.length} fechadura(s).`,
+    sent,
+    failed: errors.length,
+    total: uniqueLockIds.length,
+    fallback: "abrir-admin" as const,
+  } satisfies EmergencyCommandResponse;
+};
+
+export function BotaoEmergencia({ companyId, lockIds = [], onSuccess, className }: BotaoEmergenciaProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
   const handleOpenAll = async () => {
     setIsLoading(true);
     try {
-      // Buscar a API Key configurada para autenticação
       let apiKey = "";
       try {
         const { data: settingsData } = await api.get("/settings", {
           params: { key: "fechaduras_api_key" },
         });
-        const rows = Array.isArray(settingsData) ? settingsData : settingsData?.data || [];
-        const setting = rows.find?.((s: any) => s.key === "fechaduras_api_key");
-        apiKey = typeof setting?.value === "string"
-          ? setting.value
-          : setting?.value?.key || "";
+        apiKey = extractApiKey(settingsData);
       } catch {
         console.warn("[EMERGENCIA] Não foi possível carregar API Key de fallback");
       }
 
-      const payload: any = {};
+      const payload: Record<string, unknown> = {};
       if (companyId) payload.company_id = companyId;
+      const apiKeyHeaders = apiKey ? { "X-API-Key": apiKey } : {};
 
-      // Tenta primeiro o endpoint /emergencia (JWT auth)
-      // Se falhar com 403/404, tenta /abrir-tudo (API Key auth)
-      let data: any;
-      try {
-        const response = await api.post("/fechaduras/emergencia", payload);
-        data = response.data;
-      } catch (jwtErr: any) {
-        console.warn("[EMERGENCIA] Falha no endpoint JWT, tentando /abrir-tudo com API Key...", jwtErr?.status);
-        
-        const headers: any = { "Content-Type": "application/json" };
-        if (apiKey) headers["X-API-Key"] = apiKey;
+      let data: EmergencyCommandResponse | null = null;
+      let lastError: unknown = null;
 
-        const response = await api.post("/fechaduras/abrir-tudo", payload, { headers });
-        data = response.data;
+      for (const endpoint of ["/fechaduras/emergencia", "/fechaduras/abrir-tudo"]) {
+        try {
+          data = await postCommand(endpoint, payload, apiKeyHeaders);
+          break;
+        } catch (error) {
+          lastError = error;
+          console.warn(
+            `[EMERGENCIA] Falha em ${endpoint}, tentando próximo fallback...`,
+            (error as { status?: number })?.status || 0
+          );
+        }
+      }
+
+      if (!data) {
+        try {
+          data = await enqueueAdminFallback(lockIds);
+        } catch (fallbackError) {
+          throw fallbackError instanceof Error ? fallbackError : lastError;
+        }
       }
 
       console.log("[EMERGENCIA] Sucesso:", data);
 
-      toast.success("⚠️ Comando de Emergência Enviado!", {
-        description: data.message || `O agente iniciará a abertura em instantes.`,
-      });
+      if (data.failed) {
+        toast.warning("⚠️ Emergência enviada parcialmente", {
+          description: data.message || `Comando enviado para ${data.sent} de ${data.total} fechadura(s).`,
+        });
+      } else {
+        toast.success("⚠️ Comando de Emergência Enviado!", {
+          description: data.message || `O agente iniciará a abertura em instantes.`,
+        });
+      }
 
       onSuccess?.();
     } catch (err: any) {
       console.error("[EMERGENCIA] Erro final:", err);
       toast.error("Falha ao executar emergência", {
-        description: err?.response?.data?.error || err?.message || "Verifique a conexão com o servidor.",
+        description:
+          err?.message ||
+          extractErrorMessage(err?.body, "Verifique a conexão com o servidor."),
       });
     } finally {
       setIsLoading(false);
