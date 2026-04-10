@@ -54,7 +54,6 @@ export default function LockersPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
-  const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
   const { play: playSound } = useFeedbackSonoro();
 
   // New locker form
