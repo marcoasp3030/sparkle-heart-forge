@@ -456,13 +456,10 @@ export default function LockersPage() {
   const handleEmergencyUnlock = async () => {
     setEmergencyLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const payload: any = {};
       if (selectedCompany) payload.company_id = selectedCompany.id;
 
-      const { data } = await api.post("/fechaduras/emergencia", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const data = await post("/fechaduras/emergencia", payload);
 
       toast({
         title: "⚠️ Emergência Ativada",
@@ -472,7 +469,7 @@ export default function LockersPage() {
     } catch (err: any) {
       toast({
         title: "Erro na emergência",
-        description: err.response?.data?.error || "Não foi possível executar o comando.",
+        description: err.message || "Não foi possível executar o comando.",
         variant: "destructive",
       });
     } finally {
