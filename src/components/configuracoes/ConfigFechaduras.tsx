@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Lock, Send, RefreshCw, CheckCircle, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Lock, Send, RefreshCw, CheckCircle, Copy, Key, Eye, EyeOff, ShieldCheck, ShieldAlert, Wifi, WifiOff } from "lucide-react";
 import api from "@/lib/api";
 
 interface Comando {
@@ -87,6 +87,13 @@ export default function ConfigFechaduras() {
   const [loadingKey, setLoadingKey] = useState(true);
   const [keyEnabled, setKeyEnabled] = useState(false);
 
+  const [agentStatus, setAgentStatus] = useState<{
+    online: boolean;
+    last_seen: string | null;
+    seconds_ago: number;
+    message: string;
+  } | null>(null);
+
   const baseUrl = String(import.meta.env.VITE_API_URL || window.location.origin).replace(/\/+$/, "");
   const ultimoComandoStatus = ultimoComando
     ? statusMap[ultimoComando.status] || { label: ultimoComando.status, variant: "secondary" as const }
@@ -94,6 +101,9 @@ export default function ConfigFechaduras() {
 
   useEffect(() => {
     loadApiKey();
+    fetchAgentStatus();
+    const interval = setInterval(fetchAgentStatus, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -107,6 +117,15 @@ export default function ConfigFechaduras() {
 
     return () => window.clearInterval(intervalId);
   }, [ultimoComando?.id, ultimoComando?.status]);
+
+  const fetchAgentStatus = async () => {
+    try {
+      const { data } = await api.get("/fechaduras/agent-status");
+      setAgentStatus(data);
+    } catch {
+      setAgentStatus({ online: false, last_seen: null, seconds_ago: 0, message: "Erro ao consultar status do agente." });
+    }
+  };
 
   const loadApiKey = async () => {
     setLoadingKey(true);
@@ -261,7 +280,7 @@ export default function ConfigFechaduras() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground font-medium">Base URL</p>
               <p className="text-sm font-mono mt-1 break-all">{baseUrl}/api</p>
@@ -285,6 +304,33 @@ export default function ConfigFechaduras() {
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground font-medium">Polling recomendado</p>
               <p className="text-sm mt-1">GET /comandos a cada 2s</p>
+            </div>
+            <div className={`p-4 rounded-lg border ${agentStatus?.online ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"}`}>
+              <p className="text-xs text-muted-foreground font-medium">Status do Agente</p>
+              <div className="flex items-center gap-2 mt-1">
+                {agentStatus?.online ? (
+                  <>
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                    </span>
+                    <span className="text-sm text-green-600 font-medium">Online</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="h-4 w-4 text-destructive" />
+                    <span className="text-sm text-destructive font-medium">Offline</span>
+                  </>
+                )}
+              </div>
+              {agentStatus?.last_seen && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Último sinal: {new Date(agentStatus.last_seen).toLocaleString("pt-BR")}
+                </p>
+              )}
+              {!agentStatus?.last_seen && agentStatus && (
+                <p className="text-[10px] text-muted-foreground mt-1">Nunca conectou</p>
+              )}
             </div>
           </div>
         </CardContent>

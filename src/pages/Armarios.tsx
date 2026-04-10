@@ -55,6 +55,7 @@ export default function LockersPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
   const { active: feedbackActive, trigger: triggerFeedback } = useFeedbackSucesso();
   const { play: playSound } = useFeedbackSonoro();
 
@@ -154,6 +155,19 @@ export default function LockersPage() {
         });
     }
   }, [user, fetchLockers, selectedCompany]);
+
+  // Agent heartbeat polling
+  useEffect(() => {
+    if (!isAdmin) return;
+    const checkAgent = () => {
+      api.get("/fechaduras/agent-status")
+        .then(({ data }) => setAgentOnline(data.online))
+        .catch(() => setAgentOnline(false));
+    };
+    checkAgent();
+    const interval = setInterval(checkAgent, 15000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   const handleCreateLocker = async () => {
     if (!newName.trim()) return;
@@ -532,7 +546,32 @@ export default function LockersPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Armários</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">Armários</h1>
+              {isAdmin && agentOnline !== null && (
+                <Badge
+                  variant={agentOnline ? "outline" : "destructive"}
+                  className={`text-[10px] gap-1 ${agentOnline ? "border-green-500/50 text-green-600" : ""}`}
+                >
+                  {agentOnline ? (
+                    <>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                      </span>
+                      Agente Online
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
+                      </span>
+                      Agente Offline
+                    </>
+                  )}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Visualize e gerencie os armários inteligentes.</p>
           </div>
           {isAdmin && (
