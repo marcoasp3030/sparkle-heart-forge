@@ -29,6 +29,8 @@ import DetalhePortaPainel, { LockerDoorDataExtended } from "@/components/armario
 import RelatorioOcupacao from "@/components/armario/RelatorioOcupacao";
 import FeedbackSucessoOverlay, { useFeedbackSucesso } from "@/components/armario/FeedbackSucesso";
 import { useFeedbackSonoro } from "@/hooks/useFeedbackSonoro";
+import { AgentStatusBadge } from "@/components/armario/AgentStatusBadge";
+import { BotaoEmergencia } from "@/components/armario/BotaoEmergencia";
 
 interface LockerWithDoors extends LockerData {
   doors: LockerDoorData[];
