@@ -537,6 +537,17 @@ export default function LockersPage() {
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-1.5 rounded-xl text-xs md:text-sm"
+                  onClick={() => setEmergencyDialogOpen(true)}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                  <span className="hidden sm:inline">Emergência</span>
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
                 <FileBarChart className="h-4 w-4" />
                 <span className="hidden sm:inline">Relatório</span>
