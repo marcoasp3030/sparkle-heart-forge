@@ -1085,6 +1085,36 @@ export default function LockersPage() {
 
       {/* Occupation Report */}
       <RelatorioOcupacao open={reportOpen} onOpenChange={setReportOpen} />
+
+      {/* Emergency Unlock Dialog */}
+      <AlertDialog open={emergencyDialogOpen} onOpenChange={setEmergencyDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="h-5 w-5" />
+              Abertura de Emergência
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block font-semibold">
+                Esta ação abrirá TODAS as fechaduras{selectedCompany ? ` da empresa "${selectedCompany.name}"` : ""} simultaneamente.
+              </span>
+              <span className="block">
+                Use apenas em situações reais de emergência. Esta ação será registrada nos logs de auditoria.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emergencyLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEmergencyUnlock}
+              disabled={emergencyLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {emergencyLoading ? "Abrindo..." : "Confirmar Emergência"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </>
   );
