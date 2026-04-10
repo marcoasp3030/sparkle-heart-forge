@@ -439,6 +439,34 @@ export default function LockersPage() {
     setActionLoading(false);
   };
 
+  const handleEmergencyUnlock = async () => {
+    setEmergencyLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload: any = {};
+      if (selectedCompany) payload.company_id = selectedCompany.id;
+
+      const { data } = await api.post("/fechaduras/emergencia", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast({
+        title: "⚠️ Emergência Ativada",
+        description: data.message || `${data.total} fechadura(s) sendo abertas.`,
+      });
+      playSound("success");
+    } catch (err: any) {
+      toast({
+        title: "Erro na emergência",
+        description: err.response?.data?.error || "Não foi possível executar o comando.",
+        variant: "destructive",
+      });
+    } finally {
+      setEmergencyLoading(false);
+      setEmergencyDialogOpen(false);
+    }
+  };
+
   // Unique locations for filter
   const uniqueLocations = [...new Set(lockers.map((l) => l.location).filter(Boolean))];
 
