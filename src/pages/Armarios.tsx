@@ -458,12 +458,33 @@ export default function LockersPage() {
     try {
       const token = localStorage.getItem("auth_token");
       console.log(`[EMERGENCIA] Disparando comando. Token presente: ${!!token}, tamanho: ${token?.length || 0}`);
-      
+
       const payload: any = {};
       if (selectedCompany) payload.company_id = selectedCompany.id;
 
-      const data = await post("/fechaduras/emergencia", payload);
-      
+      let emergencyApiKey = "";
+      try {
+        const { data: settingsData } = await api.get("/settings", {
+          params: { key: "fechaduras_api_key" },
+        });
+        const rows = Array.isArray(settingsData) ? settingsData : settingsData?.data || [];
+        const setting = rows.find?.((s: any) => s.key === "fechaduras_api_key");
+        emergencyApiKey =
+          typeof setting?.value === "string"
+            ? setting.value
+            : setting?.value?.key || "";
+
+        console.log(
+          `[EMERGENCIA] API key fallback presente: ${!!emergencyApiKey}, tamanho: ${emergencyApiKey.length}`
+        );
+      } catch (settingsErr) {
+        console.warn("[EMERGENCIA] Não foi possível carregar API key de fallback:", settingsErr);
+      }
+
+      const { data } = await api.post("/fechaduras/emergencia", payload, {
+        headers: emergencyApiKey ? { "X-API-Key": emergencyApiKey } : undefined,
+      });
+
       console.log("[EMERGENCIA] Resposta OK:", data);
 
       toast({
