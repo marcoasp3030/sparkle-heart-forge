@@ -118,6 +118,15 @@ export default function ConfigFechaduras() {
     return () => window.clearInterval(intervalId);
   }, [ultimoComando?.id, ultimoComando?.status]);
 
+  const fetchAgentStatus = async () => {
+    try {
+      const { data } = await api.get("/fechaduras/agent-status");
+      setAgentStatus(data);
+    } catch {
+      setAgentStatus({ online: false, last_seen: null, seconds_ago: 0, message: "Erro ao consultar status do agente." });
+    }
+  };
+
   const loadApiKey = async () => {
     setLoadingKey(true);
     try {
