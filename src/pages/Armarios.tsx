@@ -501,6 +501,18 @@ export default function LockersPage() {
     { label: "Agendados", value: doorCounts.scheduled, icon: CalendarClock, accent: "violet" },
   ];
 
+  const emergencyLockIds = useMemo(
+    () => [
+      ...new Set(
+        lockers
+          .flatMap((locker) => locker.doors)
+          .map((door) => door.lock_id)
+          .filter((lockId): lockId is number => Number.isInteger(lockId) && lockId > 0)
+      ),
+    ],
+    [lockers]
+  );
+
   return (
     <>
     <FeedbackSucessoOverlay active={feedbackActive} />
@@ -518,7 +530,7 @@ export default function LockersPage() {
           {isAdmin && (
             <div className="flex items-center gap-2">
               {isSuperAdmin && (
-                <BotaoEmergencia companyId={selectedCompany?.id} />
+                <BotaoEmergencia companyId={selectedCompany?.id} lockIds={emergencyLockIds} />
               )}
               <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs md:text-sm" onClick={() => setReportOpen(true)}>
                 <FileBarChart className="h-4 w-4" />
