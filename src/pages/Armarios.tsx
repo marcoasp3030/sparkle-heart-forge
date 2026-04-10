@@ -156,6 +156,19 @@ export default function LockersPage() {
     }
   }, [user, fetchLockers, selectedCompany]);
 
+  // Agent heartbeat polling
+  useEffect(() => {
+    if (!isAdmin) return;
+    const checkAgent = () => {
+      api.get("/fechaduras/agent-status")
+        .then(({ data }) => setAgentOnline(data.online))
+        .catch(() => setAgentOnline(false));
+    };
+    checkAgent();
+    const interval = setInterval(checkAgent, 15000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
   const handleCreateLocker = async () => {
     if (!newName.trim()) return;
     setActionLoading(true);
