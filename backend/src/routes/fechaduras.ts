@@ -249,10 +249,9 @@ router.post("/emergencia", authMiddleware, async (req: Request, res: Response) =
 
     const companyId = req.body.company_id as string | undefined;
 
-    // Buscar todas as portas com lock_id configurado
-    let query = `
-      SELECT DISTINCT ld.lock_id, ld.id as door_id, ld.door_number, ld.label, 
-             ld.occupied_by_person, l.name as locker_name, l.company_id
+    // Contar portas afetadas para o log de auditoria
+    let countQuery = `
+      SELECT COUNT(DISTINCT ld.lock_id) as total
       FROM locker_doors ld
       JOIN lockers l ON l.id = ld.locker_id
       WHERE ld.lock_id IS NOT NULL
@@ -261,22 +260,24 @@ router.post("/emergencia", authMiddleware, async (req: Request, res: Response) =
 
     if (companyId) {
       params.push(companyId);
-      query += ` AND l.company_id = $${params.length}`;
+      countQuery += ` AND l.company_id = $${params.length}`;
     }
 
-    const { rows: doors } = await pool.query(query, params);
+    const { rows: countRows } = await pool.query(countQuery, params);
+    const totalLocks = parseInt(countRows[0]?.total || "0", 10);
 
-    if (doors.length === 0) {
+    if (totalLocks === 0) {
       return res.status(404).json({ success: false, error: "Nenhuma fechadura encontrada para abertura." });
     }
 
-    // Criar comandos de abertura para todas as fechaduras
-    const commandIds: number[] = [];
-    for (const door of doors) {
-      const personId = isUuid(door.occupied_by_person) ? door.occupied_by_person : null;
-      const id = await enqueueOpenCommand(door.lock_id, "emergencia", personId);
-      commandIds.push(id);
-    }
+    // Inserir UM ÚNICO comando "abrir_tudo" na fila (protocolo 0x64 ZKTeco All-Doors)
+    // O agente Python identifica acao="abrir_tudo" e varre todos os IPs da sub-rede
+    const { rows } = await pool.query(
+      `INSERT INTO comandos_fechadura (acao, lock_id, status, origem)
+       VALUES ('abrir_tudo', 0, 'pendente', 'emergencia')
+       RETURNING id`,
+    );
+    const commandId = rows[0].id;
 
     // Log de auditoria
     await pool.query(
@@ -285,21 +286,22 @@ router.post("/emergencia", authMiddleware, async (req: Request, res: Response) =
       [
         req.user!.user_id,
         JSON.stringify({
-          total_locks: doors.length,
-          command_ids: commandIds,
+          total_locks: totalLocks,
+          command_id: commandId,
           company_id: companyId || "all",
+          acao: "abrir_tudo",
         }),
         companyId || null,
       ]
     );
 
-    console.warn(`[FECHADURAS] ⚠️ EMERGÊNCIA: Superadmin ${req.user!.email} abriu ${doors.length} fechaduras.`);
+    console.warn(`[FECHADURAS] ⚠️ EMERGÊNCIA: Superadmin ${req.user!.email} disparou abrir_tudo (cmd #${commandId}, ~${totalLocks} fechaduras).`);
 
     res.status(201).json({
       success: true,
-      message: `Comando de emergência enviado para ${doors.length} fechadura(s).`,
-      total: doors.length,
-      command_ids: commandIds,
+      message: `Comando de emergência (abrir_tudo) enviado. ~${totalLocks} fechadura(s) serão abertas pelo agente.`,
+      total: totalLocks,
+      command_id: commandId,
     });
   } catch (err: any) {
     console.error("[FECHADURAS] Erro no comando de emergência:", err);
