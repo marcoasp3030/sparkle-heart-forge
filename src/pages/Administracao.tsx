@@ -45,6 +45,51 @@ const Admin = () => {
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  // Criar Superadmin
+  const [openCreate, setOpenCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({ full_name: "", email: "", password: "" });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const createSchema = z.object({
+    full_name: z.string().trim().min(2, "Nome muito curto").max(100),
+    email: z.string().trim().email("E-mail inválido").max(255),
+    password: z.string().min(6, "Senha deve ter ao menos 6 caracteres").max(128),
+  });
+
+  const handleCreateSuperadmin = async () => {
+    const parsed = createSchema.safeParse(form);
+    if (!parsed.success) {
+      const errs: Record<string, string> = {};
+      parsed.error.issues.forEach((i) => { errs[i.path[0] as string] = i.message; });
+      setFormErrors(errs);
+      return;
+    }
+    setFormErrors({});
+    setCreating(true);
+    try {
+      await post("/admin/users", {
+        full_name: parsed.data.full_name,
+        email: parsed.data.email,
+        password: parsed.data.password,
+        role: "superadmin",
+        company_id: null,
+      });
+      toast({ title: "Superadmin criado!", description: `${parsed.data.email} já pode fazer login.` });
+      setForm({ full_name: "", email: "", password: "" });
+      setOpenCreate(false);
+      fetchProfiles();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao criar superadmin",
+        description: err?.message || "Falha desconhecida",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   useEffect(() => {
     const checkAccess = async () => {
       if (!user) return;
@@ -126,6 +171,10 @@ const Admin = () => {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Gerencie permissões e roles dos usuários do sistema.</p>
         </div>
+        <Button onClick={() => setOpenCreate(true)} className="gap-2 gradient-primary border-0 hover:opacity-90">
+          <UserPlus className="h-4 w-4" />
+          Criar Superadmin
+        </Button>
       </motion.div>
 
       {/* Stats */}
