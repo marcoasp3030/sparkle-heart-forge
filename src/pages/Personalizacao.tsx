@@ -165,6 +165,30 @@ export default function Personalizacao() {
     }
   }, [colors]);
 
+  // Live preview do favicon e título da aba
+  useEffect(() => {
+    if (images.favicon_url) {
+      document
+        .querySelectorAll("link[rel~='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']")
+        .forEach((el) => el.parentNode?.removeChild(el));
+      const href = images.favicon_url.includes("?")
+        ? `${images.favicon_url}&v=${Date.now()}`
+        : `${images.favicon_url}?v=${Date.now()}`;
+      ["icon", "shortcut icon", "apple-touch-icon"].forEach((rel) => {
+        const link = document.createElement("link");
+        link.rel = rel;
+        link.href = href;
+        document.head.appendChild(link);
+      });
+    }
+  }, [images.favicon_url]);
+
+  useEffect(() => {
+    if (branding.platform_name?.trim()) {
+      document.title = branding.platform_name.trim();
+    }
+  }, [branding.platform_name]);
+
   const handlePreset = (name: string) => {
     setColors({ ...COLOR_PRESETS[name], preset: name } as any);
   };

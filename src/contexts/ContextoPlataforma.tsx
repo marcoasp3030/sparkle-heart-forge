@@ -114,13 +114,34 @@ function applyThemeColors(colors: ThemeColors) {
 
 function applyFavicon(url: string) {
   if (!url) return;
-  let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-  if (!link) {
-    link = document.createElement("link");
-    link.rel = "icon";
-    document.head.appendChild(link);
+  // Remove ALL existing favicon links to avoid stale entries
+  document
+    .querySelectorAll("link[rel~='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']")
+    .forEach((el) => el.parentNode?.removeChild(el));
+
+  // Cache-bust to force browser refresh
+  const href = url.includes("?") ? `${url}&v=${Date.now()}` : `${url}?v=${Date.now()}`;
+
+  const icon = document.createElement("link");
+  icon.rel = "icon";
+  icon.href = href;
+  document.head.appendChild(icon);
+
+  const shortcut = document.createElement("link");
+  shortcut.rel = "shortcut icon";
+  shortcut.href = href;
+  document.head.appendChild(shortcut);
+
+  const apple = document.createElement("link");
+  apple.rel = "apple-touch-icon";
+  apple.href = href;
+  document.head.appendChild(apple);
+}
+
+function applyDocumentTitle(name: string) {
+  if (name && name.trim()) {
+    document.title = name.trim();
   }
-  link.href = url;
 }
 
 function mergeCompanyBranding(base: PlatformSettings, cb: CompanyBranding | null): PlatformSettings {
@@ -193,7 +214,12 @@ export const PlatformProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     applyThemeColors(effectiveSettings.theme_colors);
     applyFavicon(effectiveSettings.images.favicon_url);
-  }, [effectiveSettings.theme_colors, effectiveSettings.images.favicon_url]);
+    applyDocumentTitle(effectiveSettings.branding.platform_name);
+  }, [
+    effectiveSettings.theme_colors,
+    effectiveSettings.images.favicon_url,
+    effectiveSettings.branding.platform_name,
+  ]);
 
   useEffect(() => {
     fetchSettings();
