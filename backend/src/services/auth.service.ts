@@ -49,7 +49,7 @@ export async function createUserWithCompany(
   email: string,
   password: string,
   fullName: string,
-  companyId: string,
+  companyId: string | null,
   role: string = "admin"
 ): Promise<AuthUser> {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
