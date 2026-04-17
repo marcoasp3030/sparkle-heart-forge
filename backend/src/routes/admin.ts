@@ -14,19 +14,25 @@ const createUserSchema = z.object({
   email: z.string().trim().email().max(255),
   password: z.string().min(6).max(128),
   full_name: z.string().trim().min(1).max(100),
-  company_id: z.string().uuid(),
-  role: z.enum(["admin", "user"]).default("admin"),
+  company_id: z.string().uuid().nullable().optional(),
+  role: z.enum(["admin", "user", "superadmin"]).default("admin"),
 });
 
 router.post("/users", requireSuperAdmin, validate(createUserSchema), async (req: Request, res: Response) => {
   try {
     const { email, password, full_name, company_id, role } = req.body;
-    const user = await createUserWithCompany(email, password, full_name, company_id, role);
+
+    // Superadmin não exige company_id; admin/user exigem
+    if (role !== "superadmin" && !company_id) {
+      return res.status(400).json({ error: "company_id é obrigatório para admin/user" });
+    }
+
+    const user = await createUserWithCompany(email, password, full_name, company_id || null, role);
 
     await pool.query(
       `INSERT INTO audit_logs (user_id, action, resource_type, category, details, company_id)
        VALUES ($1, 'user_created', 'profile', 'admin', $2, $3)`,
-      [req.user!.user_id, JSON.stringify({ created_email: email, role, company_id }), company_id]
+      [req.user!.user_id, JSON.stringify({ created_email: email, role, company_id }), company_id || null]
     );
 
     res.status(201).json({ user_id: user.id, message: `Usuário ${email} criado com sucesso` });
