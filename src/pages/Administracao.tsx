@@ -257,6 +257,79 @@ const Admin = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Dialog: Criar Superadmin */}
+      <Dialog open={openCreate} onOpenChange={(o) => { setOpenCreate(o); if (!o) setFormErrors({}); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Criar novo Superadmin
+            </DialogTitle>
+            <DialogDescription>
+              Cria um usuário com acesso global a todas as empresas. Use com cautela.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-name">Nome completo</Label>
+              <Input
+                id="sa-name"
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                placeholder="Ex.: Maria Silva"
+                maxLength={100}
+                disabled={creating}
+              />
+              {formErrors.full_name && <p className="text-xs text-destructive">{formErrors.full_name}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-email">E-mail</Label>
+              <Input
+                id="sa-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="superadmin@empresa.com"
+                maxLength={255}
+                disabled={creating}
+                autoComplete="off"
+              />
+              {formErrors.email && <p className="text-xs text-destructive">{formErrors.email}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-pass">Senha provisória</Label>
+              <Input
+                id="sa-pass"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                placeholder="Mínimo 6 caracteres"
+                maxLength={128}
+                disabled={creating}
+                autoComplete="new-password"
+              />
+              {formErrors.password && <p className="text-xs text-destructive">{formErrors.password}</p>}
+              <p className="text-[11px] text-muted-foreground">
+                O usuário será obrigado a trocar a senha no primeiro login.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateSuperadmin} disabled={creating} className="gap-2 gradient-primary border-0 hover:opacity-90">
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              {creating ? "Criando..." : "Criar Superadmin"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
